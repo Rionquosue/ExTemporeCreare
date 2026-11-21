@@ -30,3 +30,5 @@ Use [docs/filestructure.md](docs/filestructure.md) to find documents and code wi
 - [components/](components/): code shared by several tools or UI elements.
 - [dependencies/](dependencies/): dependencies required to build.
 - [docs/](docs/): standards, agent instructions and indexe, active documentation, general how-to and tool documentation drafts for 'help' documentation. ([classes.md](docs/classes.md), [variables.md](docs/variables.md)).
+
+Engine based on VectorCraft
