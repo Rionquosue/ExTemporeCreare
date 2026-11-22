@@ -570,6 +570,10 @@ The canonical alpha implementation **MUST** publish a machine-validatable JSON S
 | `.svg` | **Planned vector interchange** | Export editable vector geometry where representable. Raster and unsupported effects require embedding or rasterization. |
 | `.png` | **Planned image export** | Export flattened RGB/grey image with correct transparency and ICC/profile tagging; CMYK requires another format. |
 | `.tif` / `.tiff` | **Planned print interchange** | Lossless CMYK export with a selected and embedded ICC print profile; distinct from native project storage. |
+| `.pdf` | **Import and export** | Open/place PDF pages as editable vector artwork where representable; export the document as PDF. PDF/X delivery remains out of alpha scope (§6.5). |
+| `.afdesign` / `.af` / `.afpub` | **Import** | Open Affinity documents as editable artwork where representable. |
+| `.cdr` | **Import** | Open CorelDRAW documents as editable artwork where representable. |
+| Raster images: `.jpg` / `.jpeg`, `.gif`, `.webp`, `.bmp`, `.tga`, `.psd`, `.heic` / `.heif`, `.jxl`, `.jp2` / `.j2k` / `.jpx` | **Import** | Open/place as raster artwork, preserving embedded ICC profiles per §6.2. |
 | `.kra` | **Out of project scope** | See §10. No native support, parser, writer or converter required. |
 
 Interchange exports **MUST NOT** overwrite or downgrade the source `.etc` project without explicit user consent. When an export would lose masks, styles, filters, color precision, or editability, the app **MUST** disclose the affected features.

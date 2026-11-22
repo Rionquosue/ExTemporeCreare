@@ -33,6 +33,7 @@ EXTEMPORECREARE
 |   |   |-- filestandard.md
 |   |   |-- Toolstandards/
 |   |   |   |-- graphic_design_tools_and_filters.md
+|   |   |   |-- toolstandard.md
 |   |   |-- UIStandards/
 |   |       |-- uistandards.md
 |   |-- for_agents/
