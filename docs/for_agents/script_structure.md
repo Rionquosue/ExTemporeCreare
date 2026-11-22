@@ -9,8 +9,8 @@ The full rules, tool names and script locations are in `filestructure.md`. In sh
 
 ## Factoring and name rules
 
-1. All names must be consistent. If a tool is named "FlipTool" then all classes and scripts related should be along the lines of "FlipToolMenu.cs" or "FlipToolChecks.cs"
-2. All files must be human readable and refactorable. Keep names descriptive, comment where clarity is needed. An example is commenting "This segment calls Components/FuzzyMatch.cs to embed a fuzzy search window."
+1. All names must be consistent. If a tool is named "FlipTool" then all classes and scripts related should be along the lines of "FlipToolMenu.kt" or "FlipToolChecks.kt"
+2. All files must be human readable and refactorable. Keep names descriptive, comment where clarity is needed. An example is commenting "This segment calls components/FuzzyMatch.kt to embed a fuzzy search window."
 2. All names must be simple and descriptive. Things should be named something like "PreFlight" if they run before, "PostFlight" if after. 
 
 ## UI Design rules

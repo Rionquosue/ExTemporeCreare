@@ -1,461 +1,343 @@
-# Ex-Tempore Creare — UI Standards
+# Ex Tempore Creare — UI Standards
 
-**Filename:** `uistandards.md`  
-**Status:** Alpha UI specification  
-**Reference implementation:** `Ex-Tempore-Creare_UI_Mockup_v10.html`  
-**Companion specifications:** `applicationstandard.md`, `filestandard.md`  
-**Product target:** Tablet-first drawing and design application, with desktop and smaller-screen adaptations.
+**File:** `UIStandards.md`  
+**Status:** Draft for review · version 0.1  
+**Date:** 2026-11-22  
+**Baseline:** `Ex-Tempore-Creare_UI_Mockup_v10.html`
 
-## 1. Purpose and authority
+## 1. Scope and authority
 
-This document specifies the appearance, structure, and expected interaction of the Ex-Tempore Creare user interface as established in the **v10 interactive mockup** and its approved rotary/layer conventions. It covers the launch screen, document creation, workspace chrome, rotary tools, floating panels, unified layer stack, textures, reference board, colour controls, and export workflow.
+This document defines ETC’s visual language, workspace composition, controls and interaction behaviour using the current v10 mockup. It incorporates the startup and export requirements in `applicationstandard.md` (0.1.2) and persistence requirements in `filestandard.md` (0.4.2).
 
-- **MUST**: Required for the alpha implementation.
-- **SHOULD**: Preferred behavior where platform constraints permit.
-- **MAY**: Optional or later enhancement.
-- **Prototype-only**: Demonstrated in HTML but not yet a production renderer or file format.
+**MUST** identifies required behaviour; **SHOULD** identifies a recommended implementation. Measurements below are mockup reference values, not mandatory physical device sizes. Proposed refinements and unresolved decisions are explicitly separated in §13.
 
-The mockup establishes the UI layout and interaction contract. `filestandard.md` governs `.etc` and `.etcr` persistence, ICC colour handling, and document structure; `applicationstandard.md` governs startup/recovery and export workflow. A visual shortcut in the prototype must not remove an explicitly required feature.
+The mockup includes inherited styles and an older v8 HTML title. Its final style overrides and v10 behaviour define the baseline. Earlier `ui-spec.MD` statements allowing tap-to-select tools or leaving global filter scope undecided are superseded here. This draft does not modify those source documents.
 
-## 2. Interface principles
+The mockup demonstrates interaction and appearance; it does not establish that every displayed feature is implemented in the production engine.
 
-1. **Canvas first.** Artwork receives the largest possible working area. Avoid permanent inspectors, duplicate status bars, and oversized tool palettes.
-2. **Progressive disclosure.** Frequently used operations stay visible; detailed controls open only when requested and close without disrupting the workspace.
-3. **Direct manipulation.** Tool rotation, drawing, slice selection, dragging, docking, and quick numeric adjustments should work with stylus or touch.
-4. **Consistent control placement.** Do not arbitrarily move or replace the approved hamburger, mask, folder, Blend Mode, Opacity, Fill, or rotary affordances.
-5. **Independent movable UI nodes.** Panels may be collapsed, repositioned, and edge-docked. Minimized items should use the least practical screen area.
-6. **One authoritative layer stack.** Raster, vector, textures, global filters, and folders share one top-to-bottom compositing hierarchy.
-7. **Non-destructive editing.** Tool settings, masks, effects, export slices, and reference transformations must remain editable.
-8. **No redundant readouts.** Do not recreate the removed bottom-centre `100% / Pen 12 px` bar; tool identity and size belong in the rotary.
+## 2. Core principles
 
-## 3. Launch and session flow
+- **Canvas first:** preserve drawing space with compact, collapsible controls.
+- **Tablet first:** primary tasks MUST work with touch and stylus, without hover, right-click or a keyboard.
+- **Modular workspace:** panels can float, collapse and dock; their state survives rearrangement.
+- **Direct essentials:** keep Menu, Undo, Redo, Save, view Flip and Export accessible.
+- **Contextual detail:** reveal settings near the relevant control instead of adding permanent inspectors.
+- **Non-destructive editing:** distinguish document changes, view changes and output-region changes.
+- **Consistent state:** active tools, selected items, disabled controls and save results must be intelligible.
 
-### 3.1 Cold launch
+## 3. Visual language
 
-The opening screen MUST appear immediately when no active suspended session exists. Its primary composition is:
+Use dark blue-grey surfaces, warm neutral text and restrained gold accents. Artwork remains the dominant visual content. Floating surfaces use translucent fills, thin borders, soft shadows and modest background blur.
 
-```text
-                  [ ETC logo ]
-              Ex-Tempore Creare
-               CREATE ON THE FLY
+### 3.1 Colour tokens
 
-          [ New Document ]  [ Open ]
+Values are taken from the mockup’s root palette; local component overrides may use related shades.
 
-                  Recent projects
-        [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ]
-        [ 6 ] [ 7 ] [ 8 ] [ 9 ] [10 ]
+| Role | Reference token | Value |
+| --- | --- | --- |
+| Deep workspace background | `--bg` | `#0C131B` |
+| Application shell | `--shell` | `#141E29` |
+| Floating panel | `--panel` | `#17222EEB` |
+| Secondary panel surface | `--panel2` | `#1D2A37` |
+| Main border | `--line` | `#34404F` |
+| Subtle divider | `--line-soft` | `#2A3644` |
+| Primary text | `--text` | `#F1EEE9` |
+| Secondary text | `--muted` | `#A4AEB7` |
+| Subdued text | `--soft` | `#778492` |
+| Active / primary accent | `--gold` | `#EFC98C` |
+| Secondary gold | `--gold2` | `#DBA767` |
+| Positive status accent | `--teal` | `#83C5BB` |
+| Demonstration paper | `--paper` | `#E7DDC6` |
 
-                    [ Settings ]
-```
+The paper colour is demonstration artwork styling, not a forced background for every document. Transparency and user-selected backgrounds remain supported.
 
-- Show **up to 10 recent saved projects**, five columns by two rows in the tablet landscape layout; use newest-first ordering.
-- Recent entries display a preview/thumbnail area, document name, and saved/modified information. The v10 mockup shows disabled placeholders for empty slots; those placeholders are not actual recent documents.
-- `New Document` opens the document-creation dialog. `Open` invokes file selection. `Settings` opens application settings.
-- Narrow layouts MAY reflow the grid (the mockup uses two columns on small screens).
-- Avoid an intervening marketing, tutorial, or confirmation screen on ordinary launch.
+### 3.2 Typography, icons and surfaces
 
-### 3.2 Resume
+| Element | Standard |
+| --- | --- |
+| Interface text | Inter where available; system sans-serif fallback |
+| Branding and splash headings | Restrained serif treatment, matching the mockup’s Georgia/serif styling |
+| Labels | Short, readable names; reserve uppercase tracking for small category labels |
+| Numeric values | Tabular figures where practical; display units beside values |
+| Icons | Consistent outline family, rounded strokes; approximately 17 px / 1.75 px stroke for ordinary icons |
+| Panels | Rounded rectangles; root radius 16 px, Layers reference radius 14 px |
+| Inputs and small buttons | Smaller, consistent corner radii; visible border and focus state |
+| Top actions | Compact pill buttons; Menu uses a distinct rounded-square button |
+| Active tool | Warm gold fill, bright outline and restrained glow |
+| Selected layer | Warm tinted card and gold border |
+| Disabled control | Reduced emphasis and no activation; retain legibility |
 
-If the application was backgrounded, tabbed out, minimized, suspended, or put to sleep with an active document, it MUST resume **directly to the prior workspace**, not return to the opening screen. Preserve the document, selected tool, panels, active controls, unsaved edits, and artwork camera/recovery state. An intentional `Home screen` command is different: it returns to the opening screen.
+Blur and transparency MUST NOT make labels unreadable over artwork. Use an opaque fallback where blur is unavailable. Effects indicate hierarchy and state, not decoration on every control.
 
-The prototype uses browser-local recovery on visibility loss and `pagehide`. Production resume and checkpoint guarantees belong to `applicationstandard.md`.
+## 4. Workspace composition
 
-## 4. New Document and application settings
+| Component | Default location / presentation | Behaviour |
+| --- | --- | --- |
+| Artwork canvas | Central, largest available area | Finite artboard or infinite drawing surface |
+| Essential actions | Compact top bar | Menu at far left; Undo, Redo, Save, Flip and Export grouped beside it |
+| Branding | Right end of top bar | Can reduce or hide on narrow screens |
+| Rotary tool dial | Cropped into the lower-left corner | Rotation selects the tool beneath a fixed active sight |
+| Tool readout | Immediately beside the dial | Active tool name, relevant value and quick adjustment |
+| Layers | Floating upper-right panel | Ordered cards with controls directly on each card |
+| Export Settings | Reuses the Layers footprint | Replaces Layers while the Export tool is active |
+| Texture library | Floating upper-left panel | Collapsible preset browser |
+| Reference board | Lower-right panel | Collapsible independent reference workspace |
+| Colour workspace | Opens near the dial | Picker, swatches, history and mixing pad |
+| Main menu | Opens from the leftmost Menu control | Secondary commands, view controls and layout reset |
 
-### 4.1 New Document dialog
+Do not require a permanent full-height sidebar. Do not restore the obsolete separate layer inspector or a permanent zoom strip; zoom commands remain available through the menu and supported navigation inputs.
 
-The New Document dialog MUST contain the following controls:
+The desktop mockup’s top bar is approximately 51 px high. The Layers panel is approximately 368 px wide, reducing at narrower widths. These are starting proportions, subject to touch readability.
+
+**Canvas focus mode** hides floating panels while retaining the rotary dial, its colour control and essential actions. Exiting focus mode MUST restore the previous panel arrangement.
+
+## 5. Opening splash and document setup
+
+### 5.1 Startup routing
+
+| Entry condition | Required destination |
+| --- | --- |
+| Cold launch without a resumable session | Opening splash |
+| Return from another app, minimization, sleep or suspension | Previous editor state immediately |
+| Explicit Home / document close | Opening splash |
+| Interrupted session with valid recovery | Recover the session; surface recovery failure if necessary |
+
+Resume MUST preserve unsaved work, document, camera, active tool and panel state. Backgrounding alone MUST NOT return the user to the splash.
+
+### 5.2 Splash layout
+
+Present, in order:
+
+1. ETC identity and the primary actions **New Document** and **Open**.
+2. Up to **ten recent saved files**, arranged in **two rows of five** on tablet landscape.
+3. A separate **Settings** control below the recent-file area.
+
+Recent files are ordered newest first and should show thumbnail, name and date. Empty slots may be unobtrusive placeholders. Missing files offer Locate / Remove from recents. Narrow screens may reflow the grid while preserving order and the ten-file display limit.
+
+### 5.3 New Document
+
+| Control | Required presentation |
+| --- | --- |
+| Name | Editable; default `Untitled` |
+| Canvas mode | Finite / Infinite |
+| Preset | Populates editable document settings |
+| Width and height | Positive values; finite canvas only |
+| Units | `px`, `in`, `cm`, `mm` |
+| Resolution | PPI; show resulting pixel dimensions |
+| Orientation | Swap finite width and height |
+| Colour profile and bit depth | Only capabilities supported by the engine |
+| Background | Transparent or selected solid colour |
+| Create / Cancel | Clear commit and dismissal controls |
+
+Infinite mode disables irrelevant outer-dimension fields and explains that slices define finite export output. Settings SHOULD support reusable document defaults. Device limits and validation errors must be visible before creation.
+
+## 6. Rotary tool system
+
+### 6.1 Selection contract
+
+- The dial rotates beneath a stationary **45° active sight**, in the upper-right quadrant relative to its centre.
+- The tool arriving at that sight becomes active. **Tapping an inactive tool MUST NOT select it.**
+- Inactive positions remain muted beneath the frosted ring; the active position stays sharp and highlighted.
+- The dial is partially clipped by the workspace edge by design. Its active sight, central colour control and tool settings MUST remain reachable.
+- Dragging the ring rotates tools. Mouse-wheel and keyboard stepping may supplement this interaction.
+- Repositioning uses the dial grip; ring rotation, colour input and node dragging must not conflict.
+
+The current inventory is **Brush, Pen, Eraser, Fill, Selection, Shapes, Move, Crop and Export**. This inventory does not imply that all tools are functional in the HTML prototype. Slot spacing must accommodate the actual inventory; do not hard-code an eight-slot geometry.
+
+### 6.2 Tool settings
+
+The active tool name and applicable size appear adjacent to the dial. The quick-adjust control supports vertical dragging to change size for applicable tools. Tapping the active tool or its settings trigger opens a compact contextual settings window.
+
+Show only relevant settings: brush/pen/eraser size and hardness, fill tolerance, or other supported tool properties. Preserve each tool’s settings when switching. Do not present a brush size as though it controls Export, Move or Selection.
+
+### 6.3 Central colour control
+
+| Gesture | Behaviour |
+| --- | --- |
+| Single tap | Swap primary and alternate colours |
+| Double tap | Open or close the colour workspace |
+| Dial-grip hold and drag | Reposition the toolbar node |
+
+Recognize double taps without first committing an accidental colour swap. Keep both colour samples visible in the centre.
+
+## 7. Layers, folders and filters
+
+### 7.1 Unified stack and cards
+
+Display the hierarchy top to bottom, with the topmost item first. Each card provides its frequently used properties directly; selection MUST NOT be required merely to reveal basic opacity and blend controls.
+
+| Card element | Behaviour |
+| --- | --- |
+| Name and type | Identify the item; truncate visually without losing access to the full name |
+| Visibility | Toggle rendering without deleting content |
+| Drag grip | Reorder with a clear drop indicator |
+| Folder chevron | Expand/collapse children without changing artwork |
+| Blend mode | Select an applicable blend/transfer operation |
+| Opacity | Direct percentage entry plus separate dropdown slider |
+| Fill | Separate direct percentage entry plus dropdown slider |
+| Mask control | Expose applicable mask state and operations |
+| Modifier menu | Open non-destructive layer styles |
+
+Opacity and Fill are separate properties and MUST NOT be aliases. Both use a bounded 0–100% value, a visible percent symbol and a distinct arrow button opening a larger touch-friendly slider. Numeric typing must remain possible without dragging a slider. Popovers stay within the workspace and identify the edited property.
+
+The creation row contains **Vector, Raster, Filter and Texture**. The footer provides **Delete** and **Add Folder**. Avoid duplicating these with a second persistent inspector.
+
+### 7.2 Blend modes and modifiers
+
+The mockup lists Normal, Multiply, Screen, Overlay, Soft Light, Hard Light, Color Dodge, Color Burn, Darken, Lighten, Difference, Hue, Saturation, Color and Luminosity.
+
+Its modifier menu lists Stroke, Bevel & Emboss, Color Overlay, Gradient Overlay, Drop Shadow and Outer Glow. These are the current UI inventory, not a complete engine capability specification. Unsupported operations must not silently behave like a different operation.
+
+### 7.3 Filter scope and folders
+
+**Filter layers cascade over every visually lower item, including items in other folders.** Folder boundaries do not silently restrict this global scope. Per-layer styles remain attached to their own item and are distinct from cascading filter layers.
+
+Folders may contain layers, textures, filters and other folders. Visibility and opacity affect descendants. Dragging a folder moves its descendants; self-parenting and moves into descendants are invalid. Preserve child order, provide clear nesting/drop feedback, and confirm deletion of a nonempty folder.
+
+### 7.4 Texture library
+
+Show named preview tiles. Selecting a preset inserts an editable texture layer with visibility, opacity, blend and scale/tiling controls. It does not permanently bake texture into the artwork. Texture layers participate in ordering, folders, saves and exports.
+
+## 8. Colour and reference workspaces
+
+### 8.1 Colour workspace
+
+Provide a saturation/value picker, hue control, numeric colour input, saved swatches, recent history and a small mixing pad. The pad supports paint gestures, primary/alternate colour use, sampling and reset.
+
+Mixing is intended to simulate pigment interaction rather than simply average RGB values. The production mixing algorithm remains unresolved; the prototype’s approximation is not a final rendering requirement.
+
+### 8.2 Reference board
+
+The board is a PureRef-inspired workspace for importing, arranging and viewing reference images. Tapping its header collapses or restores it; holding the header allows repositioning. Collapsing MUST preserve its images, arrangement and camera.
+
+Reference images and the reference camera belong to **`.etcr`**, independently of the artwork **`.etc`** document. Missing linked imagery must remain identifiable and relinkable. Reference imagery MUST NOT appear in artwork exports.
+
+## 9. Export tool and slices
+
+### 9.1 Context switch
+
+Rotating Export into the active sight replaces **Layers** with **Export Settings in the same panel footprint**. Rotating away restores Layers with its prior selection, folder expansion and scroll position. Preserve export-panel state on return.
+
+The top-bar Export action remains available. The radial Export tool supplies region editing; the top-bar action enters the output flow.
+
+### 9.2 Export Settings
 
 | Control | Standard |
 | --- | --- |
-| Document name | Editable text; initial value `Untitled`. |
-| Canvas mode | `Finite canvas` / `Infinite canvas` segmented choice. |
-| Preset | `Custom`, `Full HD · 1920 × 1080`, `Square · 2048 × 2048`, `A4`, `US Letter`. |
-| Width / Height | Editable positive values for a finite canvas. Disabled for infinite canvas. |
-| Units | `px`, `in`, `cm`, `mm`. |
-| Resolution | PPI input; v10 prototype defaults to `300`. |
-| Colour profile | sRGB, Display P3, Adobe RGB (1998), Gray Gamma 2.2, FOGRA51 CMYK, GRACoL 2013 CMYK in the mockup. |
-| Bit depth | `8-bit / channel` or `16-bit / channel`. |
-| Background | Transparent or white. |
-| Footer | `Cancel` and `Create Document`. |
+| Scope | Auto Content Slice; Whole Document for finite canvas; Selected Slice / All Slices when applicable |
+| Slice list | Named selectable regions; visibility, rename, duplicate and delete |
+| Ratio | Two editable positive values separated by `:` |
+| Dimensions | Width / height with `px`, `in`, `cm`, `mm` |
+| Output | Supported format, scale/resolution and final raster pixel dimensions |
+| Colour / transparency | Options consistent with the document and export capabilities |
+| Grid | Dotted overlay, visibility, snapping and grid size |
 
-- Show the resulting pixel dimensions and PPI as a compact, automatically updated conversion line.
-- In infinite mode, disable finite width/height fields and explain that export regions define finite output.
-- Keep the form in a focused, dismissible dialog rather than occupying the persistent editor workspace.
-- Actual ICC conversion, high-bit-depth rendering, and CMYK storage are **not implemented by the HTML mockup**; their required behavior belongs to `filestandard.md`.
+Whole Document is unavailable for infinite canvases. Grid controls belong to Export Settings, not every tool’s default controls.
 
-### 4.2 Application Settings
+### 9.3 Slice editing
 
-The currently visualized Settings dialog contains **Default colour profile** and **Default resolution (PPI)**, saved locally by the prototype. Additional settings should follow the same compact, task-specific dialog convention, rather than adding permanent controls to the canvas.
+1. Drag on the canvas while Export is active to preview a rectangle.
+2. Release to create a slice and automatically reveal its ratio/dimensions editor.
+3. Drag the centre handle to move the slice; use boundary/corner handles to resize.
+4. Edit either ratio value to resize about the existing centre unless a handle determines the anchor.
+5. Switch display units without unexpectedly changing the actual region.
 
-## 5. Editor workspace and persistent commands
+Grid snapping uses document coordinates and remains stable under pan and zoom. Slices are editable document objects, not layer cards, painted pixels or destructive crops. Geometry edits participate in Undo/Redo and saves.
 
-### 5.1 General layout
+### 9.4 Automatic content slice
 
-The workspace uses a dark, low-distraction shell with a central artwork surface, a slim toolbar across the top, the corner rotary at bottom-left, a layer/export panel typically at upper-right, a texture library typically at upper-left, and a compact reference icon near the lower-right. Panel positions are movable and not fixed workflow constraints.
+When exporting without user-defined slices, automatically create **one content-following slice** around all visible exportable artwork, including visible effect extents. No region-selection confirmation is required when valid bounds exist.
 
-### 5.2 Top toolbar
+Exclude hidden content, reference images, guides, grid dots and interface controls. A configured background alone does not establish content bounds. The automatic region updates as artwork changes until the user moves, resizes or changes its ratio/dimensions; that edit converts it into a fixed manual slice.
 
-The persistent primary controls MUST remain available and keep the established order:
+Existing manual slices remain authoritative. With no visible exportable content, show **Nothing to export** and offer slice creation. Finite documents may explicitly export Whole Document; this is not the automatic fallback.
 
-```text
-[ Hamburger ] [ Save ] [ Flip Horizontally ] [ Undo ] [ Redo ] [ Export ]
-```
+All exports exclude UI overlays and use the same intended layer/filter composition as the artwork view. Extended effects must not be clipped by naïve geometry-only bounds.
 
-- **Hamburger:** Opens the collapsed command menu for secondary actions.
-- **Save:** Saves the editable project and its current artwork camera state.
-- **Flip Horizontally:** Flips the *view*; it must not silently mirror stored artwork.
-- **Undo / Redo:** Reverses or reapplies eligible editing operations.
-- **Export:** Opens the export confirmation/output workflow; it does not substitute for selecting the rotary's Export tool when creating/editing slices.
-- The brand/logo may be displayed toward the opposite end of the header, as in v10.
+## 10. Panel movement and input precedence
 
-The hamburger menu currently exposes Home screen, New composition, Open saved project, Rename composition, Colour laboratory, Layers & filters, Texture library, Reference board, Canvas focus mode, Fit canvas to view, Zoom in/out, Reset UI layout, and a demonstration-only clear-strokes command. Nonessential commands belong here rather than in the persistent toolbar.
-
-### 5.3 Focus mode and canvas controls
-
-- `Canvas focus mode` hides floating panels while leaving the rotary accessible.
-- Zoom commands belong in the hamburger menu and gesture/keyboard interactions, **not** in a separate permanent bottom-centre zoom strip.
-- Opening a popover must not permanently shift or shrink the artwork surface.
-- Camera position and orientation must be restorable from `.etc` and session recovery; see §12.
-
-## 6. Corner rotary — primary tool selector
-
-### 6.1 Geometry and visual state
-
-The rotary is a clipped circular dial emerging from the **bottom-left corner**. Most of its circumference is intentionally hidden outside the viewport; the cut-off edge is a functional visual cue that the ring can rotate.
-
-- The **active tool sits in a fixed aperture at 45° from the bottom-left corner** (upward-right from the rotary centre).
-- The tool ring rotates **under** that stationary active position.
-- Only the active tool is crisp, prominent, and fully opaque, with a warm-highlight treatment.
-- Inactive tool icons remain recognizable at substantially lower opacity beneath a translucent, glass-like rotary cover.
-- Do not highlight an arbitrary tool elsewhere on the ring; do not use opacity as a second selection mechanism.
-- The rotary retains the central **primary/alternate colour selector**.
-
-### 6.2 Selection gestures
-
-| Gesture | Required response |
+| Interaction | Required response |
 | --- | --- |
-| Rotate the wheel by touch/stylus drag | Advance or reverse through tools and snap the next selection to the fixed 45° aperture. |
-| Scroll over the rotary (desktop) | Step through the tool list. |
-| Use arrow keys when the rotary has keyboard focus | Step forward/backward. |
-| Tap the **active** tool | Open or close its contextual settings. |
-| Tap an **inactive** icon | **Do not change the selected tool.** Selection is by rotation only. |
-| Long-press the dedicated drag grip | Reposition/dock the complete rotary node, without rotating the tool selection. |
+| Tap a control | Perform its labelled action |
+| Hold a panel header or node grip | Enter repositioning mode |
+| Drag the held node | Move it with visible drag feedback |
+| Approach a dock target | Show a placement preview |
+| Release over a dock target | Dock the node |
+| Release elsewhere | Leave it floating |
+| Collapse / restore | Preserve component state |
+| Reset UI layout | Restore default placement without altering artwork |
 
-The v10 tool list comprises **Brush, Pen, Eraser, Fill, Selection, Shapes, Move, Crop, and Export**. Additions must follow the same selection convention.
+Canvas strokes, layer reordering, slider adjustment and dial rotation MUST NOT accidentally move panels. Buttons and form fields must not trigger header dragging. Following a drag, suppress the accidental click that could collapse the panel.
 
-### 6.3 Tool readout and quick adjustment
+Keep controls reachable after window resize, orientation changes and undocking. The deliberate corner crop of the rotary is an exception to full-node containment, not permission to hide its essential controls.
 
-- Within the rotary, show the selected tool's name and its primary size when applicable (for example, **Pen / 12 px**).
-- Place a **dedicated quick-adjust drag button directly below** the readout. A vertical drag changes the active tool's size/width when relevant. The prototype uses 1–128 px for supported brush tools.
-- The drag button is separate from the tool-selection ring and the UI-node drag grip.
-- A tool lacking a size parameter should not display an irrelevant size input or quick-adjust handle.
-- Frequently changed hardness or comparable quick parameters may be exposed through this area, as determined by the tool's available options.
+## 11. Responsive behaviour and feedback
 
-### 6.4 Contextual expanded settings
+- Landscape is the reference layout; portrait and narrow layouts retain the same interaction model.
+- Reduce decorative branding and redundant visible labels before removing essential actions.
+- Constrain panel widths to the viewport and scroll panel contents when needed.
+- Reflow recent files and document fields on narrow screens; keep dialogs scrollable.
+- Reposition popovers to avoid clipping. Maintain usable targets rather than simply shrinking the entire interface.
+- Provide accessible names for icon buttons, visible keyboard focus and clear selected/expanded states.
+- Use brief toasts for successful actions; use persistent, actionable messages for errors needing correction.
+- Save status must reflect actual save completion. Never report an unsuccessful operation as saved.
+- View Flip mirrors the view only; it does not rewrite artwork geometry or mirror the exported image.
 
-The expanded tool window MUST be **closed by default**. Tapping the active tool or its expansion button opens a small, curved panel following the rotary contour. Changing tools closes the previous tool's window.
+## 12. State and persistence
 
-Current context examples:
-
-- Pen / Brush / Eraser: size slider, brush-size preview, quick presets, hardness.
-- Fill: tolerance, Contiguous, Sample all layers.
-- Shapes: fill and stroke/outline toggles.
-- Tools without relevant options: no empty controls.
-
-The expanded window is not another permanently visible inspector. It may scroll if its controls exceed available space.
-
-### 6.5 Colour core
-
-- **Single tap:** Swap the primary and alternate colours.
-- **Double tap:** Open the Colour laboratory panel.
-- Display the two colours as overlapping swatches in the rotary centre.
-- Keep the centre colour control available even when other panels are hidden.
-
-## 7. Unified Layers / Filters / Folders panel
-
-### 7.1 Structure and ordering
-
-The upper-right floating panel is normally titled **Layers** and contains:
-
-1. A collapsible header, with a drag affordance and item count.
-2. Four layer-creation actions: **Vector**, **Raster**, **Filter**, **Texture**.
-3. A clearly labelled **COMPOSITING STACK — TOP ↓ BOTTOM**.
-4. A scrollable list of layer/folder cards.
-5. An optional collapsed `Selected layer · advanced` section.
-6. Footer: **Delete** on the far-left and **New Folder** on the far-right.
-
-The **bottom-right footer button creates a folder, never a layer**. The four creation buttons and all stack controls collapse with the parent panel.
-
-The same stack contains raster layers, vector layers, texture layers, global filter layers, and nested folders. Items can be renamed, toggled visible, reordered, and moved between folders. Folders can be expanded/collapsed and can contain mixed layer types. Selection and drag/drop must remain distinguishable.
-
-### 7.2 Required layer-card layout
-
-Every individual layer card MUST preserve this arrangement:
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│ [≡]  Layer name                 [Type]              [Visibility] │
-│                                                                  │
-│ [Type icon]  Blend Mode     Opacity       Fill          [Mask]     │
-│              [dropdown]     [100% ▾]     [100% ▾]                │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-- **Top-left card hamburger** opens modifiers and layer effects for **that specific layer**.
-- **Name and type** remain identifiable without opening a separate inspector.
-- **Visibility** is accessible directly on the card.
-- **Blend Mode, Opacity, and Fill are always visible**, individually editable, and not buried in the layer modifier menu.
-- **Mask action belongs at the bottom-right of the individual layer card.** It adds/removes/edits the associated mask and must visibly indicate whether a mask is active.
-- The card's selection state should be visibly distinct without obscuring these controls.
-
-### 7.3 Opacity and Fill interactions
-
-These controls are **independent**, not synonyms. For both properties:
-
-- Display a compact field containing the current percentage and a small dropdown arrow; do **not** put a permanent inline slider in every layer card.
-- **Tap the percentage:** Direct numeric entry, 0–100%, with validation/clamping.
-- **Tap the adjacent arrow:** Open a larger, touch-friendly anchored slider; update the visible percentage as it moves.
-- The temporary popup should be headed **only `Opacity` or `Fill`**, with the current percentage and scale. **Do not repeat the layer name in the popup.** The popover is already anchored to its layer.
-- Closing the popup does not change selection, mask, blending, or hierarchy.
-
-Target compositing semantics distinguish complete layer opacity from the fill/content contribution; precise rendering is the engine's responsibility. The HTML preview approximates these values and does not prove Photoshop-equivalent rendering.
-
-### 7.4 Blend modes
-
-The v10 dropdown includes: Normal, Multiply, Screen, Overlay, Soft Light, Hard Light, Color Dodge, Color Burn, Darken, Lighten, Difference, Hue, Saturation, Color, and Luminosity.
-
-Blend selections remain visible per layer. Preserve their names and distinct intent even where a prototype preview cannot correctly demonstrate every mode.
-
-### 7.5 Per-layer modifiers
-
-Tapping the **layer-card hamburger** opens a contextual, non-destructive effects menu. The current mockup includes **Stroke, Bevel & Emboss, Color Overlay, Gradient Overlay, Drop Shadow, and Outer Glow**.
-
-Effects are attached to the selected layer, editable independently, and represented in that layer's controls/status. A full modifier UI may expand later; it must not displace the always-visible Blend Mode, Opacity, or Fill controls.
-
-### 7.6 Cascading global filter layers
-
-- A **Filter layer** affects all applicable layer content **beneath it in top-to-bottom stack order**, regardless of parent folder boundaries.
-- A folder boundary MUST NOT terminate a global filter's reach.
-- Filter layers can reproduce effects also offered as per-layer modifiers, but with a different scope.
-- Reordering a filter changes the layers to which its cascade applies.
-- Filter visibility and parameters remain editable.
-- Avoid conflating **a filter layer**, **a layer-local modifier**, and **a texture layer**.
-
-The v10 browser demonstration uses simplified SVG/CSS approximations rather than a full stack-aware compositor.
-
-### 7.7 Advanced controls
-
-`Selected layer · advanced` is reserved for less frequently edited properties such as texture size/tiling, parent-folder reassignment, and rename. It MUST NOT replace the controls required directly on every layer card.
-
-## 8. Texture library
-
-The floating **Texture library** is a collapsible panel that can add a procedural overlay as an **editable texture layer**. The v10 library contains eight entries:
-
-| Texture | Intended appearance |
+| State | Owner / required behaviour |
 | --- | --- |
-| Paper grain | Fine organic surface grain |
-| Fine linen | Subtle woven fibres |
-| Halftone dots | Print-like dot screen |
-| Stipple | Irregular ink specks |
-| Crosshatch | Directional sketch lines |
-| Watercolor wash | Diffuse pigment wash |
-| Crackle | Distressed cracked surface |
-| Brushed metal | Linear industrial finish |
+| Artwork, layer hierarchy, effects and export slices | `.etc` document |
+| Saved artwork camera | `.etc`, under `workspace.artworkViewport`; document-space centre, zoom and supported view rotation/flip |
+| Reference images, layout and reference camera | Independent `.etcr` board |
+| Panel positions, docking and collapse state | Workspace/application preferences |
+| Tool preferences and recent files | Application/session state |
+| Unsaved edits and most recent session camera | Recovery/session state |
 
-Selecting a texture creates or configures a texture layer in the unified stack. Its opacity, Blend Mode, and scale are adjusted through normal layer controls and the advanced inspector. The library itself is **not** a second independent compositor.
+Opening a saved document restores its artwork camera. Resuming an interrupted session may use a newer valid recovery camera without silently rewriting the saved document. UI layout changes and reference-board navigation MUST NOT become artwork pixels.
 
-## 9. Reference board
+## 13. Prototype gaps and proposed refinements
 
-### 9.1 Collapsed state
+### 13.1 Known prototype limitations
 
-- The reference panel MUST **collapse to a single compact icon**, approximately **46 × 46 px** in the established layout.
-- It starts collapsed in the space-saving mockup and remains available near the lower-right by default.
-- **Single tap** expands or minimizes it.
-- **Long-press** its handle/icon to reposition and edge-dock it.
-- Do not leave a wide reference title bar visible when the board is collapsed.
+The HTML uses simplified drawing and compositing, JSON project downloads, a fixed demonstration drawing surface and partial camera restoration. Its automatic bounds use approximations. Several tools and displayed properties are placeholders or simplified implementations.
 
-### 9.2 Expanded state
+Production requirements therefore include real finite/infinite geometry, correct effect bounds and compositing, native file persistence, complete camera restore, complete undoable slice editing and supported colour-management behaviour. Displayed format/profile options do not prove engine support.
 
-The expanded panel shows imported reference images, captions, an import action, and a compact draggable header. It should remain substantially narrower than the main artwork and not obstruct the canvas unnecessarily.
+Some requirements inherited from the application standard—such as exact panel-state restoration, ratio preservation, slice renaming/visibility and complete resize affordances—need validation beyond the mockup. Do not reproduce prototype omissions as standards.
 
-The full reference system is a separate **`.etcr` reference board**, not a set of embedded `.etc` artwork layers. Its dedicated infinite canvas must support image positioning, cropping, resizing, rotation, independent pan/zoom, and restored reference-camera state. Device-resident images are linked rather than needlessly embedded. These are required product behaviors in `filestandard.md`, **not yet fully interactive in the v10 browser mockup**.
+### 13.2 Proposed implementation refinements
 
-## 10. Colour laboratory
+These recommendations are additions for review, not measurements claimed from the mockup:
 
-The colour picker opens as a movable panel only when requested. It contains:
+- Target approximately 44 × 44 logical pixels for primary touch hit areas, including invisible padding where compact visuals require it.
+- Provide reduced-motion and reduced-transparency alternatives.
+- Preserve form labels and focus order when layout reflows.
+- Offer an accessible stepped rotary interaction while retaining the rotation-based selection model.
+- Establish contrast, minimum text size and interaction timing targets during device testing.
 
-- Saturation/value selection square and hue control.
-- Primary-colour hexadecimal entry and native colour picker.
-- Saved swatches and recent colour history.
-- A small **pigment-mixing sketch area**, with Clear, Sample mixed colour, and primary/alternate brush selection.
+### 13.3 Decisions still open
 
-The mixing pad is intended as a practical, visual colour-blending surface rather than a static gradient swatch. The v10 preview labels its mixing as **K–M-inspired and uncalibrated**; physical pigment accuracy is not established by the mockup.
+- Production type scale and minimum readable text size; the mockup includes very small labels.
+- Final touch target sizes, gesture thresholds and handedness configurations.
+- Exact pigment-mixing model and palette persistence scope.
+- Complete tool inventory, overflow/paging behaviour and production tool parameters.
+- Detailed mask interactions and which blend/style operations ship in alpha.
+- Adjacent-panel docking rules beyond the demonstrated edge docking.
 
-## 11. Export tool, slices, and grid
+## 14. Acceptance checklist
 
-### 11.1 Entering export mode
-
-**Export is a tool on the rotary**. Rotate it into the fixed 45° active position to enter export-editing mode.
-
-- The existing **Layers panel transforms in place into `Export Settings`**. Do not open a second persistent sidebar.
-- Returning to another tool restores the Layers view without destroying the stack or saved slice definitions.
-- The persistent top-toolbar Export button remains a separate **execute/export** action.
-
-### 11.2 Export Settings controls
-
-The v10 panel displays:
-
-| Control | Behavior |
-| --- | --- |
-| Export scope | Auto/content bounds, All slices, Selected slice, Whole document (finite canvas only). |
-| Format | PNG and SVG in the prototype; future formats depend on the actual renderer/export implementation. |
-| Scale | 1× and 2× in the prototype. |
-| Export slices | List and select named regions; Fit artwork, Duplicate, Delete. |
-| Aspect ratio | Two independently editable positive numbers separated by `:`. |
-| Dimensions | Editable Width and Height. |
-| Units | Pixels, inches, centimetres, millimetres. |
-| Show dot grid | Overlay visibility toggle. |
-| Snap to grid | Independent snapping toggle. |
-| Grid size | Slider with readout; current prototype defaults to 25 px, range 5–200 px. |
-| Export action | Start output of the selected scope. |
-
-The dimension editor is disabled or subdued when no slice is selected. When a user draws a new region, selection and its aspect-ratio/dimension controls become available automatically.
-
-### 11.3 Slice interaction
-
-- Drag across the artwork to create a non-destructive rectangular export slice.
-- Show the slice outline and an obvious selected state.
-- **Drag the central handle to move** an existing slice.
-- **Drag the boundary/corner handle to resize** it; the current mockup uses a lower-right resize grip.
-- Edit either aspect-ratio value to constrain the box. Edit width or height numerically; switch units without unexpectedly changing the underlying geometry.
-- If snapping is enabled, apply it when creating, moving, and resizing a slice.
-- The visible grid is a **field of dots**, not an opaque lattice of continuous lines. Grid dots, handles, selections, and panel UI do not export.
-
-### 11.4 Automatic slice when none are defined
-
-On export with no user-defined slices, the application MUST generate **exactly one content-following slice** enclosing all currently visible, exportable artwork. It includes the visible contribution of effects, masks, textures, and global filters and excludes hidden content, references, and UI overlays.
-
-- The automatically generated slice grows/shrinks with changes in visible artwork.
-- Moving, resizing, or editing it converts it into a manual slice with fixed bounds.
-- If manual slices already exist, do not add another automatic one.
-- On an empty document, explain that there is nothing to export and allow manual region definition; do not create a zero-sized file.
-- A finite canvas may explicitly export its Whole Document bounds. An infinite canvas cannot export an unbounded area.
-- Store slice definitions and grid preferences in `.etc`; they are **not** layer nodes.
-
-The v10 prototype implements a simplified content-bounds estimator. The production requirement is the accurate final rendered extent specified in `applicationstandard.md`.
-
-## 12. Floating nodes, gestures, and persistence
-
-### 12.1 Node movement and docking
-
-- Applicable panels and the rotary have a visible drag affordance.
-- **Long-press the drag handle**, then move the node. The HTML demonstration uses approximately 390 ms as its hold threshold; that timing is a prototype value rather than a fixed platform requirement.
-- Drag toward any workspace edge to reveal docking feedback. On release, dock or position the node accordingly.
-- Panel contents still respond to ordinary taps without beginning a drag.
-- Panels can collapse independently. The texture and layer panels collapse to compact headers; the reference board collapses specifically to an icon.
-- `Reset UI layout` restores the default placement and collapse states.
-
-### 12.2 Artwork and reference cameras
-
-Save the artwork camera in the `.etc` project: **document-space centre X/Y, zoom, rotation, and horizontal-flip state**. Save on explicit Save and checkpoint on background/suspension for recovery. On reopening/resume, restore the appropriate saved or newer recovery view.
-
-The reference-board camera is independent and belongs to `.etcr`; its pan/zoom/rotation and element transforms must not overwrite the artwork camera. The v10 prototype records zoom and flip but uses a fixed demo centre and zero rotation: **full camera manipulation/restoration remains an alpha implementation requirement**.
-
-### 12.3 File types
-
-- **`.etc`:** Native editable artwork, including layer/filter hierarchy, document/canvas settings, artwork camera, and export slices.
-- **`.etcr`:** Separate linked-reference workspace, with external asset links and reference camera.
-- **PNG/SVG:** Current browser-prototype export choices; these are outputs, not substitutes for an editable `.etc` project.
-- **Krita `.kra`:** Documented alternative in `filestandard.md`, explicitly **out of current project scope**.
-
-The v10 HTML Save action downloads a JSON demonstration file with an `.etc.json` name and stores browser-local data. It does **not** yet write the native `.etc` ZIP/archive format.
-
-## 13. Responsive standards and visual language
-
-### 13.1 Screen adaptation
-
-- **Tablet landscape is the primary composition.** Keep the canvas central, layer/export panel to the side, rotary partially off-screen, and reference icon compact.
-- Narrow screens may automatically collapse the texture library, reference board, and, when necessary, layers. Preserve direct access to the collapsed controls.
-- Reduce toolbar labels before removing critical toolbar actions. At very narrow sizes, icon-only primary actions are permitted.
-- The v10 prototype adapts at approximately **1150 px**, **820 px**, and **570/560 px** viewport widths; these are implementation breakpoints, not mandated device classes.
-- Popovers must reposition or scroll rather than becoming inaccessible off-screen.
-
-### 13.2 Colour, typography, and surface styling
-
-Use the v10 look as the initial alpha visual direction:
-
-| Token | Prototype value / treatment |
-| --- | --- |
-| Background | Deep blue-black `#0c131b` with restrained navy gradients. |
-| Shell | `#141e29`. |
-| Panel | Translucent dark slate `#17222eeb`, with backdrop blur. |
-| Secondary panel | `#1d2a37`. |
-| Border | Muted blue-grey `#34404f` / `#2a3644`. |
-| Text | Warm off-white `#f1eee9`. |
-| Secondary text | Grey-blue `#a4aeb7`. |
-| Primary accent | Warm gold `#efc98c`; secondary gold `#dba767`. |
-| Secondary status accent | Muted teal `#83c5bb`. |
-| Artwork paper (demo) | `#e7ddc6`. |
-| Panels and cards | Soft rounded rectangles; dark translucent surfaces, restrained borders and shadows. |
-| Headings/branding | Refined serif branding contrasted against compact, legible sans-serif controls. |
-
-Gold indicates active/selected actions and the rotary's sight window. Low opacity indicates inactive rotary positions; these visual states must not be confused. Do not add decoration that reduces the artboard's usable area.
-
-### 13.3 Input and feedback
-
-- Support touch/stylus as first-class input and pointer/keyboard where available.
-- Give controls meaningful accessible names, focus states, and values. Keyboard shortcuts demonstrated in v10 include Save, Undo/Redo, zoom, and rotary arrow navigation.
-- Use temporary contextual feedback for completed actions and invalid operations. Do not permanently add another status bar.
-- Respect platform safe areas and keep active controls reachable, including on compact layouts.
-
-## 14. Alpha acceptance checklist
-
-### Startup and document setup
-
-- [ ] Cold start displays New Document, Open, up to ten recent projects arranged 5×2 on tablet, and Settings.
-- [ ] Background/foreground restores the editor without showing the opening screen.
-- [ ] Finite/infinite mode, units, PPI, colour profile, bit depth, and background are selectable.
-
-### Workspace and rotary
-
-- [ ] Permanent actions are Hamburger, Save, Flip, Undo, Redo, Export.
-- [ ] No duplicate bottom-centre zoom/tool status bar exists.
-- [ ] The visible rotary remains clipped into the bottom-left corner.
-- [ ] The active tool is always positioned at the 45° sight window; other tools are frosted/dimmed.
-- [ ] Rotating selects tools; tapping inactive tools does not.
-- [ ] Tapping the active tool opens contextual settings; those settings start closed.
-- [ ] Quick vertical drag adjusts supported tool sizes; central colour tap swaps colours and double tap opens the picker.
-
-### Layers and panels
-
-- [ ] Every layer card continuously displays hamburger, name/type, visibility, Blend Mode, Opacity, Fill, and bottom-right mask.
-- [ ] Percent value is directly editable; arrow opens a large slider headed **only** Opacity or Fill.
-- [ ] Layer hamburgers open the appropriate per-layer modifiers.
-- [ ] Global filter layers cascade through every following layer, regardless of folders.
-- [ ] Vector/Raster/Filter/Texture creation buttons exist; bottom-right footer creates **New Folder**.
-- [ ] Reference board collapses to a **single icon**, not a title bar; expanded board can import and show references.
-- [ ] Floating nodes long-press move, dock and collapse without changing unrelated settings.
-
-### Export and persistence
-
-- [ ] Rotating to Export replaces Layers **in the same panel**.
-- [ ] A slice can be drawn, ratio/dimensions edited, moved using its central grip, and resized.
-- [ ] Dot-grid visibility, snapping and grid spacing work independently.
-- [ ] No defined slices produces one automatic content-bounds slice, excluding references and UI chrome.
-- [ ] Manual slice edits stop automatic bounds-following for that slice.
-- [ ] Infinite canvas export requires finite content bounds/slices; no unbounded export is attempted.
-- [ ] `.etc` saves artwork camera, layer state, document settings and export slices. `.etcr` independently saves reference layout/camera.
-
-## 15. Prototype limits and unresolved implementation work
-
-The v10 HTML file is a **functional interface prototype**, not the full alpha renderer. In particular:
-
-- It uses a fixed demonstration drawing surface, even when the new-document UI selects an infinite canvas or other sizes.
-- Layer effects, blending, Fill, masks, and global filters are visually approximated; production compositing semantics and precision are not established by the prototype.
-- Colour mixing is an experimental preview; ICC conversion, CMYK, calibrated print proofing, and full 16-bit processing remain engine/file-format work.
-- It saves JSON demonstration projects, not actual `.etc` archive files. Recent-project entries are browser-local.
-- The full `.etcr` infinite reference board, external-file relinking, and independent reference camera are specified but not implemented in the current visual mockup.
-- The complete artwork camera, true infinite document navigation, accurate post-filter export bounds, and production export formats require implementation.
-
-**Non-negotiable UI constraint:** Future rendering, file-format, or feature additions must preserve the approved rotary selection model, direct layer-card customization, compact reference icon, and in-place Layers/Export Settings switch unless a later specification explicitly changes them.
+- [ ] Cold launch shows New Document, Open, up to ten recents and Settings; returning from sleep resumes directly.
+- [ ] Finite and infinite document setup clearly distinguish dimensions and export bounds.
+- [ ] Rotating the dial changes tools at the fixed 45° sight; tapping inactive slots does not.
+- [ ] Colour single/double taps do not conflict; quick size adjustment does not rotate or move the dial.
+- [ ] Layer cards expose blend, Opacity and Fill directly; percentage entry and slider popovers stay synchronized.
+- [ ] Reordering and folder operations preserve the intended hierarchy and global downward filter scope.
+- [ ] Export Settings replaces Layers in place and restores its state on exit.
+- [ ] Slice drawing reveals dimensions; moving, resizing, ratios and units behave consistently.
+- [ ] Export without manual slices generates one content-following region; manual edits make it fixed.
+- [ ] Hidden content, references and UI overlays are excluded from output; visible effect extents are included.
+- [ ] Save/reopen restores the artwork camera independently of the reference-board camera.
+- [ ] Panels, dialogs and popovers remain reachable in landscape and portrait.
+- [ ] Focus mode and layout reset preserve artwork and recover the expected controls.
+- [ ] Unsupported prototype features are not presented as completed production capabilities.

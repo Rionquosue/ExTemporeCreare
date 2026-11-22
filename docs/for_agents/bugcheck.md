@@ -2,46 +2,53 @@
 
 ## Before every prep to push into a mainline release perform the following bugchecks:
 
-    Ctrl-Z bugs (Z)
+    Undo bugs (Z)
 
-    1. All actions applied in one user button press or confirmation should be undone in a single CTRL-Z press.
-    2. Actions should not grab or overwrite any other action's CTRL-Z, if it is impossible for that action to not break the CTRL-Z history, do not perform that action without a warning popup.
-    3. Anything such as files that cannot be undone should be listed in the log to provide users the ability to remove them if desired.
+    1. Everything applied by one user gesture, button press or confirmation (a brush stroke, a filter apply, a layer move, a transform commit) should be undone in a single Undo step.
+    2. Actions should not grab, merge into or overwrite another action's Undo history. If an action cannot avoid breaking the Undo history, do not perform it without a warning popup.
+    3. Changes that live outside the document's Undo history, such as files written to storage, exports or `.etcr` reference-board edits, should be listed in the log so users can find and remove them if desired.
+    4. Document geometry and export-slice changes must participate in Undo/Redo, as required by `applicationstandard.md`.
 
     UI Bugs (U)
 
-    1. Rects that collide or UI elements that draw over eachother. Example being an input field that draws over a control field below it.
-    2. Fixed width boxes that will not re-order correctly when the user resizes a window. 
-    3. Long text or handles that crowd neighbours
-    4. Code comments that have made its way into the UI such as "No X is applied until Y process is done", they cause clutter and do not clarify to the user.
-    5. Overlays against IMGUI, such as a radial overlapping an emulated menu. Give IMGUI elements such as the radial menu a fixed size box and do not draw into it.
+    1. UI elements that collide or draw over each other, such as an input field drawing over the control below it, or a floating panel covering the rotary.
+    2. Fixed-size panels or dialogs that do not reflow on rotation, split-screen, or different tablet and phone screen sizes.
+    3. Long text, labels or handles that crowd neighbouring controls or get clipped.
+    4. Developer notes that have made their way into the UI, such as "No X is applied until Y process is done". They cause clutter and do not clarify anything for the user.
+    5. Touch targets too small or too close together for finger or stylus use.
+    6. UI overlays (dot grid, handles, guides, selection highlights, export controls) that appear in exported artwork.
+    7. Anything that contradicts `uistandards.md`, such as a moved or replaced approved control, or a re-added redundant readout.
 
     Destructive Bugs (D)
-    1. Anything that can overwrite or delete something that is not part of the purposeful action of the tool.
-    2. Edits to a shared asset that another avatar, prefab, or closed scene uses.
-    3. Edits to a prefab or asset that Modular Avatar or VRCFury use.
-    4. Wrong keys, such as identifying an avatar by name instead of GUID.
-    5. Data loss on apply, anything irreversible.
+
+    1. Anything that can overwrite or delete something that is not part of the purposeful action of the tool, such as a filter writing into a layer other than the selected one.
+    2. Edits that leak into shared data, such as a texture, linked asset or `.etcr` reference board that other documents use.
+    3. Destructive edits where the standards require non-destructive ones (masks, effects, filters, export slices and reference transforms must stay editable).
+    4. Wrong keys, such as identifying a layer, asset or document by display name instead of its stable identifier.
+    5. Save paths that can corrupt or replace the last good `.etc` file before the new archive has been validated.
+    6. Session or recovery-checkpoint data lost when the app is backgrounded, suspended or terminated by the OS.
+    7. Data loss on apply, or anything irreversible done without warning.
 
     Log issues (L)
-    1. Any action that does not generate a log
-    2. Any error that does not generate a log that can be traced back to the exact script that errored.
-    3. Excessive log entries from a single action, such as turning on blendshape sync generating a log entry every time it executes a sync.
-    
+
+    1. Any action that does not generate a log entry.
+    2. Any error that does not generate a log entry that can be traced back to the exact script that errored.
+    3. Excessive log entries from a single action, such as autosave or recovery checkpointing writing an entry on every tick.
+
 
 ## Perform the following resolution standards:
 
     (Z)
-        For Z bugs, either combine the scripts actions into a single call or edit the data layers once it has been complete so that a single press can undo the whole action taken instead of one action requiring 4 CTRL-Z presses to fully undo.
+        Group everything the action does into a single Undo transaction, or consolidate the history once the action completes, so one press undoes the whole action instead of needing several presses.
 
     (U)
-        For U bugs, adhere to standard flexbox and tab based UI design conventions. Give every UI element a little bit of buffer, use collapsing boxes where applicable, and ensure the UI will have all elements available to the user. If a tool requires fixed width and the Main menu cannot accommodate, it is recommended to move that tool into a popup and categorize it appropriately per menustructure.md
+        Follow standard flexible layout and tab-based UI conventions and the placement rules in `uistandards.md`. Give every UI element some spacing, use collapsible sections where applicable, and make sure every element stays reachable on every supported screen size and orientation. If a tool needs more space than its panel allows, move it into a popup or expandable panel rather than shrinking it.
 
     (D)
-        Any destructive bugs should be fixed. Prefabs should never be unpacked, a vrcfury prefab should not be directly edited but a new child prefab made from that prefab where our edits are applied, or apply edits as scene overrides instead. If a destructive edit is inevitable due to the nature of a tool, before the script executes a warning should be issued. If GIT is enabled, check that a previous version of that file is cached and notify the user they can use GIT to roll back to that version but CTRL-Z will not function as they expect.
+        Fix every destructive bug. Never edit shared assets in place; apply changes to the document's own copy or as a non-destructive layer, mask or filter instead. Saves must write to a temporary file, validate it, then replace the original. If a destructive edit is unavoidable because of what the tool does, show a warning before it runs, prompt the user to save first, and state that Undo will not reverse it.
 
     (L)
-        Any tool executing should generate a single log entry for the script execution, and completion with a summary of what was changed. If an error can be generated without creating a log entry treat that as a critical bug and immediately rectify so that it can be traced back. Any tool should only generate execution and completion, repeating job scripts such as git sync and blendshape sync should only generate once they are turned on or when an exception has occurred. This avoids the log being overcrowded with non contextual information.
+        Each tool run should generate one log entry when it starts and one when it completes, with a summary of what was changed. If an error can happen without a log entry, treat it as a critical bug and fix it immediately so it can be traced. Repeating background jobs such as autosave or recovery checkpoints should only log when they are turned on, turned off, or hit an exception. This keeps the log free of non-contextual noise.
 
 ## If none of the above can be applied
 
@@ -50,4 +57,4 @@ Append to the end of this file below the break line with what the bug is, and re
 
 ---
 
-1. (U1, U2, U3) Overlapping rects, fixed-width boxes that don't reflow, and crowded long text can only be seen by resizing each window in Unity; reading the code finds none for certain. Recommended fix: open each Main Menu tab and popup at its minimum size and at the Main Menu's narrowest docked width, and list what overlaps.
+1. (U1, U2, U3) Overlapping elements, panels that don't reflow, and crowded long text can only be confirmed by viewing the running app; reading the code cannot find them for certain. Recommended fix: open each panel, popup and dialog at the smallest supported screen size in both orientations, and list what overlaps.
