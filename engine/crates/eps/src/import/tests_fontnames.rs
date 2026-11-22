@@ -8,7 +8,7 @@ use crate::import::import;
 
 /// The bundled Source Sans 3 renamed `family` (as long as the original name).
 fn renamed(family: &str) -> Vec<u8> {
-    let mut data = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf").to_vec();
+    let mut data = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf").to_vec();
     let utf16 = |s: &str| s.encode_utf16().flat_map(u16::to_be_bytes).collect::<Vec<u8>>();
     for (from, to) in [(utf16("Source Sans 3"), utf16(family)), (b"Source Sans 3".to_vec(), family.as_bytes().to_vec())] {
         assert_eq!(from.len(), to.len());

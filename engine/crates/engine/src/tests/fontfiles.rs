@@ -53,7 +53,7 @@ fn text(s: &mut Session, y: f64, font: &str, style: &str) -> u64 {
 }
 
 fn bundled(file: &str) -> Vec<u8> {
-    std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts").join(file)).unwrap()
+    std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fonts").join(file)).unwrap()
 }
 
 #[test]

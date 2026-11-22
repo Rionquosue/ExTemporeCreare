@@ -833,7 +833,7 @@ fn glyphs_are_named_only_by_an_exact_outline() {
 /// #708: where the embedded font program has a character map, a glyph's character comes from it.
 #[test]
 fn an_embedded_fonts_own_cmap_names_its_glyphs() {
-    let data = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/SourceSans3-Regular.ttf")).unwrap();
+    let data = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fonts/SourceSans3-Regular.ttf")).unwrap();
     let chars = crate::import::font_chars(&data).unwrap();
     use skrifa::MetadataProvider;
     let font = skrifa::FontRef::new(&data).unwrap();

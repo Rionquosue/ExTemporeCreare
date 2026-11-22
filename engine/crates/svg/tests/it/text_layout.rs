@@ -425,7 +425,7 @@ type Drawn = (String, Point, f64);
 /// tabs are left out.
 fn viewer_glyph_positions(svg: &str, faces: &[Arc<vectorcraft_text::FontFace>]) -> Vec<Drawn> {
     let mut db = usvg::fontdb::Database::new();
-    db.load_font_data(std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fonts/SourceSans3-Regular.ttf")).unwrap());
+    db.load_font_data(std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../fonts/SourceSans3-Regular.ttf")).unwrap());
     for f in faces {
         db.load_font_data(f.file_data().to_vec());
     }
@@ -853,7 +853,7 @@ fn japanese_composition_keeps_its_spacing() {
 /// user space.
 fn viewer_outlines(svg: &str) -> Vec<BezPath> {
     let mut db = usvg::fontdb::Database::new();
-    db.load_font_data(std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fonts/SourceSans3-Regular.ttf")).unwrap());
+    db.load_font_data(std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../fonts/SourceSans3-Regular.ttf")).unwrap());
     let opt = usvg::Options { fontdb: Arc::new(db), ..Default::default() };
     let tree = usvg::Tree::from_str(svg, &opt).unwrap();
     fn walk(g: &usvg::Group, out: &mut Vec<BezPath>) {

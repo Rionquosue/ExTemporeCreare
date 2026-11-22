@@ -32,7 +32,7 @@ fn assert_near(a: Rect, b: Rect) {
 
 /// The left side bearing of [`COLOUR_CHAR`] in the bundled Source Sans 3 (font units of 1000).
 fn lsb() -> f64 {
-    let font = skrifa::FontRef::new(include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf")).unwrap();
+    let font = skrifa::FontRef::new(include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf")).unwrap();
     let gid = font.charmap().map(COLOUR_CHAR).unwrap();
     f64::from(font.glyph_metrics(Size::unscaled(), LocationRef::default()).left_side_bearing(gid).unwrap())
 }

@@ -73,15 +73,15 @@ pub const FALLBACK_FAMILY: &str = "Source Sans 3";
 /// The fonts every database starts with (feature `bundled-fonts`, on by default).
 #[cfg(feature = "bundled-fonts")]
 pub(super) static BUNDLED: &[&[u8]] = &[
-    include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf"),
-    include_bytes!("../../../../assets/fonts/SourceSans3-Semibold.ttf"),
-    include_bytes!("../../../../assets/fonts/SourceSans3-Bold.ttf"),
-    include_bytes!("../../../../assets/fonts/SourceSans3-It.ttf"),
-    include_bytes!("../../../../assets/fonts/SourceSerif4-Regular.ttf"),
-    include_bytes!("../../../../assets/fonts/Inter-Regular.ttf"),
-    include_bytes!("../../../../assets/fonts/Inter-Medium.ttf"),
-    include_bytes!("../../../../assets/fonts/Inter-SemiBold.ttf"),
-    include_bytes!("../../../../assets/fonts/JetBrainsMono-Regular.ttf"),
+    include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf"),
+    include_bytes!("../../../../../fonts/SourceSans3-Semibold.ttf"),
+    include_bytes!("../../../../../fonts/SourceSans3-Bold.ttf"),
+    include_bytes!("../../../../../fonts/SourceSans3-It.ttf"),
+    include_bytes!("../../../../../fonts/SourceSerif4-Regular.ttf"),
+    include_bytes!("../../../../../fonts/Inter-Regular.ttf"),
+    include_bytes!("../../../../../fonts/Inter-Medium.ttf"),
+    include_bytes!("../../../../../fonts/Inter-SemiBold.ttf"),
+    include_bytes!("../../../../../fonts/JetBrainsMono-Regular.ttf"),
 ];
 
 /// Without `bundled-fonts` a database starts with none: the embedder adds its fonts

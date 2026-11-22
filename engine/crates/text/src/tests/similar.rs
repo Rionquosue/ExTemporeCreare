@@ -31,7 +31,7 @@ fn a_face_is_compared_by_its_tables() {
     assert!(regular.panose[0] > 1, "a PANOSE family kind: {regular:?}");
     assert!(regular.x_height > 300 && regular.cap_height > regular.x_height, "{regular:?}");
     // The OS/2 average character width, in thousandths of the em.
-    let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fonts/SourceSans3-Regular.ttf")).expect("bundled");
+    let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../fonts/SourceSans3-Regular.ttf")).expect("bundled");
     let font = skrifa::FontRef::new(&bytes).expect("it parses");
     let (avg, em) = (font.os2().expect("an OS/2 table").x_avg_char_width(), font.head().expect("a head table").units_per_em());
     assert_eq!(f32::from(regular.avg_width), (f32::from(avg) / f32::from(em) * 1000.0).round());

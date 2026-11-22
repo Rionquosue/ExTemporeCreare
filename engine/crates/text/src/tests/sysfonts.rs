@@ -172,7 +172,7 @@ fn renamed(file: &str) -> Vec<u8> {
 
 /// A bundled Source Sans 3 file renamed `family`, which is as long as the original name.
 fn renamed_to(file: &str, family: &str) -> Vec<u8> {
-    let data = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts").join(file)).unwrap();
+    let data = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fonts").join(file)).unwrap();
     rename(data, "Source Sans 3", family)
 }
 
@@ -761,7 +761,7 @@ fn named(records: &[(u16, u16, u16, &str)]) -> Vec<u8> {
         strings.extend(bytes);
     }
     name.extend(strings);
-    let base = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/SourceSans3-Regular.ttf")).unwrap();
+    let base = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fonts/SourceSans3-Regular.ttf")).unwrap();
     let font = skrifa::FontRef::new(&base).unwrap();
     let mut builder = write_fonts::FontBuilder::new();
     builder.add_raw(write_fonts::types::Tag::new(b"name"), name);

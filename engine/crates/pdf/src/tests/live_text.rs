@@ -9,8 +9,8 @@ use vectorcraft_doc::{Document, NodeKind, TextObject};
 
 use crate::*;
 
-const SOURCE_SANS: &[u8] = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf");
-const SOURCE_SERIF: &[u8] = include_bytes!("../../../../assets/fonts/SourceSerif4-Regular.ttf");
+const SOURCE_SANS: &[u8] = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf");
+const SOURCE_SERIF: &[u8] = include_bytes!("../../../../../fonts/SourceSerif4-Regular.ttf");
 
 /// A 300 × 200 pt page with `lines` of (x, y from the top, size, text) in Source Sans 3, and the
 /// same rotated 90° when `rotated`.
@@ -206,7 +206,7 @@ fn cid_tables_ignore_fonts_that_are_not_cid_keyed_cff() {
         cff.extend_from_slice(&junk);
         let _ = crate::import::CidText::of(&cff);
     }
-    let sans = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fonts/SourceSans3-Regular.ttf")).unwrap();
+    let sans = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../fonts/SourceSans3-Regular.ttf")).unwrap();
     assert!(crate::import::CidText::of(&sans).is_none(), "a TrueType font has no CID charset");
 }
 

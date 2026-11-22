@@ -3206,7 +3206,7 @@ proptest! {
 }
 
 /// The TrueType font [`type42_composite_eps`] carries.
-const TYPE42_FONT: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+const TYPE42_FONT: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
 
 /// An EPS showing glyph `gid` of TrueType font `font` through a Type 42 font and a composite font
 /// over it, and measuring and outlining it.

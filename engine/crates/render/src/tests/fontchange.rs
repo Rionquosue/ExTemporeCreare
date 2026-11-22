@@ -43,7 +43,7 @@ pub(crate) fn with_fonts_unchanged<T>(mut step: impl FnMut() -> T) -> T {
 
 /// The bundled Source Serif 4 renamed `family` (as long as the original name).
 fn serif_as(family: &str) -> Vec<u8> {
-    let mut data = include_bytes!("../../../../assets/fonts/SourceSerif4-Regular.ttf").to_vec();
+    let mut data = include_bytes!("../../../../../fonts/SourceSerif4-Regular.ttf").to_vec();
     let utf16 = |s: &str| s.encode_utf16().flat_map(u16::to_be_bytes).collect::<Vec<u8>>();
     for (from, to) in [(utf16("Source Serif 4"), utf16(family)), (b"Source Serif 4".to_vec(), family.as_bytes().to_vec())] {
         assert_eq!(from.len(), to.len());

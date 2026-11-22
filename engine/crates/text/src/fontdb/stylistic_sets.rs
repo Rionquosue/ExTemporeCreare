@@ -144,7 +144,7 @@ mod tests {
     }
 
     fn face_with(features: FeatureList, variations: Option<WriteVariations>) -> std::sync::Arc<FontFace> {
-        const BASE: &[u8] = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf");
+        const BASE: &[u8] = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf");
         let base = skrifa::FontRef::new(BASE).unwrap();
         let gid = |c| GlyphId16::new(u16::try_from(base.charmap().map(c).unwrap().to_u32()).unwrap());
         let subst = SingleSubstFormat2::new(CoverageFormat1::new(vec![gid('a')]).into(), vec![gid('A')]);

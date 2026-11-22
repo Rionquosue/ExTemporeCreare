@@ -58,7 +58,7 @@ fn undo_len(s: &Session) -> usize {
 fn inter_glyph_box(c: char) -> ([f64; 4], f64) {
     use skrifa::MetadataProvider;
     use skrifa::raw::TableProvider;
-    let font = skrifa::FontRef::new(include_bytes!("../../../../assets/fonts/Inter-Regular.ttf")).unwrap();
+    let font = skrifa::FontRef::new(include_bytes!("../../../../../fonts/Inter-Regular.ttf")).unwrap();
     let upem = f64::from(font.head().unwrap().units_per_em());
     let gid = font.charmap().map(c).unwrap();
     let glyph = font.loca(None).unwrap().get_glyf(gid, &font.glyf().unwrap()).unwrap().unwrap();

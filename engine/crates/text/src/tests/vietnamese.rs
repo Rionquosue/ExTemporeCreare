@@ -40,7 +40,7 @@ const LETTERS: [[&str; 3]; 20] = [
 ];
 
 const SIZE: f64 = 100.0;
-const SOURCE_SANS: &[u8] = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf");
+const SOURCE_SANS: &[u8] = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf");
 
 fn text(form: usize) -> String {
     LETTERS.iter().filter_map(|l| l.get(form).copied()).collect::<Vec<_>>().join(" ")

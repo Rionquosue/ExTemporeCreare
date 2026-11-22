@@ -49,7 +49,6 @@ EXTEMPORECREARE
 |   |-- LICENSE-MIT
 |   |-- NOTICE
 |   |-- readme.md
-|   |-- assets/
 |   |-- licenses/
 |   |-- xtask/
 |   |-- crates/
@@ -77,6 +76,11 @@ EXTEMPORECREARE
 |       |-- three-d/
 |       |-- tools/
 |       |-- trace/
+|-- fonts/
+|   |-- OFL-Inter.txt
+|   |-- OFL-JetBrainsMono.txt
+|   |-- OFL-SourceSans3.txt
+|   |-- OFL-SourceSerif4.txt
 |-- interface/
 |   |-- readme.md
 |-- tools/

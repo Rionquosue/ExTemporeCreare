@@ -27,7 +27,7 @@ fn fonts_come_from_the_embedder() {
     }
     // The embedder adds its fonts: text lays out in them, and a family the database lacks (the
     // default style's Source Sans 3 too) falls back to them.
-    let font = |file: &str| std::fs::read(format!("{}/../../assets/fonts/{file}", env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let font = |file: &str| std::fs::read(format!("{}/../../../fonts/{file}", env!("CARGO_MANIFEST_DIR"))).unwrap();
     assert_eq!(db.add_font(font("Inter-Regular.ttf")), 1);
     assert!(db.families().iter().any(|f| f == "Inter"));
     if CRAFT_FONTS.is_empty() {

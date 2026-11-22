@@ -6,7 +6,7 @@
 pub fn renamed(family: &str) -> Vec<u8> {
     const ORIGINAL: &str = "Source Sans 3";
     assert_eq!(family.len(), ORIGINAL.len(), "`{family}` must be 13 bytes long");
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/SourceSans3-Regular.ttf");
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fonts/SourceSans3-Regular.ttf");
     let mut data = std::fs::read(path).unwrap();
     let utf16 = |s: &str| s.encode_utf16().flat_map(u16::to_be_bytes).collect::<Vec<u8>>();
     for (from, to) in [(utf16(ORIGINAL), utf16(family)), (ORIGINAL.as_bytes().to_vec(), family.as_bytes().to_vec())] {

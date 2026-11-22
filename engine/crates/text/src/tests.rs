@@ -102,7 +102,7 @@ fn style_lookup_and_fallback() {
 #[test]
 fn add_font_rejects_garbage_and_duplicates() {
     assert_eq!(db().add_font(vec![1, 2, 3]), 0);
-    let bytes = include_bytes!("../../../assets/fonts/Inter-Regular.ttf").to_vec();
+    let bytes = include_bytes!("../../../../fonts/Inter-Regular.ttf").to_vec();
     assert_eq!(db().add_font(bytes), 0, "already bundled");
 }
 

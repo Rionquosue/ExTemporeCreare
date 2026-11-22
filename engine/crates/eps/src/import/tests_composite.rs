@@ -11,7 +11,7 @@ use vectorcraft_doc::NodeKind;
 
 use super::tests::{all, bounds, fill, read};
 
-pub(super) const FONT: &[u8] = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf");
+pub(super) const FONT: &[u8] = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf");
 
 /// The glyph index of `c` in [`FONT`] and its advance width in ems.
 pub(super) fn glyph(c: char) -> (u32, f64) {

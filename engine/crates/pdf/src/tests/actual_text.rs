@@ -50,7 +50,7 @@ fn open(content: &str) -> ImportReport {
 // Helvetica is not installed on every platform; missing-font layout fits the overall
 // line length, so removing characters changes even an ordinary suffix's position.
 fn open_positioned(content: &str) -> ImportReport {
-    let data = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf");
+    let data = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf");
     let face = vectorcraft_text::FontDb::global().find_postscript("SourceSans3-Regular").unwrap();
     assert_eq!(face.file_data(), data);
     let widths = (32u8..=126)
@@ -262,7 +262,7 @@ fn actual_text_rescues_a_glyph_without_unicode() {
 fn actual_text_matches_embedded_glyph_identity_not_replacement() {
     let font = b"<< /Type /Font /Subtype /TrueType /BaseFont /SourceSans3-Regular /Encoding /WinAnsiEncoding /FontDescriptor 6 0 R /FirstChar 120 /LastChar 121 /Widths [500 500] >>";
     let descriptor = b"<< /Type /FontDescriptor /FontName /SourceSans3-Regular /Flags 32 /FontBBox [-500 -300 1500 1000] /ItalicAngle 0 /Ascent 1000 /Descent -300 /CapHeight 700 /StemV 80 /FontFile2 7 0 R >>".to_vec();
-    let data = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf");
+    let data = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf");
     let bytes = custom_pdf("/Span << /ActualText (AB) >> BDC (xy) Tj EMC", font, "", &[descriptor, stream("", data)]);
     let report = import_with_report(&bytes, &ImportOptions::default()).unwrap();
     assert_eq!(plain(&report), "AB");

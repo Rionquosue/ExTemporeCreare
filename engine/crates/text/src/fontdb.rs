@@ -352,7 +352,7 @@ mod race_tests {
     fn a_family_loaded_by_another_thread_meanwhile_is_still_found() {
         // Two threads ask for the same installed family at once: each must get it, not the
         // fallback (the second one's load finds every face already added).
-        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts");
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fonts");
         let db: &'static FontDb = Box::leak(Box::new(FontDb::with_font_dirs(vec![dir])));
         // Only the catalog knows Inter (the bundled faces are dropped).
         db.faces.write().unwrap().retain(|f| f.family != "Inter");

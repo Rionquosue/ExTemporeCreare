@@ -193,7 +193,7 @@ pub const VARIABLE_WIDEN: f32 = 0.25;
 /// `Version 1.000`. `None` when it can't
 /// be built.
 pub fn variable_font() -> Option<Vec<u8>> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let (glyf, loca) = (font.glyf().ok()?, font.loca(None).ok()?);
     let metrics = font.glyph_metrics(Size::unscaled(), LocationRef::default());
@@ -306,7 +306,7 @@ pub const TWO_AXIS_NARROW: f32 = 0.2;
 /// Regular (the default), Bold (`wght` 700) and Condensed (`wdth` 75). `None` when it can't be
 /// built.
 pub fn two_axis_font() -> Option<Vec<u8>> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let (glyf, loca) = (font.glyf().ok()?, font.loca(None).ok()?);
     let metrics = font.glyph_metrics(Size::unscaled(), LocationRef::default());
@@ -405,7 +405,7 @@ pub const VERTICAL_TALL: char = '§';
 /// comes from each glyph's top and top side bearing, as in TrueType fonts. `None` when it can't be
 /// built.
 pub fn vertical_font(vorg: bool) -> Option<Vec<u8>> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let n = font.maxp().ok()?.num_glyphs();
     let metrics = font.glyph_metrics(Size::unscaled(), LocationRef::default());
@@ -502,7 +502,7 @@ pub const NUMBERLESS_FAMILY: &str = "Numberlesstest Sans";
 /// tables, so it gives none of the numbers Show Similar Fonts compares faces by. `None` when it
 /// can't be built.
 pub fn numberless_font() -> Option<Vec<u8>> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let full = format!("{NUMBERLESS_FAMILY} Regular");
     let postscript = format!("{}-Regular", NUMBERLESS_FAMILY.replace(' ', ""));
@@ -525,7 +525,7 @@ pub fn numberless_font() -> Option<Vec<u8>> {
 fn heights_font(family: &str, heights: Option<(i16, i16)>, base: bool) -> Option<Vec<u8>> {
     use write_fonts::tables::base::{Axis, Base, BaseCoord, BaseScript, BaseScriptList, BaseScriptRecord, BaseTagList, BaseValues};
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let full = format!("{family} Regular");
     let postscript = format!("{}-Regular", family.replace(' ', ""));
@@ -572,7 +572,7 @@ pub fn vertical_punctuation_font(alternates: bool) -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mapping = [('！', '!'), ('？', '?'), ('「', 'L'), ('ー', '-'), ('!', '!'), ('?', '?'), ('I', 'I'), ('J', 'J'), ('L', 'L'), ('-', '-')];
@@ -615,7 +615,7 @@ pub const FULL_WIDTH_CHARS: &str = "一二三四五六「」、。・";
 pub fn full_width_font() -> Option<Vec<u8>> {
     use write_fonts::tables::cmap::Cmap;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let wide = write_fonts::types::GlyphId::new(charmap.map('\u{2318}')?.to_u32());
@@ -682,7 +682,7 @@ pub fn rare_repeat_mark_font() -> Option<Vec<u8>> {
 fn repeat_font(family: &str, chars: &[(char, char)]) -> Option<Vec<u8>> {
     use write_fonts::tables::cmap::Cmap;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mut mappings: Vec<(char, write_fonts::types::GlyphId)> = Vec::new();
@@ -716,7 +716,7 @@ pub const THAI_OTHER_FAMILY: &str = "Thaiothertest Sans";
 pub fn thai_font(family: &str, claimed: bool) -> Option<Vec<u8>> {
     use write_fonts::tables::cmap::Cmap;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let glyph = |c| Some(write_fonts::types::GlyphId::new(charmap.map(c)?.to_u32()));
@@ -763,7 +763,7 @@ pub fn half_form_font(half: bool) -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mapping = [('क', 'K'), ('\u{094D}', '.'), ('ष', 'S'), ('\u{200D}', ' ')];
@@ -813,7 +813,7 @@ pub fn conjunct_font() -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mapping = [('क', 'K'), ('\u{094D}', '.'), ('\u{093F}', 'i'), ('ક', 'K'), ('\u{0ACD}', '.'), ('\u{0ABF}', 'i')];
@@ -868,7 +868,7 @@ pub fn matra_font() -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mapping = [('क', 'a'), ('\u{093F}', 'i'), ('\u{093C}', '.')];
@@ -932,7 +932,7 @@ pub fn lam_alef_font(feature: &[u8; 4]) -> Option<Vec<u8>> {
     };
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mapping = [('\u{0644}', 'l'), ('\u{0627}', 'I'), ('\u{0623}', 'J'), ('\u{0628}', 'b'), ('\u{064E}', '\u{0301}')];
@@ -979,7 +979,7 @@ pub const TATWEEL_FAMILY: &str = "Tatweeltest Sans";
 pub fn tatweel_font() -> Option<Vec<u8>> {
     use write_fonts::tables::cmap::Cmap;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mapping = [(' ', ' '), ('\u{0628}', 'b'), ('\u{062A}', 't'), ('\u{062F}', 'd'), ('\u{0640}', '-')];
@@ -1009,7 +1009,7 @@ pub fn alternates_family(aalt: bool) -> &'static str {
 /// lowest ids first: the unencoded alternates of [`alternates_font`]. `None` when there are not
 /// four.
 pub fn unencoded_glyphs() -> Option<[u32; 4]> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let mapped: std::collections::HashSet<u32> = font.charmap().mappings().map(|(_, g)| g.to_u32()).collect();
     let glyphs = u32::from(font.maxp().ok()?.num_glyphs());
@@ -1029,7 +1029,7 @@ pub fn crowded_alternates_font() -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let family = CROWDED_ALTERNATES_FAMILY;
@@ -1073,7 +1073,7 @@ pub fn alternates_font(aalt: bool) -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let family = alternates_family(aalt);
@@ -1138,7 +1138,7 @@ pub fn capped_candidates_font() -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let name =
@@ -1406,7 +1406,7 @@ pub fn ligature_caret_font(caret: Option<i16>) -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mapping = [('f', 'f'), ('i', 'i'), (' ', ' ')];
@@ -1624,7 +1624,7 @@ pub const NO_PAIR_KERNING_FAMILY: &str = "No Pairtest Sans";
 
 /// A font with the bundled Source Sans 3 outlines and no `GPOS` or `kern` table.
 pub fn no_pair_kerning_font() -> Option<Vec<u8>> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let family = NO_PAIR_KERNING_FAMILY;
     let name = name_table(&[(1, family), (2, "Regular"), (4, "No Pairtest Sans Regular"), (6, "NoPairtestSans-Regular")])?;
@@ -1661,7 +1661,7 @@ pub fn ideograph_optical_font() -> Option<Vec<u8>> {
 fn remapped_source_sans(family: &str, postscript: &str, mapping: &[(char, char)]) -> Option<Vec<u8>> {
     use write_fonts::tables::cmap::Cmap;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mappings = mapping.iter().map(|&(c, source)| Some((c, write_fonts::types::GlyphId::new(charmap.map(source)?.to_u32()))));
@@ -1705,7 +1705,7 @@ pub const CMAPLESS_FAMILY: &str = "Cmapless Sans";
 pub fn large_cmap_font(count: u32) -> Option<Vec<u8>> {
     use write_fonts::tables::cmap::Cmap;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let glyphs = u32::from(font.maxp().ok()?.num_glyphs()).checked_sub(1).filter(|n| *n > 0)?;
     let mappings = (0..count).map(|i| Some((char::from_u32(0x2_0000_u32.checked_add(i)?)?, write_fonts::types::GlyphId::new(1 + i % glyphs))));
@@ -1721,7 +1721,7 @@ pub fn cmapless_font() -> Option<Vec<u8>> {
 /// The bundled Source Sans 3 Regular named `family`, with `cmap` in place of its own (none when
 /// `cmap` is `None`), and its other tables kept.
 fn source_sans_with_cmap(family: &str, postscript: &str, cmap: Option<&write_fonts::tables::cmap::Cmap>) -> Option<Vec<u8>> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let full = format!("{family} Regular");
     let name = name_table(&[(1, family), (2, "Regular"), (4, full.as_str()), (6, postscript)])?;
@@ -1935,7 +1935,7 @@ pub const SOFT_HYPHEN_OUTLINE_FAMILY: &str = "Soft Hyphen Profile Sans";
 pub fn soft_hyphen_outline_font() -> Option<Vec<u8>> {
     use write_fonts::tables::cmap::Cmap;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let mappings = [('A', 'A'), ('V', 'V'), ('-', '-'), ('\u{00AD}', '-')]
@@ -1965,7 +1965,7 @@ pub fn pair_kerning_font() -> Option<Vec<u8>> {
     use write_fonts::tables::layout::{CoverageFormat1, Feature, FeatureList, FeatureRecord, LangSys, Lookup, Script, ScriptList, ScriptRecord};
     use write_fonts::types::GlyphId16;
 
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let charmap = font.charmap();
     let gid = |c| Some(GlyphId16::new(u16::try_from(charmap.map(c)?.to_u32()).ok()?));
@@ -2002,8 +2002,8 @@ pub const TWIN_VERSIONS: [&str; 2] = ["Version 1.000", "Version 2.000"];
 /// glyphs, as a font library that keeps an old version beside a new one has. `None` when it can't
 /// be built.
 pub fn twin_font(newer: bool) -> Option<Vec<u8>> {
-    const OLDER: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
-    const NEWER: &[u8] = include_bytes!("../../../assets/fonts/Inter-Regular.ttf");
+    const OLDER: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
+    const NEWER: &[u8] = include_bytes!("../../../../fonts/Inter-Regular.ttf");
     let font = skrifa::FontRef::new(if newer { NEWER } else { OLDER }).ok()?;
     let version = TWIN_VERSIONS[usize::from(newer)];
     let name = name_table(&[(1, TWIN_FAMILY), (2, "Regular"), (4, "Twintest Sans Regular"), (5, version), (6, "TwintestSans-Regular")])?;
@@ -2026,8 +2026,8 @@ pub type CopyNames<'a> = (&'a str, &'a str, &'a str, &'a str);
 /// names differ only in case or punctuation, or whose family and style are one but whose PostScript
 /// names or versions differ. `None` when it can't be built.
 pub fn named_copy(inter: bool, (family, style, version, postscript): CopyNames<'_>) -> Option<Vec<u8>> {
-    const SOURCE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
-    const INTER: &[u8] = include_bytes!("../../../assets/fonts/Inter-Regular.ttf");
+    const SOURCE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
+    const INTER: &[u8] = include_bytes!("../../../../fonts/Inter-Regular.ttf");
     let font = skrifa::FontRef::new(if inter { INTER } else { SOURCE }).ok()?;
     let full = format!("{family} {style}");
     let name = name_table(&[(1, family), (2, style), (4, &full), (5, version), (6, postscript)])?;
@@ -2049,7 +2049,7 @@ pub const NUMBERED_FAMILY: &str = "Numtest Mincho";
 /// Regular renamed), as families whose styles are numbered have, with no Regular among them.
 /// `None` when it can't be built.
 pub fn numbered_font(style: &str) -> Option<Vec<u8>> {
-    const FACE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const FACE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(FACE).ok()?;
     let full = format!("{NUMBERED_FAMILY} {style}");
     let postscript = format!("NumtestMincho-{style}");
@@ -2098,7 +2098,7 @@ pub fn colour_bitmap_font(sbix: bool) -> Option<Vec<u8>> {
 
 /// [`colour_bitmap_font`] with `png` as the bitmap of its largest strike (a malformed one, say).
 pub fn colour_bitmap_font_with(sbix: bool, png: &[u8]) -> Option<Vec<u8>> {
-    const BASE: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+    const BASE: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
     let font = skrifa::FontRef::new(BASE).ok()?;
     let glyphs = font.maxp().ok()?.num_glyphs();
     let gid = u16::try_from(font.charmap().map(COLOUR_CHAR)?.to_u32()).ok()?;
@@ -2266,7 +2266,7 @@ fn source_sans_gids<const N: usize>(chars: [char; N]) -> Option<[u16; N]> {
     Some(gids)
 }
 
-const SOURCE_SANS: &[u8] = include_bytes!("../../../assets/fonts/SourceSans3-Regular.ttf");
+const SOURCE_SANS: &[u8] = include_bytes!("../../../../fonts/SourceSans3-Regular.ttf");
 
 /// The bundled Source Sans 3 Regular as family [`colr_family`], with `COLR` and `CPAL` tables
 /// written from the OpenType specification, palette 0 [`COLR_RED`], [`COLR_BLUE`], [`COLR_GREEN`].

@@ -286,7 +286,7 @@ fn variable_font_settings_are_written_embedded_and_read_back() {
 /// The bundled Source Sans 3 Regular renamed `family` (13 characters, as long as the original
 /// name) with OS/2 `fsType` set to `fs_type`.
 fn licensed_font(family: &str, fs_type: u16) -> Vec<u8> {
-    let mut data = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf").to_vec();
+    let mut data = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf").to_vec();
     let table = |data: &[u8], tag: &[u8; 4]| {
         let f = skrifa::FontRef::new(data).unwrap();
         let r = f.table_directory.table_records().iter().find(|r| r.tag().to_be_bytes() == *tag).unwrap();
@@ -319,7 +319,7 @@ fn font_licences_are_respected() {
     let fonts = embedded(&o.svg);
     assert_eq!(fonts.len(), 1, "{:?}", o.warnings);
     assert_eq!(fonts[0].0, "\"Wholed Sans 3\"");
-    let size = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf").len();
+    let size = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf").len();
     assert!(fonts[0].2.len() + 64 >= size, "embedded whole: {} of {size} bytes", fonts[0].2.len());
     assert!(o.warnings.iter().any(|w| w.contains("Sealed Sans 3") && w.contains("doesn't allow embedding")), "{:?}", o.warnings);
     assert!(o.setting_notes.iter().any(|w| w.contains("Wholed Sans 3") && w.contains("whole")), "{:?}", o.setting_notes);

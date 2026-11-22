@@ -22,7 +22,7 @@ fn fs_type_flags_decide_the_embedding() {
 /// The bundled Source Sans 3 Regular renamed `family` (13 characters, as long as the original
 /// name) with OS/2 `fsType` set to `fs_type`.
 fn licensed_font(family: &str, fs_type: u16) -> Vec<u8> {
-    let mut data = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf").to_vec();
+    let mut data = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf").to_vec();
     let table = |data: &[u8], tag: &[u8; 4]| {
         let f = skrifa::FontRef::new(data).unwrap();
         let r = f.table_directory.table_records().iter().find(|r| r.tag().to_be_bytes() == *tag).unwrap();

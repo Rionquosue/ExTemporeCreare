@@ -771,7 +771,7 @@ fn text_keeps_a_stretch_across() {
 /// Source Sans 3 Regular's own values, read from its table directory: unitsPerEm (`head`),
 /// xAvgCharWidth and usWinAscent + usWinDescent (`OS/2`), in font units.
 fn source_sans_metrics() -> (f64, f64, f64) {
-    let font: &[u8] = include_bytes!("../../../../assets/fonts/SourceSans3-Regular.ttf");
+    let font: &[u8] = include_bytes!("../../../../../fonts/SourceSans3-Regular.ttf");
     let u16_at = |at: usize| u16::from_be_bytes([font[at], font[at + 1]]);
     let table = |tag: &[u8; 4]| {
         let at = (0..usize::from(u16_at(4))).map(|i| 12 + 16 * i).find(|at| &font[*at..*at + 4] == tag).unwrap();
