@@ -1,8 +1,6 @@
 //! The command registry. Ids follow Illustrator's menu structure.
 
-pub mod actionset;
 mod addons;
-mod apiref;
 pub(crate) mod appearance;
 pub mod arrowheads;
 mod artboardalign;
@@ -19,7 +17,6 @@ pub mod colortheme;
 pub mod compositefonts;
 mod compoundshape;
 pub(crate) mod create;
-mod css;
 mod cut;
 pub(crate) mod dimension;
 pub(crate) mod distortcmds;
@@ -43,11 +40,8 @@ pub(crate) mod gradient;
 pub mod gradpresets;
 pub(crate) mod graph;
 mod halftone;
-pub mod help;
-pub mod importmatches;
 mod info;
 pub(crate) mod inline;
-mod interactivity;
 mod intertwine;
 pub mod kinsokusets;
 pub(crate) mod layer;
@@ -63,7 +57,6 @@ pub mod newdoc;
 mod object;
 pub(crate) mod objects_on_path;
 mod opacitymask;
-mod overprint;
 pub mod package;
 mod paint;
 mod panelcmds;
@@ -75,22 +68,12 @@ pub mod patternlib;
 pub mod pdfcmds;
 pub mod perspgrid;
 pub mod place;
-pub mod plugin;
-pub(crate) mod plugin_call;
-mod preflight;
 pub mod prefscmds;
-pub mod print;
-pub(crate) mod printadvanced;
-pub mod printpresets;
-pub mod printtiling;
 pub mod rasterfx;
 mod recolor;
 pub mod recovery;
-pub mod scripts;
 pub(crate) mod select;
 pub(crate) mod shaper;
-pub mod shortcutset;
-pub(crate) mod slices;
 pub mod spelling;
 mod stroke;
 mod style;
@@ -108,13 +91,10 @@ mod retype;
 pub mod textstyles;
 pub(crate) mod textwrap;
 pub(crate) mod threads;
-pub mod toast;
 pub(crate) mod typecmd;
 mod typemenu;
-mod variablecmds;
 pub(crate) mod views;
 pub mod wand;
-pub mod webexport;
 mod wireframe;
 mod xform;
 
@@ -291,6 +271,20 @@ macro_rules! cmd {
 }
 pub(crate) use cmd;
 
+/// Run `f` on a copy of the document and commit it as one undo step (`label`) only when `f`
+/// reports changes; returns their count.
+pub(crate) fn edit_counted(s: &mut Session, label: &str, f: impl FnOnce(&mut vectorcraft_doc::Document) -> Result<usize>) -> Result<usize> {
+    let mut d = (*s.doc()?.doc).clone();
+    let n = f(&mut d)?;
+    if n > 0 {
+        s.edit(label, |doc, _| {
+            *doc = d;
+            Ok(())
+        })?;
+    }
+    Ok(n)
+}
+
 pub fn command_specs() -> &'static [CommandSpec] {
     static SPECS: std::sync::OnceLock<Vec<CommandSpec>> = std::sync::OnceLock::new();
     SPECS.get_or_init(|| {
@@ -341,8 +335,6 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(compositefonts::specs());
         v.extend(kinsokusets::specs());
         v.extend(fontfiles::specs());
-        v.extend(help::specs());
-        v.extend(toast::specs());
         v.extend(threads::specs());
         v.extend(textwrap::specs());
         v.extend(graph::specs());
@@ -351,7 +343,6 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(maskedit::specs());
         v.extend(tabs::specs());
         v.extend(docmenu::specs());
-        v.extend(variablecmds::specs());
         v.extend(docinfo::specs());
         v.extend(info::specs());
         v.extend(panelcmds::specs());
@@ -365,7 +356,6 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(prefscmds::specs());
         v.extend(distortcmds::specs());
         v.extend(paint::proxy_specs());
-        v.extend(overprint::specs());
         v.extend(swatchlib::specs());
         v.extend(freeform::specs());
         v.extend(flatten::specs());
@@ -375,7 +365,6 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(library::specs());
         v.extend(expand::specs());
         v.extend(attributes::specs());
-        v.extend(interactivity::specs());
         v.extend(spelling::specs());
         v.extend(svgfilter::specs());
         v.extend(newart::specs());
@@ -390,36 +379,22 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(fileio::dxf::specs());
         v.extend(fileio::eps::specs());
         v.extend(package::specs());
-        v.extend(slices::specs());
-        v.extend(print::specs());
-        v.extend(preflight::specs());
         v.extend(recovery::specs());
         v.extend(fileio::dxfimport::specs());
-        v.extend(webexport::specs());
         v.extend(assets::specs());
-        v.extend(css::specs());
-        v.extend(printpresets::specs());
-        v.extend(printtiling::specs());
-        v.extend(plugin::specs());
-        v.extend(scripts::specs());
         v.extend(cut::specs());
         v.extend(halftone::specs());
         v.extend(perspgrid::specs());
-        v.extend(shortcutset::specs());
-        v.extend(actionset::specs());
-        v.extend(importmatches::specs());
         v.extend(addons::specs());
         // Last, so the reference it writes ends with its own section.
-        v.extend(apiref::specs());
         v
     })
 }
 
-/// The command `id`: a built-in one, or a command an installed plug-in adds
-/// ([`plugin::command_specs`]).
+/// The built-in command `id`.
 pub fn find_command(id: &str) -> Option<&'static CommandSpec> {
     static INDEX: std::sync::OnceLock<std::collections::HashMap<&'static str, &'static CommandSpec>> = std::sync::OnceLock::new();
-    INDEX.get_or_init(|| index_by_id(command_specs())).get(id).copied().or_else(|| plugin::find_spec(id))
+    INDEX.get_or_init(|| index_by_id(command_specs())).get(id).copied()
 }
 
 /// `specs` by id. An id that more than one spec has names the first of them, as a search of
@@ -432,10 +407,9 @@ pub(crate) fn index_by_id(specs: &[CommandSpec]) -> std::collections::HashMap<&'
     index
 }
 
-/// Runs command `spec`'s implementation with `p`. A plug-in command's runs the plug-in
-/// ([`plugin::run_command`]), which needs the command's id.
+/// Runs command `spec`'s implementation with `p`.
 pub(crate) fn run_spec(s: &mut Session, spec: &CommandSpec, p: &Value) -> Result<Value> {
-    if plugin::is_command_id(spec.id) { plugin::run_command(s, spec.id, p) } else { (spec.run)(s, p) }
+    (spec.run)(s, p)
 }
 
 /// [`run_spec`] for a command run outside [`Session::execute`]: with params checked against the
@@ -854,7 +828,6 @@ pub(crate) use object::{keep_aligned_in, refresh_pixel_aligned};
 /// The rules `object.scale`, `object.reflect` and `object.shear` check their params with.
 pub use object::{reflect_axis, scale_factors, shear_tangent};
 pub(crate) use paint::LIVE_PAINT_BUCKET;
-pub use plugin_call::{Location, ParamsPlace, key_location, location_in, location_keys};
 pub use select::SIMILAR;
 pub(crate) use vectorcraft_doc::range::parse_range;
 
@@ -897,7 +870,7 @@ pub use effectcmd::pathfinder_effect_options;
 
 /// The Attributes panel's state ([`Session::attributes_info`]) and how many recent URLs it keeps.
 pub use attributes::RECENT_URLS;
-pub use overprint::AttributesInfo;
+pub use attributes::AttributesInfo;
 
 /// Object → Flatten Transparency settings (`object.flattenTransparency`).
 pub use flatten::FlattenOptions;
@@ -944,16 +917,34 @@ pub use brushsym::is_symbol_set;
 /// frame without running the command).
 pub use brushsym::current_symbol;
 
-/// The byte order of UTF-16 text without a byte-order mark, by Import Data Sets' rule (the Graph
-/// Data window reads files by it too).
-pub use variablecmds::utf16_order_without_mark;
+/// The byte order of UTF-16 text without a byte-order mark (true: little-endian), or `None`: at
+/// least half of its two-byte units hold a NUL byte, and the order that reads a line break wins.
+pub fn utf16_order_without_mark(bytes: &[u8]) -> Option<bool> {
+    let units = bytes.as_chunks::<2>().0;
+    if units.iter().filter(|c| c.contains(&0)).count() * 2 < units.len() {
+        return None;
+    }
+    let is_line_break = |u: u16| matches!(u, 0x0A | 0x0D);
+    let lines_le = units.iter().any(|&c| is_line_break(u16::from_le_bytes(c)));
+    let lines_be = units.iter().any(|&c| is_line_break(u16::from_be_bytes(c)));
+    match (lines_le, lines_be) {
+        (true, true) => None,
+        (false, false) => Some(units.iter().filter(|c| c[0] == 0).count() <= units.iter().filter(|c| c[1] == 0).count()),
+        (_, lines_be) => Some(!lines_be),
+    }
+}
+
+/// Settles typing in progress as its own undo step before a command reads the document.
+pub(crate) fn settle_typing(s: &mut Session) -> Result<()> {
+    if !s.previewing && typing_in_progress(s) {
+        settle_interaction(s)?;
+    }
+    Ok(())
+}
 
 /// How the Graph Data window's Import Data and Import Data Sets' `%` columns read a graph data
 /// file: its size limit, its text, its cells and the data `graph.setData` takes from them.
 pub use graph::{MAX_GRAPH_DATA_FILE, graph_cell_text, graph_data_from_grid, graph_data_text, graph_grid_from_text};
-
-/// The Variables panel's sort (`variable.sort`) and its rows in that order.
-pub use variablecmds::{VariableSort, VariableSortKey, variable_order};
 
 /// Command ids kept only so older scripts keep working: `(alias, the command it duplicates)`.
 /// They run as before but the command palette leaves them out (it lists the command once).

@@ -365,7 +365,7 @@ fn style_apply(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let before = s.doc()?.doc.clone();
     // An apply that changes nothing (a fill-only style added to edges only) records no undo step.
-    super::overprint::edit_counted(s, "Apply Graphic Style", |d| {
+    crate::cmd::edit_counted(s, "Apply Graphic Style", |d| {
         if add {
             let g = d.graphic_styles[i].clone();
             for id in &ids {

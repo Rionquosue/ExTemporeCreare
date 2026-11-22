@@ -6,7 +6,7 @@ use super::frame::{
 };
 use super::geometry::{MAX_GUIDE_DASHES, polygon_length, rects_overlap, region_pixels};
 use super::node_checks::{
-    depends_on_document, drawable, holds_instance, holds_plugin_effect, holds_type, owns_stroke, painted_items, place, single_plain_fill, stain_bits,
+    depends_on_document, drawable, holds_instance, holds_type, owns_stroke, painted_items, place, single_plain_fill, stain_bits,
 };
 use super::options::{AntiAlias, ISOLATION_DIM, MAX_CONTEXT_SIDE, RenderOptions, Rendered, downsample, supersample_factor};
 use super::paint::{SUBSTITUTED, blend_mode, fill_rule};
@@ -44,10 +44,7 @@ impl Renderer {
             geom: PtrMap::default(),
             kept: PtrMap::default(),
             symbols: vec![],
-            plugin_revision: 0,
             brush_library: None,
-            painting_plugins: false,
-            paint_names: 0,
             strokes: PtrMap::default(),
             moved_strokes: PtrMap::default(),
             char_strokes: FrameCache::new(lru::CHAR_STROKE_BUDGET, 0),
@@ -135,7 +132,6 @@ impl Renderer {
                 return Rendered { width: w, height: h, pixels };
             }
         }
-        self.check_plugins(doc);
         // The document's own symbols: proofing rewrites the colors and blend modes of their art.
         self.check_symbols(doc);
         let prepared = proof::prepare(doc, opts, &mut self.proof_art);
@@ -384,7 +380,6 @@ impl Renderer {
     /// [`Self::render_node`] with `opts` (e.g. [`RenderOptions::mark_undecoded_images`]).
     pub fn render_node_with(&mut self, doc: &Document, n: &Arc<Node>, w: u16, h: u16, view: Affine, opts: &RenderOptions) -> Option<Rendered> {
         let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
-        self.check_plugins(doc);
         self.check_symbols(doc);
         let visible = view.inverse().transform_rect_bbox(Rect::new(0.0, 0.0, w as f64, h as f64));
         let pixels = self.node_pixels(doc, n, (w, h), view, visible, opts, false, 1);
@@ -463,7 +458,6 @@ impl Renderer {
         opts: &RenderOptions,
     ) -> Option<Rendered> {
         let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
-        self.check_plugins(doc);
         self.check_symbols(doc);
         let b = brush_fx::cull_bounds(&doc.symbol_boxes(), n)?;
         let w = size.clamp(1, MAX_CONTEXT_SIDE) as u16;

@@ -10,7 +10,6 @@
 
 pub mod legend;
 mod nearest;
-mod print_fixes;
 #[cfg(test)]
 mod tests;
 
@@ -46,15 +45,6 @@ pub fn specs() -> Vec<CommandSpec> {
             "{effect: a colour adjustment's effect id (adjust.brightnessContrast, adjust.curves, adjust.hueSaturation, adjust.levels, adjust.shiftToColor, adjust.temperatureTint, addon.color.exposure, addon.color.desaturate, addon.color.duotone or addon.color.invert), params?: {…} (as effect.apply; missing keys take the dialog defaults), fill?: true, stroke?: true, includeImages?: true, includePatterns?: true, ids?: [id…] (default: the selection)} recolour the objects and everything inside them as the live effect would draw them, but in their colours, as edit.colors.invert does (fills, strokes, type, gradient meshes, embedded images and pattern tiles), as one undo step (none when nothing changes); their effects stay. Duotone links a colour to its one tone's swatch as the live effect does. On a path directly in a graph series, the graph also stores the new paint of the topmost visible fill and stroke, and on a graph label the new paint of its characters and rows for every label of its kind, and on a graph's axis line, tick mark or radar ring its rows for every line of its kind (docs/mcp.md) → {changed}",
             has_selection,
             filter
-        ),
-        cmd!(
-            "addon.color.printFixes",
-            "Print Ink Fixes",
-            ["Object", "Plug-ins", "Color Effects"],
-            None,
-            "{scope?: \"selection\" (the selection, or `ids`; by default, the document while nothing is selected) | \"document\" (every layer), inkLimit?: total ink % 1..400 (0 or left out: off), excludePureBlack?: true (black-only and grey colours keep their ink), removeWhiteOverprint?: false (white fills and strokes stop overprinting), overprintBlack?: black % 1..100 (black-only and grey fills and strokes this dark or darker overprint, as edit.colors.overprintBlack; 0 or left out: off), textOnly?: false (Overprint Black on type only), fill?: true, stroke?: true, ids?: [id…]} prepare a CMYK document's inks for print as one undo step: CMYK colours (solid, gradient stops, gradient meshes) with more total ink than inkLimit are scaled down to it (colours of spot swatches and Registration stay), white overprint is removed and black overprint set. Refused in RGB documents (File › Document Color Mode › CMYK Color first). On a path directly in a graph series, the graph also stores a paint the ink limit changes on the topmost visible fill or stroke, and on a graph label the new paint of its characters and rows for every label of its kind, and on a graph's axis line, tick mark or radar ring its rows for every line of its kind (docs/mcp.md) → {changed, inkLimited: paints and meshes scaled, whiteOverprintRemoved: objects, blackOverprinted: objects}",
-            has_doc,
-            print_fixes::run
         ),
         cmd!(
             query "addon.color.nearestSwatch",
@@ -209,7 +199,7 @@ fn copy_paint(s: &mut Session, p: &Value, to_stroke: bool) -> Result<Value> {
             if story.is_empty() { vec![(id, a, b)] } else { story.iter().map(|f| (*f, 0, usize::MAX)).collect() };
         let ids: Vec<NodeId> = ranges.iter().map(|(f, _, _)| *f).collect();
         let before = s.doc()?.doc.clone();
-        let n = super::super::overprint::edit_counted(s, label, |d| {
+        let n = crate::cmd::edit_counted(s, label, |d| {
             for &(id, a, b) in &ranges {
                 let Some(NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { return Err(EngineError::NoNode(id)) };
                 vectorcraft_text::edit::style_range(&mut t.runs, a, b, copy_run);
@@ -224,7 +214,7 @@ fn copy_paint(s: &mut Session, p: &Value, to_stroke: bool) -> Result<Value> {
     let mut objects = 0;
     if !ids.is_empty() {
         let before = s.doc()?.doc.clone();
-        super::super::overprint::edit_counted(s, label, |d| {
+        crate::cmd::edit_counted(s, label, |d| {
             // Each object with the row the paint went to, for the paint a graph stores for its series.
             let mut written = Vec::new();
             for id in &ids {

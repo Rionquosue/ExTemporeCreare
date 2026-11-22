@@ -526,12 +526,6 @@ pub(crate) fn with_bounds(s: &Session, id: Option<NodeId>, mut result: Value) ->
     result
 }
 
-/// The warning that Print gives for `ids`, area type and type on a path whose text doesn't fit
-/// (as [`with_overflow`] finds it): the text past the end of their frames doesn't print. It names
-/// the first 20 ids and counts the rest; `None` when `ids` is empty.
-pub(crate) fn overflow_warning(ids: &[NodeId]) -> Option<String> {
-    overflow_note(ids, "doesn't print")
-}
 
 /// [`overflow_warning`] as an export that draws type gives it: the text past the end of the frames
 /// isn't drawn in the export.

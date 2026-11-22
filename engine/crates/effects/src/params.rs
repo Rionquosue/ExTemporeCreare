@@ -1,12 +1,9 @@
-use super::catalog::{catalog_index, plugin_info};
-use super::{CROP_MARKS, Effect, Map, Node, PIXEL_EFFECTS, RASTERIZE, Value, is_adjustment, is_pathfinder, is_three_d, json, util};
+use super::catalog::catalog_index;
+use super::{CROP_MARKS, Effect, Map, PIXEL_EFFECTS, RASTERIZE, Value, is_adjustment, is_pathfinder, is_three_d, json, util};
 
 /// Dialog defaults for `id` (`None` for unknown effects).
 pub fn default_params(id: &str) -> Option<Value> {
-    match catalog_index().get(id) {
-        Some(e) => Some(e.defaults.clone()),
-        None => plugin_info(id).map(|e| e.defaults),
-    }
+    catalog_index().get(id).map(|e| e.defaults.clone())
 }
 
 /// `params` layered over the defaults of `id` (unknown keys are kept), in their current form (see
@@ -15,8 +12,7 @@ pub fn default_params(id: &str) -> Option<Value> {
 pub fn merged_params(id: &str, params: &Value) -> Value {
     let mut out = match catalog_index().get(id).map(|e| &e.defaults) {
         Some(Value::Object(m)) => m.clone(),
-        Some(_) => Map::new(),
-        None => vectorcraft_plugins::effect::installed(id).map(|p| p.manifest().defaults()).unwrap_or_default(),
+        Some(_) | None => Map::new(),
     };
     // Upgraded before the defaults are under it: a default angle is no angle given.
     if let Value::Object(p) = upgrade_params(id, params) {
@@ -104,7 +100,7 @@ fn upgrade_scribble(id: &str, m: &mut Map<String, Value>) {
 /// A new effect record with default parameters (overridden by `params`).
 pub fn new_effect(id: &str, params: &Value) -> Option<Effect> {
     if !catalog_index().contains_key(id) {
-        vectorcraft_plugins::effect::installed(id)?;
+        return None;
     }
     let mut params = merged_params(id, params);
     // A new Warp takes its style's Bézier net unless a map is given; the catalog's defaults carry
@@ -161,7 +157,7 @@ pub fn is_geometry(id: &str) -> bool {
         && id != CROP_MARKS
         && id != crate::addons::halftone::HALFTONE
         && !is_three_d(id)
-        && (catalog_index().contains_key(id) || vectorcraft_plugins::effect::plugin_id(id).is_some())
+        && catalog_index().contains_key(id)
 }
 
 /// Any visible geometry effect in the list?
@@ -169,28 +165,6 @@ pub fn has_geometry(effects: &[Effect]) -> bool {
     effects.iter().any(|e| e.visible && is_geometry(&e.id))
 }
 
-/// Does `n` have a visible plug-in effect, its own or a fill's or stroke's? Such an effect draws
-/// what the plug-in installed under its id draws ([`plugin_revision`]).
-pub fn has_plugin_effect(n: &Node) -> bool {
-    let plugin = |e: &Effect| e.visible && vectorcraft_plugins::effect::plugin_id(&e.id).is_some();
-    n.appearance.effects.iter().any(plugin) || n.appearance.items.iter().any(|i| i.effects().iter().any(plugin))
-}
 
-/// Does `n` have a visible live-effect plug-in effect, its own or a fill's or stroke's, whose
-/// plug-in paints the pieces it returns? What such an effect draws also depends on the document's
-/// swatches and patterns, which its pieces may name.
-pub fn has_painted_plugin_effect(n: &Node) -> bool {
-    let painted = |e: &Effect| e.visible && vectorcraft_plugins::effect::plugin_id(&e.id).is_some_and(vectorcraft_plugins::effect::paints_output);
-    n.appearance.effects.iter().any(painted) || n.appearance.items.iter().any(|i| i.effects().iter().any(painted))
-}
 
-/// Is a live-effect plug-in that paints the pieces it returns installed?
-pub fn any_plugin_paints_output() -> bool {
-    vectorcraft_plugins::registry::list().iter().any(|p| vectorcraft_plugins::effect::paints_output(&p.manifest().id))
-}
 
-/// Changes whenever a plug-in is installed or removed (the registry's revision), and when deferred
-/// live-effect plug-in stages give results ([`vectorcraft_plugins::deferred::revision`]).
-pub fn plugin_revision() -> u64 {
-    vectorcraft_plugins::registry::revision() ^ vectorcraft_plugins::deferred::revision().rotate_left(32)
-}

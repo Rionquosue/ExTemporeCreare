@@ -105,48 +105,36 @@ pub fn expand_live(n: &Node) -> Vec<Node> {
 /// the fonts, the plug-ins and the color settings, hashed: the art of the symbols, the tilings of
 /// the patterns, the reads of the placed files it shows and the document's pixels for the images
 /// whose own fills or strokes follow them ([`hash_resources`]), the font
-/// generation ([`vectorcraft_text::FontDb::generation`]) when it shows type or a placed file, the
-/// plug-in revision ([`crate::effects::plugin_revision`]) and `names` (the hash of the document's
-/// swatch and pattern names, [`DocInputs`]) when it shows an object with a plug-in effect, since a
-/// plug-in that paints its pieces ([`crate::effects::has_painted_plugin_effect`]) draws them only
-/// while the swatches and patterns they name are in the document, and the color settings (`cms`,
-/// their address). Art is hashed by the addresses of its `Arc`s, which copies of the document
+/// generation ([`vectorcraft_text::FontDb::generation`]) when it shows type or a placed file, and
+/// the color settings (`cms`, their address). Art is hashed by the addresses of its `Arc`s, which copies of the document
 /// share: a copy of the document has the same key. It also returns weak references to the reads
 /// found, and what the walk found ([`Walked`]) when it found no placed file and no such image.
 /// Symbols are found by name in `symbols`.
-fn resources_key(symbols: &SymbolBoxes, cms: usize, names: u64, n: &Node) -> (u64, Vec<Weak<ReadDocument>>, Option<Walked>) {
+fn resources_key(symbols: &SymbolBoxes, cms: usize, n: &Node) -> (u64, Vec<Weak<ReadDocument>>, Option<Walked>) {
     let mut h = DefaultHasher::new();
     let mut shown = Shown::default();
     hash_resources(symbols, n, &mut shown, &mut h);
-    let walked = Walked { hash: h.finish(), text: shown.text, plugins: shown.plugins };
-    (walked.key(cms, names), shown.reads, (!shown.placed && !shown.pixels).then_some(walked))
+    let walked = Walked { hash: h.finish(), text: shown.text };
+    (walked.key(cms), shown.reads, (!shown.placed && !shown.pixels).then_some(walked))
 }
 
 /// What [`hash_resources`] found in a node: the hash of what it walked, whether it found type or
-/// a placed file, and whether it found an object with a visible plug-in effect.
+/// a placed file.
 #[derive(Clone, Copy)]
 struct Walked {
     hash: u64,
     text: bool,
-    plugins: bool,
 }
 
 impl Walked {
     /// The [`resources_key`] of the node walked: the walk's hash, the layout inputs (fonts and
     /// hyphenation exceptions, [`vectorcraft_text::layout_inputs`]) when it found type or a placed
-    /// file, the plug-in revision and the hash of the document's swatch and pattern
-    /// names (`names`) when it found a plug-in effect, and the color settings `cms`. Whether a
-    /// plug-in paints its pieces depends on the plug-ins installed, so the names count for every
-    /// plug-in effect.
-    fn key(self, cms: usize, names: u64) -> u64 {
+    /// file, and the color settings `cms`.
+    fn key(self, cms: usize) -> u64 {
         let mut h = DefaultHasher::new();
         self.hash.hash(&mut h);
         if self.text {
             vectorcraft_text::layout_inputs().hash(&mut h);
-        }
-        if self.plugins {
-            crate::effects::plugin_revision().hash(&mut h);
-            names.hash(&mut h);
         }
         cms.hash(&mut h);
         h.finish()
@@ -166,8 +154,6 @@ struct Shown {
     /// ([`crate::effects::follows_image_pixels`]): the document's pixels for it can change while
     /// the walk's symbols and patterns stay the same.
     pixels: bool,
-    /// Whether an object with a visible plug-in effect was found.
-    plugins: bool,
     /// Weak references to the reads of the placed files found.
     reads: Vec<Weak<ReadDocument>>,
 }
@@ -180,14 +166,13 @@ struct Shown {
 /// own fills or strokes follow them ([`crate::effects::follows_image_pixels`]). It walks `n` and
 /// then, one at a time from a list, the opacity-mask, pattern and symbol art it finds, each pattern
 /// and each symbol's art once ([`first_seen`]). `shown` records the type, placed files, reads,
-/// such images and plug-in effects found. Symbols are found by name in `symbols`.
+/// and such images found. Symbols are found by name in `symbols`.
 fn hash_resources<'a>(symbols: &SymbolBoxes<'a>, n: &'a Node, shown: &mut Shown, h: &mut DefaultHasher) {
     let doc = symbols.document();
     let mut todo = vec![];
     let mut next = Some(n);
     while let Some(art) = next {
         art.walk(&mut |c| {
-            shown.plugins |= crate::effects::has_plugin_effect(c);
             let runs = match &c.kind {
                 NodeKind::Text(t) => t.runs.as_slice(),
                 _ => &[],
@@ -481,13 +466,13 @@ impl Renderer {
             && std::ptr::eq(node.as_ptr(), Arc::as_ptr(n))
             && read.same_art(&inputs)
         {
-            return (walked.key(inputs.cms, inputs.names), inputs, vec![]);
+            return (walked.key(inputs.cms), inputs, vec![]);
         }
         #[cfg(test)]
         {
             self.live.walked += 1;
         }
-        let (key, reads, walked) = resources_key(symbols, inputs.cms, inputs.names, n);
+        let (key, reads, walked) = resources_key(symbols, inputs.cms, n);
         if let Some(walked) = walked {
             // The bytes count the key and the entry, and the node's allocation that the weak
             // reference keeps.
@@ -858,7 +843,7 @@ mod tests {
             std::thread::scope(|s| {
                 std::thread::Builder::new()
                     .stack_size(256 << 10)
-                    .spawn_scoped(s, || resources_key(&d.symbol_boxes(), 0, 0, &envelope).0)
+                    .spawn_scoped(s, || resources_key(&d.symbol_boxes(), 0, &envelope).0)
                     .unwrap()
                     .join()
                     .unwrap()
@@ -893,8 +878,8 @@ mod tests {
             frame: Box::new(Affine::IDENTITY),
         };
         let envelope = Node::new(d.alloc_id(), envelope);
-        let before = resources_key(&d.symbol_boxes(), 0, 0, &envelope).0;
+        let before = resources_key(&d.symbol_boxes(), 0, &envelope).0;
         d.symbols[2].art = y.clone();
-        assert_ne!(resources_key(&d.symbol_boxes(), 0, 0, &envelope).0, before, "the art of every instance is hashed");
+        assert_ne!(resources_key(&d.symbol_boxes(), 0, &envelope).0, before, "the art of every instance is hashed");
     }
 }

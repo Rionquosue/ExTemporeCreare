@@ -22,9 +22,6 @@
 //!   PDF writers.
 //! - [`preview`] measures objects as they are drawn, with their geometry effects (Use Preview
 //!   Bounds).
-//! - **Plug-in effects** (`plugin.<plug-in id>`, Effect › Plug-ins) are geometry effects run by an
-//!   installed WebAssembly plug-in (`vectorcraft-plugins`); [`effect_info`] describes them like
-//!   built-in ones, and an effect whose plug-in isn't installed leaves the geometry as it is.
 //! - **Colour adjustments** (Brightness/Contrast, Curves, Levels, Hue/Saturation, Shift to Color,
 //!   Temperature/Tint) recolour what an object paints with: [`adjust`] evaluates them for the
 //!   renderer and the exporters.
@@ -90,7 +87,7 @@ pub use raster::{
 };
 pub use reshape::{
     SYMBOL_ART_MAX_NODES, expand_outlined, follows_image_pixels, gives_image_shape, has_copied_row_raster, has_gradient_copies,
-    has_instance_row_raster, has_item_geometry, has_painted_effects, has_transform_art, has_transform_copies, has_transform_options, image_paint,
+    has_instance_row_raster, has_item_geometry, has_transform_art, has_transform_copies, has_transform_options, image_paint,
     instance_as_art, needs_outline, outer_effects, outline_art, outline_text, paint_type_piece, reshape,
 };
 pub use revolve::{
@@ -124,7 +121,7 @@ mod catalog;
 mod geometry;
 mod params;
 
-pub use catalog::{EffectInfo, Lengths, WARP_STYLES, effect_catalog, effect_info, is_length, length_range, plugin_effects, raster_px_range};
+pub use catalog::{EffectInfo, Lengths, WARP_STYLES, effect_catalog, effect_info, is_length, length_range, raster_px_range};
 pub(crate) use geometry::{Budget, apply_one};
 pub use geometry::{
     Carry, GeomContext, apply_geometry, apply_geometry_bez, apply_geometry_bez_carrying, apply_geometry_carrying, apply_geometry_with,
@@ -132,6 +129,5 @@ pub use geometry::{
 #[cfg(test)]
 pub(crate) use geometry::{MAX_EFFECT_LINES, apply_geometry_within};
 pub use params::{
-    any_plugin_paints_output, default_params, has_geometry, has_painted_plugin_effect, has_plugin_effect, is_geometry, is_raster, merged_params,
-    new_effect, plugin_revision, scale_effect, upgrade_params,
+    default_params, has_geometry, is_geometry, is_raster, merged_params, new_effect, scale_effect, upgrade_params,
 };

@@ -86,7 +86,7 @@ impl Session {
     /// Start stamping the active document's linked files on a worker thread, unless a look is
     /// still running, a script is running (or the build has no files to look at: the web app).
     pub fn start_link_scan(&mut self) {
-        if self.link_scan.is_some() || self.script_key.is_some() || cfg!(target_arch = "wasm32") {
+        if self.link_scan.is_some() || cfg!(target_arch = "wasm32") {
             return;
         }
         let Some(st) = self.active() else { return };
@@ -119,9 +119,6 @@ impl Session {
     /// running): see [`Session::apply_link_stamps`]. A look whose worker ended without stamps is
     /// cleared, also with `None`, so the next one can start.
     pub fn poll_link_scan(&mut self) -> Option<Result<Value>> {
-        if self.script_key.is_some() {
-            return None;
-        }
         self.link_scan.take_if(|scan| ended_without_stamps(scan, |ended| ended.load(Ordering::SeqCst)));
         let (uid, stamps) = self.link_scan.as_ref()?.0.lock().unwrap_or_else(PoisonError::into_inner).take()?;
         self.link_scan = None;

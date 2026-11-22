@@ -3,7 +3,6 @@
 //! `action.batch` (the Actions panel menu's Batch…).
 //!
 //! - `load`: `document.open` (native, legacy, SVG/SVGZ, PDF/.ai/.ait, DXF, HP-GL, raster images).
-//! - `action_batch`: play an action on every file in a folder or every data set.
 //! - `encode`: one encoder per writable format, with typed options parsed from the params.
 //! - `svg`: the SVG Options (styling, fonts, images, object ids, artboards…).
 //! - `export`: `document.export` / `serialize` / `exportSelection` / `exportForOffice`.
@@ -27,7 +26,6 @@
 //! [`FORMATS`] is the single list of formats (append-only); open dialogs use [`open_filters`],
 //! agents query `document.formats`.
 
-mod action_batch;
 mod affinity;
 mod batch;
 mod cdr;
@@ -37,7 +35,6 @@ mod encode;
 pub mod eps;
 mod export;
 pub(crate) mod imagemap;
-mod importer;
 pub mod jxlread;
 mod legacy_ai;
 mod load;
@@ -68,16 +65,13 @@ pub mod zip;
 
 use serde_json::{Value, json};
 
-pub(crate) use action_batch::action_step;
-pub use action_batch::batch_overwrites_one_file;
 pub use dxf::{UNSUPPORTED, Unsupported, unsupported};
 pub use encode::{
     ARTBOARD_PARAMS, ArtboardPick, Encoded, Note, NoteKind, encode, encode_all, encode_with_notes, encode_with_warnings, export_art_bounds,
     note_texts,
 };
 pub(crate) use encode::{anti_alias, background, with_single_artboard};
-pub(crate) use export::with_artboard_fills;
-pub(crate) use export::{EXPORT_PARAMS, export_crop, isolated};
+pub(crate) use export::{EXPORT_PARAMS, export_crop};
 pub use export::{export_doc, export_source, selection_doc, unused_option_notes};
 use load::err;
 pub(crate) use load::import_svg;
@@ -166,8 +160,8 @@ pub(crate) use formats::is_own_title;
 use formats::{ARTBOARD, ARTBOARDS, RANGE, USE_ARTBOARDS, import_name, writable};
 pub use formats::{
     DOC_EXTS, DOCX_EXTS, FORMATS, Format, FormatOption, OPEN_EXTS, PLACE_EXTS, RTF_EXTS, TEXT_EXTS, UNASSOCIATED_EXTS, builtin_open_filters,
-    export_extensions, extension, file_stem, format, format_for_name, has_own_title, importer_formats, library_open_filters, open_extensions,
-    open_filters, opens_as_other, opens_with_importer, place_filters, plugin_formats, read_extensions, readable_format, readable_format_for_name,
+    export_extensions, extension, file_stem, format, format_for_name, has_own_title, library_open_filters, open_extensions,
+    open_filters, opens_as_other, place_filters, read_extensions, readable_format, readable_format_for_name,
     titled_for_export, writable_format,
 };
 

@@ -834,7 +834,7 @@ fn edit_items_writing_then(
     };
     let aimed: Vec<NodeId> = ids.iter().zip(&per).filter(|(_, item)| item.is_some()).map(|(id, _)| *id).collect();
     let before = s.doc()?.doc.clone();
-    super::overprint::edit_counted(s, label, |d| {
+    crate::cmd::edit_counted(s, label, |d| {
         let mut edited = Vec::new();
         // The objects whose rows `f` edited: on type, no row means its characters.
         let mut rows = Vec::new();
@@ -1065,7 +1065,7 @@ fn clear_appearance(s: &mut Session, p: &Value) -> Result<Value> {
     let (faces, edges) = contents_parts(s, p)?;
     // When every object is cleared already, the document and its undo history stay as they are.
     let before = s.doc()?.doc.clone();
-    super::overprint::edit_counted(s, "Clear Appearance", |d| {
+    crate::cmd::edit_counted(s, "Clear Appearance", |d| {
         for id in &ids {
             if let Some(n) = d.node_mut(*id) {
                 clear(n);
@@ -1257,7 +1257,7 @@ fn transfer(s: &mut Session, p: &Value) -> Result<Value> {
     let group: Vec<NodeId> = if stands { vec![target] } else { vec![] };
     // When both objects come out as they were, the document and its undo history stay as they are.
     let before = s.doc()?.doc.clone();
-    super::overprint::edit_counted(s, if copy { "Copy Appearance" } else { "Move Appearance" }, |d| {
+    crate::cmd::edit_counted(s, if copy { "Copy Appearance" } else { "Move Appearance" }, |d| {
         d.node(source).ok_or(EngineError::NoNode(source))?;
         let src = d.node(read).cloned().ok_or(EngineError::NoNode(read))?;
         for id in &targets {
@@ -1324,7 +1324,7 @@ fn reduce_basic(s: &mut Session, p: &Value) -> Result<Value> {
         }
         _ => vec![Vec::new(); ids.len()],
     };
-    super::overprint::edit_counted(s, "Reduce to Basic Appearance", |d| {
+    crate::cmd::edit_counted(s, "Reduce to Basic Appearance", |d| {
         for (id, at) in ids.iter().zip(&active) {
             if let Some(n) = d.node_mut(*id) {
                 // The active row stays when it is a visible fill or stroke; otherwise the topmost
@@ -1379,7 +1379,7 @@ fn set_item(s: &mut Session, p: &Value) -> Result<Value> {
     let before = s.doc()?.doc.clone();
     let of = design_reference(s, p, "appearance.setItem")?;
     let per = rows_per_target(&before, of, &ids, &[idx], aligned(p, "appearance.setItem")?);
-    super::overprint::edit_counted(s, "Appearance", |d| {
+    crate::cmd::edit_counted(s, "Appearance", |d| {
         let mut edited = Vec::new();
         // The targets that have the row: an aligned row leaves out the members of a graph's Axes or Legend group that
         // lack it, and the graph keeps the rows of the labels and lines it reached only.
@@ -1484,7 +1484,7 @@ fn remove_item(s: &mut Session, p: &Value) -> Result<Value> {
     let before = s.doc()?.doc.clone();
     let of = design_reference(s, p, "appearance.removeItem")?;
     let per = rows_per_target(&before, of, &ids, &idx, aligned(p, "appearance.removeItem")?);
-    super::overprint::edit_counted(s, "Remove Item", |d| {
+    crate::cmd::edit_counted(s, "Remove Item", |d| {
         // The targets that had a row to remove, as in `set_item`.
         let mut reached = Vec::new();
         for (id, idx) in ids.iter().zip(&per) {
@@ -1684,7 +1684,7 @@ fn move_item(s: &mut Session, p: &Value) -> Result<Value> {
     // When every object's stack comes out as it was, the document and its undo history stay as they
     // are.
     let before = s.doc()?.doc.clone();
-    super::overprint::edit_counted(s, "Reorder Appearance", |d| {
+    crate::cmd::edit_counted(s, "Reorder Appearance", |d| {
         for id in &ids {
             let Some(n) = d.node_mut(*id) else { continue };
             landed = n.appearance.move_item(from, to).ok_or_else(|| bad(C, format!("no item at index {from}")))?;
@@ -1726,7 +1726,7 @@ fn move_items(s: &mut Session, p: &Value, ids: &[NodeId], to: usize) -> Result<V
     let active = s.active_appearance_item.as_ref().and_then(|a| a.objects.first().copied());
     let mut active_landed = None;
     let before = s.doc()?.doc.clone();
-    super::overprint::edit_counted(s, "Reorder Appearance", |d| {
+    crate::cmd::edit_counted(s, "Reorder Appearance", |d| {
         for id in ids {
             let Some(n) = d.node_mut(*id) else { continue };
             let landed = n.appearance.move_items(&idx, to).ok_or_else(|| bad(C, format!("no item at one of the indices {idx:?}")))?;
@@ -1766,7 +1766,7 @@ fn move_contents(s: &mut Session, ids: &[NodeId], to: usize) -> Result<Value> {
     // history stay as they are.
     let before = s.doc()?.doc.clone();
     let mut slot = None;
-    super::overprint::edit_counted(s, "Reorder Appearance", |d| {
+    crate::cmd::edit_counted(s, "Reorder Appearance", |d| {
         for id in ids {
             let Some(n) = d.node_mut(*id).filter(|n| n.contents_label().is_some()) else { continue };
             n.appearance.set_contents_at(to);
@@ -2022,7 +2022,7 @@ fn copy_from(s: &mut Session, p: &Value) -> Result<Value> {
             })
             .map(|(id, _)| *id)
             .collect();
-        super::overprint::edit_counted(s, "Eyedropper", |d| {
+        crate::cmd::edit_counted(s, "Eyedropper", |d| {
             for &(id, range) in &ranges {
                 let Some(NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { return Err(EngineError::NoNode(id)) };
                 let (start, end) = range.unwrap_or((0, vectorcraft_text::edit::runs_len(&t.runs)));
@@ -2041,7 +2041,7 @@ fn copy_from(s: &mut Session, p: &Value) -> Result<Value> {
     }
     // When every target comes out as it was, the document and its undo history stay as they are.
     let before = s.doc()?.doc.clone();
-    super::overprint::edit_counted(s, "Eyedropper", |d| {
+    crate::cmd::edit_counted(s, "Eyedropper", |d| {
         for id in &targets {
             if let Some(n) = d.node_mut(*id) {
                 match part_of(id) {

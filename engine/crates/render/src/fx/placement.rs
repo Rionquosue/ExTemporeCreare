@@ -39,8 +39,7 @@ fn rasterizes(fx: &[Effect]) -> bool {
 }
 
 fn unsupported(n: &Node) -> bool {
-    effects::has_plugin_effect(n)
-        || rasterizes(&n.appearance.effects)
+    rasterizes(&n.appearance.effects)
         || n.appearance.items.iter().any(|item| {
             item.visible() && (rasterizes(item.effects()) || matches!(item, AppearanceItem::Stroke(stroke) if stroke.path_gradient().is_some()))
         })

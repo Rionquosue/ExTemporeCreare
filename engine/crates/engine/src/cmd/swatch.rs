@@ -1060,7 +1060,7 @@ fn swatch_add_used(s: &mut Session, p: &Value) -> Result<Value> {
         Ok(ids)
     };
     // Typing in progress is its own undo step and is in the document the colors are read from.
-    super::variablecmds::settle_typing(s)?;
+    super::settle_typing(s)?;
     // With no new color there is nothing to add or link, so no edit and no undo step.
     let st = s.doc()?;
     if new_used_colors(&st.doc, &used_ids(&st.doc, &st.selection)?).is_empty() {

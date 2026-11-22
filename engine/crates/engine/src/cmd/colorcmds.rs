@@ -501,9 +501,6 @@ fn run_pass(s: &mut Session, p: &Value, cmd: &str, label: &str, pass: Recolor) -
 /// copy. Only a changed copy becomes the document, as one undo step named `label`; otherwise the
 /// undo and redo steps and the saved state stay as they were.
 pub(crate) fn edit_if_changed<T>(s: &mut Session, label: &str, f: impl FnOnce(&Document, &mut Document) -> Result<(T, bool)>) -> Result<T> {
-    if s.script_running() {
-        return Err(EngineError::Busy);
-    }
     // A typing session ends here as `s.edit` would end it, before the copy is taken, so that the
     // copy holds what was typed.
     if !s.previewing && super::typing_in_progress(s) {

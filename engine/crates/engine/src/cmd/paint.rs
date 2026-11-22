@@ -569,7 +569,7 @@ pub(crate) fn apply_paint(s: &mut Session, p: &Value, paint: Paint, fill: bool) 
             })
             .map(|(id, _, _)| *id)
             .collect();
-        super::overprint::edit_counted(s, if fill { "Fill Color" } else { "Stroke Color" }, |d| {
+        crate::cmd::edit_counted(s, if fill { "Fill Color" } else { "Stroke Color" }, |d| {
             for &(id, a, b) in &ranges {
                 let Some(NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { return Err(EngineError::NoNode(id)) };
                 let (xf, lb) = (t.xf, t.local_bounds());
@@ -1209,7 +1209,7 @@ fn swap(s: &mut Session, p: &Value) -> Result<Value> {
             })
             .collect();
         let parts: Vec<NodeId> = groups.iter().flat_map(|(_, faces, edges)| faces.iter().chain(edges)).copied().collect();
-        super::overprint::edit_counted(s, "Swap Fill and Stroke", |d| {
+        crate::cmd::edit_counted(s, "Swap Fill and Stroke", |d| {
             for (faces, edges, fill, stroke) in &swaps {
                 for id in *faces {
                     if let Some(n) = d.node_mut(*id) {
@@ -1275,7 +1275,7 @@ fn default_paint(s: &mut Session, p: &Value) -> Result<Value> {
         // A redefined Default Graphic Style gives other art its fills, strokes and effects, placed on each object.
         let style = super::newart::redefined_default_style(&before).cloned();
         let parts: Vec<NodeId> = groups.iter().flat_map(|(_, faces, edges)| faces.iter().chain(edges)).copied().collect();
-        super::overprint::edit_counted(s, "Default Fill and Stroke", |d| {
+        crate::cmd::edit_counted(s, "Default Fill and Stroke", |d| {
             for (_, faces, edges) in &groups {
                 let face = Appearance { items: vec![AppearanceItem::Fill(FillLayer::new(Paint::None))], ..Appearance::default() };
                 let edge = Appearance {

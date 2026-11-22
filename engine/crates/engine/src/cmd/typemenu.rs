@@ -187,7 +187,7 @@ fn ids_json(ids: &[NodeId]) -> Value {
 /// Rewrite every run of the given text objects with `f(run text, state)`. When no run changes, the
 /// document and its undo history stay as they are.
 fn edit_runs<S: Default>(s: &mut Session, label: &str, ids: &[NodeId], f: impl Fn(&str, &mut S) -> String) -> Result<usize> {
-    super::overprint::edit_counted(s, label, |d| {
+    crate::cmd::edit_counted(s, label, |d| {
         let mut changed = 0;
         for id in ids {
             let Some(NodeKind::Text(t)) = d.node_mut(*id).map(|n| &mut n.kind) else { continue };
@@ -531,7 +531,7 @@ fn smart_punctuation(s: &mut Session, p: &Value) -> Result<Value> {
         text_ids(&st.doc, &st.selection.objects)
     };
     let mut n = PunctCounts::default();
-    let changed = super::overprint::edit_counted(s, "Smart Punctuation", |d| {
+    let changed = crate::cmd::edit_counted(s, "Smart Punctuation", |d| {
         let mut changed = 0;
         for id in &ids {
             let Some(NodeKind::Text(t)) = d.node_mut(*id).map(|n| &mut n.kind) else { continue };
@@ -1468,7 +1468,7 @@ fn fill_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
     let ids = texts(s, p, "type.fillPlaceholder")?;
     // When filling leaves every object as it was, the document and its undo history stay as they
     // are.
-    super::overprint::edit_counted(s, "Fill with Placeholder Text", |d| {
+    crate::cmd::edit_counted(s, "Fill with Placeholder Text", |d| {
         let mut changed = 0;
         for id in &ids {
             if let Some(NodeKind::Text(t)) = d.node_mut(*id).map(|n| &mut n.kind) {
@@ -1817,7 +1817,7 @@ fn find_replace(s: &mut Session, p: &Value) -> Result<Value> {
     if replaced == 0 {
         return Ok(json!({ "count": total, "replaced": 0 }));
     }
-    super::overprint::edit_counted(s, "Replace", |d| {
+    crate::cmd::edit_counted(s, "Replace", |d| {
         let mut changed = 0;
         for id in &ids {
             let Some(NodeKind::Text(t)) = d.node_mut(*id).map(|n| &mut n.kind) else { continue };

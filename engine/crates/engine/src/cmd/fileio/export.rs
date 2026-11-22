@@ -22,14 +22,10 @@ use super::{
 pub(crate) const EXPORT_PARAMS: [&str; 4] = ["includeArtboardFill", "selectedOnly", "richBlack", "params"];
 
 /// A note for each option in `p` that some format takes but the file an export of `cmd` writes in
-/// `f` doesn't read (`{format: pdf, quality: 80}`), in the wording of a save's note. An exporter
-/// plug-in's format gets none. The notes cover the formats' options only: a key of the command's
+/// `f` doesn't read (`{format: pdf, quality: 80}`), in the wording of a save's note. The notes cover the formats' options only: a key of the command's
 /// own ([`EXPORT_PARAMS`]) and an artboard choice that a selection export leaves out get none.
 pub fn unused_option_notes(cmd: &str, f: &Format, p: &Value) -> Vec<String> {
     let Some(given) = p.as_object() else { return Vec::new() };
-    if vectorcraft_plugins::export::by_format(f.id).is_some() {
-        return Vec::new();
-    }
     let listed = |k: &str| super::FORMATS.iter().filter(|f| f.write).flat_map(|f| f.options).any(|o| o.name == k);
     let written = super::save::written_as(cmd, f, p);
     let legacy = super::save::legacy_file(cmd, f, p);

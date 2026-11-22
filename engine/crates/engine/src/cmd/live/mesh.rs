@@ -383,9 +383,6 @@ pub(super) fn mesh_add_line(s: &mut Session, p: &Value) -> Result<Value> {
         Ok(i)
     };
     let id = object_param(p, "id", C)?.ok_or_else(|| bad(C, "missing `id`"))?;
-    if s.script_running() {
-        return Err(EngineError::Busy);
-    }
     // The lines are added to a copy of the object. A point that is already a mesh point adds none:
     // when its color stays too, nothing changes and no undo step is recorded. The grid is compared,
     // not the node: a mesh envelope stored without handles takes them in any edit, a warp becomes

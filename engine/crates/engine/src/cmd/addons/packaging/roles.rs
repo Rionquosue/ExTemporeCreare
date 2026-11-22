@@ -10,7 +10,7 @@ use vectorcraft_color::swatch::REGISTRATION;
 use vectorcraft_color::{Color, Paint, Swatch};
 use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
 
-use super::super::super::overprint::edit_counted;
+use crate::cmd::edit_counted;
 use super::super::super::{CommandSpec, bad, checked_ids_or_selection, cmd, has_doc, has_selection, switch_or, text_param};
 use crate::{Result, Session};
 

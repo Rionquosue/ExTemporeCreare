@@ -29,7 +29,6 @@ mod memory;
 mod meshwarp;
 mod movedstroke;
 mod objectfx;
-mod paintedbrush;
 mod placed_document;
 mod rasterize;
 mod setup;

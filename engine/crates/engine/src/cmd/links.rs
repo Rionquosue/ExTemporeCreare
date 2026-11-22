@@ -1207,18 +1207,6 @@ fn new_clip_group(d: &mut Document, id: NodeId, (path, rule): FileClip) -> Resul
     Ok(())
 }
 
-/// Replace image `id` with the raster at `path`, keeping the object's bounds (what an image
-/// variable does on `dataset.select`). The file is linked; a missing or unreadable path is an
-/// error so the dataset application can skip that binding.
-pub(crate) fn set_image_from_path(d: &mut Document, id: NodeId, path: &str, doc_path: Option<&str>) -> Result<()> {
-    // A path stored in the document (a data set's value) is followed as its other stored paths
-    // are: on this computer or the document's own share only, so choosing a data set can't make
-    // the app connect to another computer.
-    let path = fileio::document_path(path, doc_path).map_err(|r| EngineError::Other(format!("the image `{path}` isn't followed: {r}")))?;
-    let bytes = read_file(&path)?;
-    let read = (link_info(&path, &bytes), linked_image(&bytes, Some(&path))?);
-    install(d, &[id], read, Some(Preserve::Bounds), None)
-}
 
 /// Distorted image `n` shows the file read for `link` (`img`) and keeps its corners: the new pixels
 /// fill them. Its transform is scaled to the new pixel size, so a reader that places it by the

@@ -383,7 +383,7 @@ fn width_point_set(s: &mut Session, p: &Value) -> Result<Value> {
     // When the profile comes out as it was, within a rounding error (1e-9), the document and its undo
     // history stay as they are.
     let mut pos = 0;
-    super::overprint::edit_counted(s, "Width Point", |d| {
+    crate::cmd::edit_counted(s, "Width Point", |d| {
         let st = weighted_stroke(d, id)?;
         let before = st.profile.clone();
         let half = st.width / 2.0;
@@ -443,7 +443,7 @@ fn width_point_copy(s: &mut Session, p: &Value) -> Result<Value> {
     // When the profile comes out as it was (the copy replaces a side of a discontinuous point that has
     // its widths already), the document and its undo history stay as they are.
     let mut pos = 0;
-    super::overprint::edit_counted(s, "Copy Width Point", |d| {
+    crate::cmd::edit_counted(s, "Copy Width Point", |d| {
         let st = weighted_stroke(d, id)?;
         let before = st.profile.clone();
         let mut prof = st.profile.take().unwrap_or_else(uniform);
@@ -826,7 +826,7 @@ fn puppet_warp(s: &mut Session, p: &Value) -> Result<Value> {
         // When the art and its pins come out as they were, the document and its undo history stay
         // as they are.
         let before = s.doc()?.doc.clone();
-        super::overprint::edit_counted(s, "Puppet Warp", |d| {
+        crate::cmd::edit_counted(s, "Puppet Warp", |d| {
             warp_from_rest(d, &ids, pins, expand).map_err(|e| bad(C, e))?;
             Ok(usize::from(d.puppet != before.puppet || ids.iter().any(|id| d.node(*id) != before.node(*id))))
         })?;

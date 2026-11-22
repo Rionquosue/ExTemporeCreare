@@ -186,12 +186,6 @@ pub struct Session {
     /// The file Edit › Color Settings are kept in; `None`: only for the process
     /// ([`Session::attach_color_settings`]).
     color_settings_file: Option<std::path::PathBuf>,
-    /// Where the plug-ins `plugin.install` installs are kept; `None`: only for the process
-    /// ([`Session::attach_plugin_store`]).
-    plugin_dir: Option<std::path::PathBuf>,
-    /// The Scripts folder, whose scripts File › Scripts lists; `None`: no folder
-    /// ([`Session::attach_scripts_dir`]).
-    scripts_dir: Option<std::path::PathBuf>,
     /// The folder of File Info's metadata templates; `None`: no folder
     /// ([`Session::attach_metadata_templates_dir`]).
     metadata_templates_dir: Option<std::path::PathBuf>,
@@ -203,19 +197,6 @@ pub struct Session {
     proof_setup_dir: Option<std::path::PathBuf>,
     /// How many proof setup files `view.proofSetup.save` wrote ([`Session::proof_setup_saves`]).
     proof_setup_saves: u64,
-    /// The folder of each script's data folder (`Folder.userData`), beside which the grants file
-    /// keeps the file access people allowed scripts; `None`: no folder
-    /// ([`Session::attach_script_data`]).
-    script_data_dir: Option<std::path::PathBuf>,
-    /// A filter's output that a run made in the background handed in for `plugin.run` to apply
-    /// ([`cmd::plugin::FilterRun::hand_in`]); the next `plugin.run` takes it.
-    plugin_output: Option<cmd::plugin::HandedIn>,
-    /// What a person approved for the next `plugin.install` ([`Session::approve_plugin_install`]);
-    /// that install spends it, whatever it does.
-    plugin_install_approval: Option<cmd::plugin::InstallApproval>,
-    /// `plugin.install` takes `grant` and `allowHeavy` from any request
-    /// ([`Session::allow_plugin_grants_from_requests`]).
-    plugin_grants_from_requests: bool,
     /// URLs recently given in the Attributes panel (`attributes.set {url}`), newest first, at most
     /// [`cmd::RECENT_URLS`]; not saved.
     pub recent_urls: Vec<String>,
@@ -292,27 +273,6 @@ pub struct Session {
     pub(crate) screens_hand_off: Option<Option<cmd::fileio::ScreenExport>>,
     /// Where Data Recovery keeps its copies ([`cmd::recovery`]).
     pub recovery: cmd::recovery::Recovery,
-    /// The running script's job, while there is one: the mutation lease ([`script`]).
-    pub(crate) script_key: Option<script::JobKey>,
-    /// The named script engines this session keeps ([`script`]).
-    pub(crate) script_engines: script::EnginesKey,
-    /// Stops the running script at its next instruction; the same flag for every run.
-    pub(crate) script_stop: vectorcraft_js::Interrupt,
-    /// The report of the run that ended last.
-    pub(crate) script_report: Option<Value>,
-    /// The Script Console's lines ([`script::console`]).
-    pub(crate) script_console: script::console::Console,
-    /// The runs started in this session, which numbers each run's console lines.
-    pub(crate) script_runs: u64,
-    /// `script.run` starts the job and returns, and the frontend advances it once per frame
-    /// ([`Session::script_pump`]). Off, `script.run` advances it to its end.
-    pub script_frames: bool,
-    /// Each open document's highest next id a run has seen, by [`DocState::uid`].
-    pub(crate) script_high_water: std::collections::HashMap<u64, u64>,
-    /// While a slice of a script runs in this session.
-    pub(crate) script_in_run: bool,
-    /// Write recovery copies of the unsaved documents before a run, and don't start without them.
-    pub script_copy_first: bool,
     /// While the active tool's actions run: their commands aren't "a command from outside the
     /// tool" ([`Session::after_command`]).
     pub(crate) in_tool_actions: bool,
@@ -382,8 +342,6 @@ pub struct Session {
     /// Set while [`Session::tool_typed_text`] passes keyboard input to the active tool
     /// ([`vectorcraft_tools::ToolContext::typed_from_keyboard`]).
     keyboard_text: bool,
-    /// The messages `app.toast` and [`Session::toast`] queued for the app to show; not saved.
-    pub(crate) toasts: cmd::toast::Queue,
 }
 
 impl Default for Session {
@@ -401,14 +359,6 @@ pub(crate) fn adding_fonts() -> std::sync::MutexGuard<'static, ()> {
     FONTS.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-/// Whether the tests that run every command with `{}` run command `id`. `plugin.clearCache` is
-/// left out: without an id it empties the cache of every plug-in installed in the process, which
-/// includes the caches that the plug-in storage tests check while they run.
-/// `tests/plugin_clear_cache.rs` runs it with `{}` in a test binary of its own.
-#[cfg(test)]
-pub(crate) fn runs_with_empty_params(id: &str) -> bool {
-    id != "plugin.clearCache"
-}
 
 #[cfg(test)]
 use tests::{
@@ -424,7 +374,6 @@ mod history;
 mod interaction;
 mod prefs;
 mod sanity;
-pub mod script;
 mod session;
 
 #[cfg(test)]
@@ -439,7 +388,7 @@ use history::history_budget_for;
 pub use history::{History, HistoryEntry, NamedStep, default_history_budget};
 pub(crate) use interaction::PreviewCopies;
 pub use interaction::{Interaction, LastTransform, UndoGroup, UndoScope};
-pub use prefs::{DrawMode, KEY_HOLD_DELAY, KEY_HOLD_DELAY_RANGE, PluginBudget, Prefs};
+pub use prefs::{DrawMode, KEY_HOLD_DELAY, KEY_HOLD_DELAY_RANGE, Prefs};
 pub use sanity::TOO_DEEP;
 pub(crate) use sanity::{deselect_hidden, is_guide_path};
 #[cfg(test)]

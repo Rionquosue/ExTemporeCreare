@@ -11,21 +11,6 @@ use super::{
     RasterFx, Rect, RenderContext, Renderer, Shape, blend_mode, effects, fill_rule, paint, peniko,
 };
 
-/// A hash of the names of `doc`'s swatches and patterns, of the paints and spot flags of its global
-/// swatches, and of the Spot Colors option those colors depend on.
-pub(crate) fn paint_names(doc: &Document) -> u64 {
-    let mut h = DefaultHasher::new();
-    doc.spot_use_lab.hash(&mut h);
-    doc.swatches_iter().for_each(|s| {
-        s.name.hash(&mut h);
-        if s.global {
-            s.spot.hash(&mut h);
-            format!("{:?}", s.paint).hash(&mut h);
-        }
-    });
-    doc.patterns.iter().for_each(|p| p.name.hash(&mut h));
-    h.finish()
-}
 
 impl Renderer {
     /// Paint `content` through the content-changing effects of `rfx` (Gaussian Blur, Feather, the
@@ -465,9 +450,6 @@ impl Renderer {
             ));
             (vectorcraft_text::layout_inputs(), crate::proof::overprints(f.opts), highlights).hash(&mut h);
         }
-        if reads.plugins || (doc.plugins && (reads.symbols || reads.patterns)) {
-            (effects::plugin_revision(), doc.names, doc.patterns).hash(&mut h);
-        }
         Inputs { reads, key: h.finish(), _doc: doc }
     }
 
@@ -494,16 +476,14 @@ impl Renderer {
                 (key, Arc::as_ptr(&blob.bytes) as usize, blob.proxy.as_ref().map(|p| Arc::as_ptr(p) as usize)).hash(h);
             }
         });
-        let names = paint_names(doc);
-        let found = (patterns, symbols, images, names, Arc::as_ptr(&cms) as usize);
+        let found = (patterns, symbols, images, Arc::as_ptr(&cms) as usize);
         let d = match &self.doc_inputs {
-            Some((_, d)) if (d.patterns, d.symbols, d.images, d.names, d.cms) == found => d.clone(),
+            Some((_, d)) if (d.patterns, d.symbols, d.images, d.cms) == found => d.clone(),
             _ => {
                 let doc_art = || doc.patterns.iter().flat_map(|p| &p.art).chain(doc.symbols.iter().map(|s| &s.art));
                 let art = doc_art().map(Arc::downgrade).collect();
                 let pixels = doc.images.values().flat_map(|b| std::iter::once(&b.bytes).chain(&b.proxy)).map(Arc::downgrade).collect();
-                let plugins = doc_art().any(|a| crate::holds_plugin_effect(a));
-                Arc::new(DocInputs { patterns, symbols, images, names, cms: found.4, plugins, _held: (art, pixels, Arc::downgrade(&cms)) })
+                Arc::new(DocInputs { patterns, symbols, images, cms: found.3, _held: (art, pixels, Arc::downgrade(&cms)) })
             }
         };
         self.doc_inputs = Some((at, d.clone()));

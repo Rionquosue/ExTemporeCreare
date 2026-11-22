@@ -6,7 +6,6 @@ use super::*;
 
 mod clipfx;
 mod imageoutline;
-mod painted;
 mod rasterfollow;
 mod scale;
 mod solidcontext;

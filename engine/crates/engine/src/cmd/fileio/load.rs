@@ -572,10 +572,7 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
         && opts.import_slices
         && let Some(canvas) = doc.artboards.first().map(|a| a.rect)
     {
-        let (slices, notes) = super::psd_slices(bytes, canvas);
-        for (rect, options) in slices {
-            crate::cmd::slices::add_slice(&mut doc, rect, options);
-        }
+        let (_slices, notes) = super::psd_slices(bytes, canvas);
         warnings.extend(notes);
     }
     // A PDF, `.ai` or `.ait` read from its pages or its editing copy, not restored from the document
@@ -634,22 +631,9 @@ pub(crate) fn import_svg(text: &str, folder: Option<&str>) -> Result<(Document, 
     import_svg_finding(text, folder, &std::collections::HashSet::new()).map(|(doc, warnings, _)| (doc, warnings))
 }
 
-/// [`import_svg`] for a document opened from an SVG: with the variable data the file carries (SVG
-/// Options › Include Variable Data), read as [`crate::cmd::variablecmds::svg_library`] says. Variable
-/// data that can't be read is left out with a warning; the art opens either way.
+/// [`import_svg`] for a document opened from an SVG.
 fn open_svg(text: &str, folder: Option<&str>) -> Result<(Document, Vec<String>)> {
-    let lib = match crate::cmd::variablecmds::svg_library(text) {
-        None => return import_svg(text, folder),
-        Some(Err(e)) => {
-            let (doc, mut warnings) = import_svg(text, folder)?;
-            warnings.push(format!("the file's variable data wasn't read: {e}"));
-            return Ok((doc, warnings));
-        }
-        Some(Ok(lib)) => lib,
-    };
-    let (mut doc, mut warnings, found) = import_svg_finding(text, folder, &lib.elements())?;
-    warnings.extend(crate::cmd::variablecmds::give_svg_library(&mut doc, lib, &found));
-    Ok((doc, warnings))
+    import_svg(text, folder)
 }
 
 /// [`import_svg`], also returning the object made of each element whose id `ids` lists.
@@ -773,12 +757,9 @@ pub fn read_for_open_asking(
     let (loaded, color_mode) = if opts.link_pages {
         (linked_pages(name, bytes, path.as_deref(), &opts)?, None)
     } else {
-        match super::importer::pick(name, bytes, p)? {
-            Some(plugin) => (super::importer::load(name, bytes, &plugin, p)?, None),
-            // The color mode `p` asks for converts the colors after the policies did, through the
-            // profiles the document keeps.
-            None => (load_with(name, bytes, &LoadOptions { color_mode: None, ..opts.clone() })?, opts.color_mode),
-        }
+        // The color mode `p` asks for converts the colors after the policies did, through the
+        // profiles the document keeps.
+        (load_with(name, bytes, &LoadOptions { color_mode: None, ..opts.clone() })?, opts.color_mode)
     };
     let mut file = ReadFile {
         loaded,
@@ -1031,13 +1012,9 @@ pub(crate) fn source<'a>(p: &'a Value, cmd: &str) -> Result<Source<'a>> {
 }
 
 pub(super) fn open(s: &mut Session, p: &Value) -> Result<Value> {
-    // A file only an importer plug-in reads is read up to the importer's input limit.
     let src = match str_param(p, "path") {
-        Some(path) => Source { name: path, bytes: super::importer::read_path(path, p)?, path: Some(path) },
-        None => {
-            super::importer::check_data(p)?;
-            source(p, "document.open")?
-        }
+        Some(path) => Source { name: path, bytes: super::read_file(path)?, path: Some(path) },
+        None => source(p, "document.open")?,
     };
     // A relative path is the file in the working directory: its folder is where relative links
     // are found (a bare file name has no folder of its own).

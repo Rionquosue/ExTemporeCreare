@@ -20,7 +20,7 @@ pub(super) fn arrange(s: &mut Session, how: Arrange) -> Result<Value> {
         Arrange::Back => "Send to Back",
     };
     // When nothing changes order, the document and its undo history stay as they are.
-    crate::cmd::overprint::edit_counted(s, label, |d| {
+    crate::cmd::edit_counted(s, label, |d| {
         let mut moved = 0;
         // Arrange within each parent independently (selections may span layers/groups).
         let mut by_parent: Vec<(Option<vectorcraft_doc::NodeId>, Vec<vectorcraft_doc::NodeId>)> = vec![];

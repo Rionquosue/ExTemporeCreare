@@ -30,10 +30,10 @@ impl Session {
         // effects draw them.
         vectorcraft_doc::hit::set_drawn_art(vectorcraft_render::effects::preview::drawn_art);
         // Clicks find a blend's steps and an envelope's distorted art where the canvas draws them,
-        // evaluated again when the fonts, the hyphenation exceptions or the plug-ins change.
+        // evaluated again when the fonts or the hyphenation exceptions change.
         vectorcraft_doc::hit::set_live_art(vectorcraft_render::effects::expand_live, || {
             let mut h = std::hash::DefaultHasher::new();
-            std::hash::Hash::hash(&(vectorcraft_text::layout_inputs(), vectorcraft_render::effects::plugin_revision()), &mut h);
+            std::hash::Hash::hash(&vectorcraft_text::layout_inputs(), &mut h);
             std::hash::Hasher::finish(&h)
         });
         // Envelopes map type from the bounds of its glyph outlines, underlines and strikethroughs.
@@ -98,16 +98,10 @@ impl Session {
             dictionary_file: None,
             profile_dir: None,
             color_settings_file: None,
-            plugin_dir: None,
-            scripts_dir: None,
             metadata_templates_dir: None,
             new_doc_profile_dir: None,
             proof_setup_dir: None,
             proof_setup_saves: 0,
-            script_data_dir: None,
-            plugin_output: None,
-            plugin_install_approval: None,
-            plugin_grants_from_requests: false,
             recent_urls: vec![],
             trace_preset_changes: Default::default(),
             ui_language: None,
@@ -156,17 +150,6 @@ impl Session {
             global_edit_options: Default::default(),
             select_similar: crate::cmd::SIMILAR[0].0,
             keyboard_text: false,
-            toasts: Default::default(),
-            script_key: None,
-            script_engines: crate::script::EnginesKey::new(),
-            script_stop: vectorcraft_js::Interrupt::new(),
-            script_report: None,
-            script_console: Default::default(),
-            script_runs: 0,
-            script_frames: false,
-            script_high_water: Default::default(),
-            script_in_run: false,
-            script_copy_first: cfg!(target_arch = "wasm32"),
         }
     }
 
@@ -505,10 +488,9 @@ impl Session {
         true
     }
 
-    /// Commands with enablement (for menus, palette, MCP `list_commands`), the installed plug-ins'
-    /// commands last.
+    /// Commands with enablement (for menus, palette, MCP `list_commands`).
     pub fn commands(&self) -> Vec<CommandInfo> {
-        command_specs().iter().chain(crate::cmd::plugin::command_specs()).map(|c| c.info(self)).collect()
+        command_specs().iter().map(|c| c.info(self)).collect()
     }
 }
 

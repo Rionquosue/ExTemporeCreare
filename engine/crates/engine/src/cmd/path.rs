@@ -537,9 +537,6 @@ fn link_handle(s: &mut Session, p: &Value, id: NodeId, si: usize, ai: usize, out
     if !(pos.x.abs() < 1e9 && pos.y.abs() < 1e9) {
         return Err(bad(C, "x and y must be finite"));
     }
-    if s.script_running() {
-        return Err(EngineError::Busy);
-    }
     let unchanged = s.doc()?.doc.node(id).and_then(|n| n.path_data()).and_then(|pd| pd.subpaths.get(si)).is_some_and(|sp| {
         sp.anchors.get(ai).is_some_and(|a| {
             let mut linked = *a;
@@ -661,11 +658,7 @@ fn move_anchor(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Anchor `ai` of subpath `si` of path `id` in the active document, when `id` is a path that has it.
-/// Busy while a script runs, as [`Session::edit`] is.
 fn anchor_of(s: &Session, id: NodeId, si: usize, ai: usize) -> Result<Option<Anchor>> {
-    if s.script_running() {
-        return Err(EngineError::Busy);
-    }
     let d = &s.doc()?.doc;
     Ok(d.node(id).and_then(|n| n.path_data()).and_then(|path| path.subpaths.get(si)).and_then(|sp| sp.anchors.get(ai)).copied())
 }
@@ -673,9 +666,6 @@ fn anchor_of(s: &Session, id: NodeId, si: usize, ai: usize) -> Result<Option<Anc
 /// Whether anchor `ai` of subpath `si` of path `id` has a segment on its outgoing (`out`) or
 /// incoming side; false when the path, subpath or anchor is not there.
 fn has_segment(s: &Session, id: NodeId, si: usize, ai: usize, out: bool) -> Result<bool> {
-    if s.script_running() {
-        return Err(EngineError::Busy);
-    }
     let d = &s.doc()?.doc;
     Ok(d.node(id).and_then(|n| n.path_data()).and_then(|path| path.subpaths.get(si)).is_some_and(|sp| sp.has_segment(ai, out)))
 }
@@ -774,7 +764,7 @@ fn reverse(s: &mut Session, p: &Value) -> Result<Value> {
             None => path.subpaths.iter().map(|sp| want.is_none_or(|ccw| (sp.signed_area() < 0.0) != ccw)).collect(),
         }
     };
-    let changed = super::overprint::edit_counted(s, "Reverse Path Direction", |d| {
+    let changed = crate::cmd::edit_counted(s, "Reverse Path Direction", |d| {
         // A compound path's own strokes run along its members' subpaths in order, so they turn
         // with them, read before any member turns.
         let compounds: BTreeSet<NodeId> = ids.iter().map(|id| compound_or_self(d, *id)).filter(|c| ids.binary_search(c).is_err()).collect();

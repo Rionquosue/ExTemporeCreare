@@ -87,20 +87,11 @@ pub struct Renderer {
     /// keeps the art's allocation, so no other art can get its address, and does not keep the
     /// art's content.
     symbols: Vec<(String, std::sync::Weak<Node>)>,
-    /// The plug-in revision ([`effects::plugin_revision`]) that `geom`, `fx_geom` and `fx_arts` were
-    /// last checked against (see [`Self::check_plugins`]).
-    plugin_revision: u64,
     /// The key of the brush library ([`brush_fx::BrushCache::library_key`]) when `geom`'s bounds of
     /// 3D art were measured with it (see [`Self::check_symbols`]): set by the first such measure
     /// and kept, whether or not those bounds still are, until the library changes. `None` until
     /// then, and nothing is checked.
     brush_library: Option<u64>,
-    /// Is a live-effect plug-in that paints its pieces installed (found when `plugin_revision`
-    /// changes)?
-    painting_plugins: bool,
-    /// The hash of the document's swatch and pattern names at the last check, kept while
-    /// `painting_plugins` holds (see [`Self::check_plugins`]).
-    paint_names: u64,
     /// Expanded stroke outlines keyed by ([`Self::stroke_owner`], stroke layer address, width bits,
     /// tolerance level): panning re-renders reuse them instead of re-expanding every stroke.
     strokes: PtrMap<StrokeKey, StrokeEntry>,
@@ -295,8 +286,6 @@ use frame::{
 #[cfg(test)]
 use frame::{OFFSCREEN_PIXELS, Slices};
 pub use geometry::region_pixels;
-pub use node_checks::draws_plugin_effects;
-use node_checks::holds_plugin_effect;
 #[cfg(test)]
 use node_checks::painted_items;
 pub use options::{AntiAlias, ISOLATION_DIM, MAX_RASTER_PIXELS, MAX_RASTER_SIDE, RenderOptions, Rendered, raster_size, supersample_factor};

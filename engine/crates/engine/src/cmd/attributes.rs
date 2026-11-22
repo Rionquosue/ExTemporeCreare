@@ -1,6 +1,6 @@
-//! Window → Attributes: overprint, centre point display, image map, URL and note
+//! Window → Attributes: centre point display, image map, URL and note
 //! (`attributes.set`), the fill rule (`path.setFillRule`) and, through `path.reverse`, the path
-//! direction. The panel reads everything back with `attributes.info` ([`super::overprint`]).
+//! direction. The panel reads everything back with `attributes.info` ([`attributes`]).
 
 use std::collections::BTreeSet;
 
@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 use vectorcraft_doc::{Document, ImageMap, Node, NodeKind, ObjectAttributes};
 use vectorcraft_geom::FillRule;
 
-use super::overprint::{AttributesInfo, apply_overprint, edit_counted, overprint_jobs};
+use super::edit_counted;
 use super::path::paths_in;
 use super::{CommandSpec, NodeId, Result, Session, bad, cmd, has_doc, str_param, targets};
 
@@ -16,14 +16,70 @@ use super::{CommandSpec, NodeId, Result, Session, bad, cmd, has_doc, str_param, 
 /// URL menu list.
 pub const RECENT_URLS: usize = 30;
 
+/// The Attributes panel's values ([`Session::attributes_info`], `attributes.info`).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AttributesInfo {
+    /// The targets (the selection by default).
+    pub ids: Vec<NodeId>,
+    /// The rest of the panel; `None` where the targets differ.
+    pub show_center: Option<bool>,
+    pub image_map: Option<ImageMap>,
+    pub url: Option<String>,
+    pub note: Option<String>,
+    /// Fill rule of the paths and compound paths in the targets.
+    pub fill_rule: Option<FillRule>,
+    /// Whether their subpaths run counter-clockwise on screen (Reverse Path Direction On).
+    pub reversed: Option<bool>,
+    /// [`Session::recent_urls`].
+    pub recent_urls: Vec<String>,
+}
+
+impl AttributesInfo {
+    fn to_json(&self) -> Value {
+        json!({
+            "ids": self.ids.iter().map(|id| id.0).collect::<Vec<_>>(),
+            "showCenter": self.show_center,
+            "imageMap": self.image_map,
+            "url": self.url,
+            "note": self.note,
+            "fillRule": self.fill_rule.map(rule_name),
+            "reversed": self.reversed,
+            "recentUrls": self.recent_urls,
+        })
+    }
+}
+
+impl Session {
+    /// The Attributes panel's values for the selection.
+    pub fn attributes_info(&self) -> AttributesInfo {
+        attributes(self, &Value::Null).unwrap_or_default()
+    }
+}
+
+fn attributes(s: &Session, p: &Value) -> Result<AttributesInfo> {
+    let d = &s.doc()?.doc;
+    let mut info = AttributesInfo { ids: targets(s, p)?, recent_urls: s.recent_urls.clone(), ..Default::default() };
+    fill_info(d, &mut info);
+    Ok(info)
+}
+
 pub fn specs() -> Vec<CommandSpec> {
     vec![
+        cmd!(
+            query "attributes.info",
+            "Attributes",
+            [],
+            None,
+            "{ids?|id?, target?: \"object\"|\"contents\"} → {ids, showCenter, imageMap: \"none\"|\"rectangle\"|\"polygon\", url, note, fillRule: \"nonZero\"|\"evenOdd\" (of the paths and compound paths in them), reversed (their subpaths run counter-clockwise on screen: Reverse Path Direction On), recentUrls: [newest first, at most 30]} the Attributes panel's values for `ids` or the selection; a value is null where they differ (or nothing has a path)",
+            has_doc,
+            |s, p| Ok(attributes(s, p)?.to_json())
+        ),
         cmd!(
             "attributes.set",
             "Attributes",
             [],
             None,
-            "{overprintFill?: bool, overprintStroke?: bool (aimed as object.setOverprint's fill and stroke, item? too), showCenter?: bool (the canvas shows the selected object's centre point), imageMap?: \"none\"|\"rectangle\"|\"polygon\", url?: string (\"\" removes it; SVG, PDF and .ai export link the object), note?: string, ids?|id?, item?: appearance item index|null, target?: \"object\"|\"contents\"} set the Attributes panel's values on ids or the selection, as one undo step; a URL given joins the recent URLs (attributes.info, newest first, at most 30) → {changed: objects}",
+            "{showCenter?: bool (the canvas shows the selected object's centre point), imageMap?: \"none\"|\"rectangle\"|\"polygon\", url?: string (\"\" removes it; SVG, PDF and .ai export link the object), note?: string, ids?|id?, target?: \"object\"|\"contents\"} set the Attributes panel's values on ids or the selection, as one undo step; a URL given joins the recent URLs (attributes.info, newest first, at most 30) → {changed: objects}",
             has_doc,
             set
         ),
@@ -80,7 +136,7 @@ fn fill_rule_owner(d: &Document, id: NodeId) -> Option<&Node> {
     }
 }
 
-/// The Attributes panel's values of `info.ids` beyond overprinting.
+/// The Attributes panel's values of `info.ids`.
 pub(super) fn fill_info(d: &Document, info: &mut AttributesInfo) {
     let nodes: Vec<&Node> = info.ids.iter().filter_map(|id| d.node(*id)).collect();
     let attrs = || nodes.iter().map(|n| n.extras().attrs.as_deref().cloned().unwrap_or_default());
@@ -146,15 +202,13 @@ impl Edits {
 
 fn set(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "attributes.set";
-    let jobs = overprint_jobs(s, p, C, ["overprintFill", "overprintStroke"])?;
     let edits = Edits::parse(p)?;
-    if jobs.is_empty() && edits.is_empty() {
-        return Err(bad(C, "give overprintFill, overprintStroke, showCenter, imageMap, url or note"));
+    if edits.is_empty() {
+        return Err(bad(C, "give showCenter, imageMap, url or note"));
     }
     let ids = targets(s, p)?;
     let changed = edit_counted(s, "Attributes", |d| {
         let mut changed = BTreeSet::new();
-        apply_overprint(d, &jobs, C, &mut changed)?;
         if !edits.is_empty() {
             for id in &ids {
                 let Some(n) = d.node(*id) else { continue };

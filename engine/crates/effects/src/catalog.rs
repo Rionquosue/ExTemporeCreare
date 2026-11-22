@@ -152,7 +152,6 @@ const VIDEO: &[&str] = &["Effect", "Video"];
 
 const PATHFINDER: &[&str] = &["Effect", "Pathfinder"];
 
-const PLUGINS: &[&str] = &["Effect", "Plug-ins"];
 
 const ADJUST: &[&str] = &["Effect", "Color Adjustments"];
 
@@ -875,29 +874,9 @@ pub(crate) fn catalog_index() -> &'static std::collections::HashMap<&'static str
     INDEX.get_or_init(|| effect_catalog().into_iter().map(|e| (e.id, e)).collect())
 }
 
-/// Catalogue entry for `id` (built-in, or an installed plug-in effect).
+/// Catalogue entry for built-in effect `id`.
 pub fn effect_info(id: &str) -> Option<EffectInfo> {
-    catalog_index().get(id).cloned().or_else(|| plugin_info(id))
+    catalog_index().get(id).cloned()
 }
 
-/// The catalogue entry of the installed effect plug-in with effect id `id` (`plugin.<id>`).
-pub(crate) fn plugin_info(id: &str) -> Option<EffectInfo> {
-    use vectorcraft_plugins::registry::intern;
-    let p = vectorcraft_plugins::effect::installed(id)?;
-    let m = p.manifest();
-    let dots = if m.params.is_empty() || m.name.ends_with('…') { "" } else { "…" };
-    Some(EffectInfo {
-        id: intern(id),
-        label: intern(&format!("{}{dots}", m.name)),
-        menu: PLUGINS,
-        params: intern(&m.params_doc()),
-        defaults: Value::Object(m.defaults()),
-        raster: false,
-        lengths: Lengths::default(),
-    })
-}
 
-/// The installed effect plug-ins as catalogue entries (Effect › Plug-ins), by plug-in id.
-pub fn plugin_effects() -> Vec<EffectInfo> {
-    vectorcraft_plugins::registry::list().iter().filter_map(|p| plugin_info(&vectorcraft_plugins::effect::effect_id(p.id()))).collect()
-}

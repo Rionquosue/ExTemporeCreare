@@ -78,7 +78,6 @@ pub(super) fn reads_outside(n: &Node) -> bool {
             || effects::has_solid(c)
             || effects::has_adjustment(c)
             || effects::addons::halftone::has_halftone(c)
-            || effects::has_painted_plugin_effect(c)
             || c.extras().mask.as_ref().is_some_and(|m| reads_outside(&m.art))
     });
     reads

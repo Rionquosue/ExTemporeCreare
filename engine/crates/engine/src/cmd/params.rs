@@ -210,32 +210,16 @@ fn text_key(doc: &str) -> (usize, usize) {
 }
 
 /// [`Known`] of each description in `docs`, each one and each one its `…` entries name parsed once.
-/// A description is left out when one it reaches has a `…` entry naming a plug-in command, whose
-/// keys change as plug-ins are installed and removed.
 fn read_descriptions(docs: impl IntoIterator<Item = &'static str>) -> HashMap<(usize, usize), Known> {
-    let names_plugin =
-        |more: &str| more.split_whitespace().any(|w| w.trim_matches(|c: char| !c.is_ascii_alphanumeric()).starts_with(vectorcraft_plugins::PREFIX));
-    let mut parsed: HashMap<(usize, usize), (Option<ParamKeys<'static>>, bool)> = HashMap::new();
+    let mut parsed: HashMap<(usize, usize), Option<ParamKeys<'static>>> = HashMap::new();
     let mut table = HashMap::new();
     for doc in docs {
         if table.contains_key(&text_key(doc)) {
             continue;
         }
-        let mut live = false;
-        let mut parse = |doc: &'static str| {
-            let (keys, plugin) = parsed.entry(text_key(doc)).or_insert_with(|| {
-                let keys = doc_keys(doc).ok();
-                let plugin = keys.as_ref().is_some_and(|k| k.more.iter().any(|m| names_plugin(m)));
-                (keys, plugin)
-            });
-            live |= *plugin;
-            keys.clone()
-        };
+        let mut parse = |doc: &'static str| parsed.entry(text_key(doc)).or_insert_with(|| doc_keys(doc).ok()).clone();
         let own = parse(doc).map(|p| p.keys).unwrap_or_default();
         let accepted = resolve(doc, 0, &mut parse);
-        if live {
-            continue;
-        }
         let mut known = Known { own, accepted, id_stands_for_ids: false };
         known.id_stands_for_ids = known.takes("ids") && known.takes("id") && no_required_id_beside_ids(doc);
         table.insert(text_key(doc), known);
@@ -276,15 +260,6 @@ pub(crate) fn uncached<T>(f: impl FnOnce() -> T) -> T {
     out
 }
 
-/// Every key the description `doc` takes, those of the commands its `…` entries name included, or
-/// `None` when that isn't known: it doesn't parse, a `…` entry names no command, or one names a
-/// command in [`UNCHECKED`].
-pub(crate) fn accepted_keys(doc: &'static str) -> Option<Vec<&'static str>> {
-    match known(doc) {
-        Some(known) => known.accepted.clone(),
-        None => accepted(doc, 0),
-    }
-}
 
 /// Does the description `doc` name `key` as a parameter (its own keys, and those of the commands
 /// its `…` entries name)?
@@ -457,13 +432,9 @@ fn check_member_keys(id: &str, params: &Value) -> Result<()> {
 /// effect takes (those of its dialog defaults and of its params description), each of the type
 /// the effect reads ([`check_effect_types`]), a `color` the effect can draw ([`check_effect_color`])
 /// and a Levels or Curves `channel` the effect has ([`check_effect_channel`]). Numbers out of range
-/// pass: the effect clamps them when it draws. An installed effect plug-in's are checked against its
-/// manifest, and an unknown effect is the command's to report.
+/// pass: the effect clamps them when it draws. An unknown effect is the command's to report.
 pub fn check_effect_params(id: &str, effect: &str, params: &Value) -> Result<()> {
     let Value::Object(given) = params else { return Ok(()) };
-    if effect.starts_with(vectorcraft_plugins::effect::PREFIX) {
-        return check_effect_types(id, effect, params);
-    }
     let Some(info) = vectorcraft_render::effects::effect_info(effect) else { return Ok(()) };
     let defaults = info.defaults.as_object();
     let mut keys: Vec<&str> = defaults.into_iter().flat_map(|d| d.keys().map(String::as_str)).collect();
@@ -544,18 +515,11 @@ pub(crate) fn check_effect_pathfinder(id: &str, effect: &str, params: &Value) ->
 
 /// The type of the values in `params` of effect `effect`, as command `id` was given them: a key
 /// the effect has a dialog default for takes a value of its default's type, a key only the
-/// effect's params description names takes the type the effect reads ([`undefaulted_type`]), and
-/// an installed effect plug-in's take the types its manifest gives them. The `style` of Crop Marks
+/// effect's params description names takes the type the effect reads ([`undefaulted_type`]). The `style` of Crop Marks
 /// is `roman` or `japanese`. A number given as text (`"10 pt"`), `true` for a number, `1` for a
 /// switch and `null` for either are refused.
 fn check_effect_types(id: &str, effect: &str, params: &Value) -> Result<()> {
     let Value::Object(given) = params else { return Ok(()) };
-    if effect.starts_with(vectorcraft_plugins::effect::PREFIX) {
-        return match vectorcraft_plugins::effect::installed(effect) {
-            Some(plugin) => plugin.manifest().resolve_params(params).map(drop).map_err(|why| bad(id, why.to_string())),
-            None => Ok(()),
-        };
-    }
     let Some(info) = vectorcraft_render::effects::effect_info(effect) else { return Ok(()) };
     for (key, v) in given {
         let want = info.defaults.get(key).cloned().or_else(|| undefaulted_type(effect, key));
@@ -629,11 +593,9 @@ pub(crate) fn check_effect_color(id: &str, effect: &str, params: &Value) -> Resu
     Ok(())
 }
 
-/// Does built-in effect `effect` have a `color` parameter (one whose default is a string)? Plug-in
-/// effects have none here.
+/// Does built-in effect `effect` have a `color` parameter (one whose default is a string)?
 pub(crate) fn effect_takes_color(effect: &str) -> bool {
-    !effect.starts_with(vectorcraft_plugins::effect::PREFIX)
-        && vectorcraft_render::effects::effect_info(effect).is_some_and(|info| info.defaults.get("color").is_some_and(Value::is_string))
+    vectorcraft_render::effects::effect_info(effect).is_some_and(|info| info.defaults.get("color").is_some_and(Value::is_string))
 }
 
 /// The color that built-in effect `effect` draws with `params`: their `color`, else the effect's
@@ -875,18 +837,15 @@ const NO_FORMAT: &str = "no format takes it (see document.formats)";
 /// Why a save option that no save format reads is refused.
 const NO_SAVE_FORMAT: &str = "no save format takes it (see file.formatOptions)";
 
-/// The format ids Export for Screens writes: the writable formats, those exporter plug-ins add
-/// included, but those it doesn't write.
+/// The format ids Export for Screens writes: the writable formats but those it doesn't write.
 pub fn screen_formats() -> Vec<&'static str> {
-    use super::fileio::{FORMATS, SCREEN_UNWRITTEN_FORMATS, plugin_formats};
-    let added = plugin_formats();
-    FORMATS.iter().chain(added.iter().copied()).filter(|f| f.write && !SCREEN_UNWRITTEN_FORMATS.contains(&f.id)).map(|f| f.id).collect()
+    use super::fileio::{FORMATS, SCREEN_UNWRITTEN_FORMATS};
+    FORMATS.iter().filter(|f| f.write && !SCREEN_UNWRITTEN_FORMATS.contains(&f.id)).map(|f| f.id).collect()
 }
 
 /// The keys a format row of Export for Screens, and the settings of a format, take: the row's own
 /// (`format`, `scale`…), `includeArtboardFill` and `richBlack`, which the encoders read from a
-/// row's options (`with_artboard_fills`, the render options), `params`, an exporter plug-in's own,
-/// and a key some format reads, as `document.export` takes them.
+/// row's options (`with_artboard_fills`, the render options), `params`, and a key some format reads, as `document.export` takes them.
 fn screen_option_keys() -> Vec<&'static str> {
     use super::fileio::{FORMATS, SCREEN_ROW_KEYS};
     let mut keys: Vec<&str> = SCREEN_ROW_KEYS.to_vec();
@@ -1081,15 +1040,10 @@ fn check_params_in(id: &str, params: &Value, in_batch: bool) -> Result<()> {
     if in_batch {
         crate::schemas::check(spec, params, false)?;
     }
-    if matches!(id, "command.batch" | "action.batch") && !in_batch {
-        for (i, step) in params.get("commands").and_then(Value::as_array).into_iter().flatten().enumerate() {
+    if id == "command.batch" && !in_batch {
+        for step in params.get("commands").and_then(Value::as_array).into_iter().flatten() {
             if let Some(step_id) = step.get("command").and_then(Value::as_str) {
-                let checked = check_params_in(step_id, step.get("params").unwrap_or(&Value::Null), true);
-                // An `action.batch` names the step it refuses by its place, from 1, as its own checks and its steps' errors do.
-                match checked {
-                    Err(e) if id == "action.batch" => return Err(bad(id, super::fileio::action_step(i, step_id, &e.to_string()))),
-                    checked => checked?,
-                }
+                check_params_in(step_id, step.get("params").unwrap_or(&Value::Null), true)?;
             }
         }
     }

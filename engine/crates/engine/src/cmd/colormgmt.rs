@@ -146,34 +146,6 @@ pub fn specs() -> Vec<CommandSpec> {
             toggle_view(s, p, "view.proofColors", |v, on| v.proof_colors = on.unwrap_or(!v.proof_colors))
         }),
         cmd!(
-            query "view.overprintPreview",
-            "Overprint Preview",
-            ["View"],
-            Some("Cmd+Alt+Shift+Y"),
-            "{on?: bool (default: toggle)} → proof state",
-            always,
-            |s, p| toggle_view(s, p, "view.overprintPreview", |v, on| v.overprint = on.unwrap_or(!v.overprint))
-        ),
-        cmd!(
-            query "view.separationsPreview",
-            "Separations Preview",
-            [],
-            None,
-            "{on?: bool, plates?: [names], toggle?: plate, only?: plate, soloToggle?: plate (only that plate, or every plate when it is the only one shown)} Separations Preview: show the chosen plates (one plate = grayscale ink coverage) → {on, plates: [{name, spot, visible, rgb}]}",
-            always,
-            separations
-        ),
-        cmd!(query "color.plates", "Plates", [], None, "{} → {on, plates: [{name, spot, visible, rgb}]}", always, |s, _| Ok(plates_json(s))),
-        cmd!(
-            "edit.colors.overprintBlack",
-            "Overprint Black…",
-            ["Edit", "Edit Colors"],
-            None,
-            "{remove?: false, percentage?: 100, fill?: true, stroke?: true, includeCmyBlacks?: false, includeSpotBlacks?: false, ids?} make the black fills and/or strokes of the selection (or ids; groups: their contents; type: its characters) overprint, or stop (remove). Black: K ≥ percentage with no C, M or Y (any with includeCmyBlacks), not linked to a spot swatch (unless includeSpotBlacks); a gradient is black when every stop is → {changed: objects}",
-            has_doc,
-            super::overprint::overprint_black
-        ),
-        cmd!(
             "swatch.setSpot",
             "Spot Color",
             [],
@@ -1507,71 +1479,7 @@ fn toggle_view(s: &mut Session, p: &Value, cmd: &str, f: impl FnOnce(&mut proof:
     Ok(view_json(&v))
 }
 
-fn plates_json(s: &Session) -> Value {
-    let v = proof::view();
-    let plates = s.active().map(|d| proof::plates(&d.doc)).unwrap_or_default();
-    json!({
-        "on": v.separations.is_some(),
-        "plates": plates.iter().map(|pl| json!({
-            "name": pl.name,
-            "spot": pl.spot,
-            "visible": v.separations.as_ref().is_none_or(|vis| vis.contains(&pl.name)),
-            "rgb": pl.rgb,
-        })).collect::<Vec<_>>(),
-    })
-}
 
-fn separations(s: &mut Session, p: &Value) -> Result<Value> {
-    const C: &str = "view.separationsPreview";
-    let mut v = proof::view();
-    let all: Vec<String> = s
-        .active()
-        .map(|d| proof::plates(&d.doc).into_iter().map(|p| p.name).collect())
-        .unwrap_or_else(|| cms::PROCESS_PLATES.iter().map(|s| s.to_string()).collect());
-    let check = |n: &str| if all.iter().any(|a| a == n) { Ok(n.to_string()) } else { Err(bad(C, format!("unknown plate `{n}`"))) };
-    if let Some(on) = on_param(p, "on", C)? {
-        v.separations = if on { Some(v.separations.take().unwrap_or_else(|| all.clone())) } else { None };
-    }
-    match p.get("plates") {
-        None | Some(Value::Null) => {}
-        Some(Value::Array(a)) if a.iter().all(Value::is_string) => {
-            let mut vis: Vec<String> = Vec::new();
-            for n in a.iter().filter_map(Value::as_str) {
-                let n = check(n)?;
-                // A plate named twice is shown once.
-                if !vis.contains(&n) {
-                    vis.push(n);
-                }
-            }
-            v.separations = Some(vis);
-        }
-        Some(_) => {
-            let key = "plates";
-            return Err(bad(C, format!("`{key}` must be an array of these names: {}", all.join(", "))));
-        }
-    }
-    if let Some(n) = text_param(p, "only", C)? {
-        v.separations = Some(vec![check(n)?]);
-    }
-    // The panel's Alt-click on a plate's eye: that plate alone, or every plate when it already
-    // shows alone among the active document's plates.
-    if let Some(n) = text_param(p, "soloToggle", C)? {
-        let n = check(n)?;
-        let alone = v.separations.as_ref().is_some_and(|vis| all.iter().filter(|a| vis.contains(a)).eq([&n]));
-        v.separations = Some(if alone { all.clone() } else { vec![n] });
-    }
-    if let Some(n) = text_param(p, "toggle", C)? {
-        let n = check(n)?;
-        let vis = v.separations.get_or_insert_with(|| all.clone());
-        if let Some(i) = vis.iter().position(|x| *x == n) {
-            vis.remove(i);
-        } else {
-            vis.push(n);
-        }
-    }
-    store_view(s, v);
-    Ok(plates_json(s))
-}
 
 fn set_spot(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "swatch.setSpot";

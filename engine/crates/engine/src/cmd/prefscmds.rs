@@ -325,18 +325,9 @@ pub const PREF_SPECS: &[PrefSpec] = &[
         ])
     ),
     p!("hyphenationExceptions", "Hyphenation", "", "Exceptions (comma separated)", text),
-    // Plug-ins & Scratch Disks
-    p!("pluginsFolder", "Plug-ins & Scratch Disks", "Plug-ins", "Additional Plug-ins Folder", text),
-    // The instructions each object filter run gets: Large gives at least 250 M besides those for each byte of input.
-    p!(
-        "pluginInstructionBudget",
-        "Plug-ins & Scratch Disks",
-        "Plug-ins",
-        "Plug-in Instruction Budget",
-        choice(&[("normal", "Normal"), ("large", "Large")])
-    ),
-    p!("scratchPrimary", "Plug-ins & Scratch Disks", "Scratch Disks", "Primary", text),
-    p!("scratchSecondary", "Plug-ins & Scratch Disks", "Scratch Disks", "Secondary", text),
+    // Scratch Disks
+    p!("scratchPrimary", "Scratch Disks", "Scratch Disks", "Primary", text),
+    p!("scratchSecondary", "Scratch Disks", "Scratch Disks", "Secondary", text),
     // User Interface
     p!(
         "uiBrightness",
@@ -576,26 +567,15 @@ fn in_range(key: &str, x: Option<f64>, min: f64, max: f64) -> std::result::Resul
 pub type FolderCheck = fn(&str) -> std::result::Result<(), String>;
 
 /// The check a folder preference with a Choose… button gives a folder before it becomes the
-/// preference's value: Data Recovery keeps its copies in its folder, and the Additional Plug-ins
-/// Folder is read for plug-ins. `None` for any other preference.
+/// preference's value: Data Recovery keeps its copies in its folder. `None` for any other
+/// preference.
 pub fn folder_check(key: &str) -> Option<FolderCheck> {
     match key {
         "recoveryFolder" => Some(writable_folder),
-        "pluginsFolder" => Some(plugins_folder),
         _ => None,
     }
 }
 
-/// `Ok` when `path` is a folder whose contents can be listed, as the plug-ins in it are found by
-/// listing it. A folder outside the automation roots in force is refused before it is looked at.
-fn plugins_folder(path: &str) -> std::result::Result<(), String> {
-    crate::file_access::check_read(path)?;
-    let dir = std::path::Path::new(path);
-    if !dir.is_dir() {
-        return Err(format!("{path} is not a folder"));
-    }
-    std::fs::read_dir(dir).map(drop).map_err(|e| format!("Plug-ins can't be loaded from {path}: {e}"))
-}
 
 /// `Ok` when `path` is a folder that can be listed and that a folder can be created in, as the
 /// recovery store lists its folders there and makes its own: the folder is listed, and an empty
@@ -633,11 +613,10 @@ impl Prefs {
 
     /// The folders the app reads (fonts, plug-ins) or writes (Data Recovery copies, the Templates
     /// folder it makes for its dialogs) on its own, with the access each needs.
-    fn folders_mut(&mut self) -> [(&mut String, &'static [crate::file_access::Access]); 4] {
+    fn folders_mut(&mut self) -> [(&mut String, &'static [crate::file_access::Access]); 3] {
         use crate::file_access::Access;
         [
             (&mut self.fonts_folder, &[Access::Read][..]),
-            (&mut self.plugins_folder, &[Access::Read][..]),
             // Data Recovery lists and restores what is in its folder too.
             (&mut self.recovery_folder, &[Access::Write, Access::Read][..]),
             (&mut self.templates_folder, &[Access::Write][..]),
@@ -729,9 +708,6 @@ impl Session {
         let history_changed = p.history_states != self.prefs.history_states;
         let tile_edge_changed = p.pattern_tile_edge_color != self.prefs.pattern_tile_edge_color;
         let fonts_folder_changed = p.fonts_folder != self.prefs.fonts_folder;
-        if p.plugins_folder.trim().is_empty() && !self.prefs.plugins_folder.trim().is_empty() {
-            super::plugin::forget_prefs_folder(&self.prefs.plugins_folder);
-        }
         let hyphen_exceptions_changed = p.hyphenation_exceptions != self.prefs.hyphenation_exceptions;
         let corner_radius_changed = p.corner_radius != self.prefs.corner_radius;
         let lock_guides_changed = p.lock_guides_by_default != self.prefs.lock_guides_by_default;
@@ -797,8 +773,6 @@ impl Session {
                 st.revision += 1;
             }
         }
-        // Plug-ins in a newly set Additional Plug-ins Folder are installed.
-        super::plugin::sync_prefs(self);
     }
 }
 
@@ -810,7 +784,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Set Preference",
             [],
             None,
-            "{key, value} or {values: {key: value, …}, documentUnits?: bool=true} set preferences (validated; see prefs.list; lengths in pt or strings with a unit; unitsGeneral also sets the active document's units, one undo step, unless documentUnits is false; the eyedropper group takes a partial object, as eyedropper.setOptions, and a group given anything but an object is an error; a new recoveryFolder must be a folder that can be listed and written in, and a new pluginsFolder a folder that can be listed: otherwise an error, and nothing changes; an empty value is not checked)",
+            "{key, value} or {values: {key: value, …}, documentUnits?: bool=true} set preferences (validated; see prefs.list; lengths in pt or strings with a unit; unitsGeneral also sets the active document's units, one undo step, unless documentUnits is false; the eyedropper group takes a partial object, as eyedropper.setOptions, and a group given anything but an object is an error; a new recoveryFolder must be a folder that can be listed and written in: otherwise an error, and nothing changes; an empty value is not checked)",
             always,
             set
         ),
@@ -821,7 +795,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Export Preferences",
             [],
             None,
-            "{path?} write the preferences as a JSON file {format: \"vectorcraft-preferences\", version: 1, prefs: {key: value, …}}: every preference prefs.list lists and the eyedropper, perspectiveWidget, pathfinder, glyphSnap and pixelSnap groups, without the folder preferences fontsFolder, pluginsFolder, scratchPrimary, scratchSecondary, recoveryFolder and templatesFolder and without saved presets; a file over 1 MB, which prefs.import would refuse, is an error and is not written → {path, count}; without path → {data: the file's text, count}",
+            "{path?} write the preferences as a JSON file {format: \"vectorcraft-preferences\", version: 1, prefs: {key: value, …}}: every preference prefs.list lists and the eyedropper, perspectiveWidget, pathfinder, glyphSnap and pixelSnap groups, without the folder preferences fontsFolder, scratchPrimary, scratchSecondary, recoveryFolder and templatesFolder and without saved presets; a file over 1 MB, which prefs.import would refuse, is an error and is not written → {path, count}; without path → {data: the file's text, count}",
             always,
             export
         ),

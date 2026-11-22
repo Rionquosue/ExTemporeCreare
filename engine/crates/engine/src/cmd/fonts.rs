@@ -497,27 +497,6 @@ pub(super) fn art_fonts(d: &Document, art: &[Node]) -> BTreeSet<UsedFont> {
     fonts
 }
 
-/// The type of `d` that prints on pages showing `areas` (document space): the fonts (family, style,
-/// version) it is set in, and the ids of the area type and type on a path among the objects of the
-/// document whose text doesn't fit (not those in the art of symbols, opacity masks, patterns,
-/// brushes or placed documents).
-/// The type that prints is visible type on `layers` (the layers that print) but not on a template
-/// layer (of area type and type on a path that don't fit, the runs that their layout draws),
-/// where what it paints ([`vectorcraft_render::painted_bounds`], its effects applied) meets an area
-/// inside the clipping paths around it, the type in the opacity masks and patterns of the objects
-/// that print and in the pieces their brushes draw, and the type of the symbols that their
-/// instances and inline graphics show.
-/// The objects of a blend, envelope, repeat or compound path, or of a layer or group with effects,
-/// fills or strokes of its own, are taken with it when what it paints meets an area, and so is the
-/// art of a placed document (`d` as [`Document::with_placed_art`] gives it, for that art's
-/// resources).
-pub(super) fn printed_type(d: &Document, layers: &[Arc<Node>], areas: &[Rect]) -> (BTreeSet<UsedFont>, BTreeSet<NodeId>) {
-    let mut walk = Printed::new(d);
-    for l in layers {
-        walk.node(l, Some(areas));
-    }
-    (walk.fonts, walk.overflow)
-}
 
 /// The warning of an export that draws `layers` of `d` over `areas` (document space; `None`: the
 /// whole of them) about the area type and type on a path that it draws and whose text doesn't fit,
@@ -541,14 +520,6 @@ pub(super) struct PreflightType {
     pub images: BTreeMap<NodeId, NodeId>,
 }
 
-pub(super) fn preflight_type(d: &Document, layers: &[Arc<Node>], areas: &[Rect]) -> PreflightType {
-    let mut walk = Printed::new(d);
-    walk.preflight = Some(PreflightType::default());
-    for l in layers {
-        walk.node(l, Some(areas));
-    }
-    walk.preflight.unwrap_or_default()
-}
 
 /// The walk of [`printed_type`].
 struct Printed<'a> {

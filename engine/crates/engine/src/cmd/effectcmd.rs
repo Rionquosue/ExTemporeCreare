@@ -52,7 +52,7 @@ fn effect_specs() -> Vec<CommandSpec> {
             "Apply Effect",
             [],
             None,
-            "{effect: id (see effect.list, e.g. \"stylize.dropShadow\", \"distort.roughen\", \"warp.arc\", or \"plugin.<id>\" for an installed effect plug-in), params?: {…} (missing keys take the dialog defaults), item?: appearance item index|null (apply to that fill/stroke only; omitted: the Appearance panel's active item, else the whole object), ids?|id?: [..] (layers too), target?: \"object\"|\"contents\" (contents: the objects inside groups and layers), aligned?: bool (item is a row of the first target's stack: each other target gets the effect on its equal one, as the Appearance panel does for a mixed selection; with the art of a graph design in a series given first, a row of the art's stack: docs/mcp.md), savedBevel?: [[x, y]…] (with params bevel {custom: name}: the custom bevel's points, used in place of the bevels file's; the journal records them so a replay draws the same bevel after the file changes)} append a live effect to each selected object's appearance (a group's or layer's apply to its members as one piece: one combined shadow; a Pathfinder effect, which combines a group's contents, groups several loose selected objects first, in the same undo step); the art of a graph design in a graph series is left out, and objects that are all such art are an error (docs/mcp.md) → {ids, index, item, grouped?}",
+            "{effect: id (see effect.list, e.g. \"stylize.dropShadow\", \"distort.roughen\", \"warp.arc\"), params?: {…} (missing keys take the dialog defaults), item?: appearance item index|null (apply to that fill/stroke only; omitted: the Appearance panel's active item, else the whole object), ids?|id?: [..] (layers too), target?: \"object\"|\"contents\" (contents: the objects inside groups and layers), aligned?: bool (item is a row of the first target's stack: each other target gets the effect on its equal one, as the Appearance panel does for a mixed selection; with the art of a graph design in a series given first, a row of the art's stack: docs/mcp.md), savedBevel?: [[x, y]…] (with params bevel {custom: name}: the custom bevel's points, used in place of the bevels file's; the journal records them so a replay draws the same bevel after the file changes)} append a live effect to each selected object's appearance (a group's or layer's apply to its members as one piece: one combined shadow; a Pathfinder effect, which combines a group's contents, groups several loose selected objects first, in the same undo step); the art of a graph design in a graph series is left out, and objects that are all such art are an error (docs/mcp.md) → {ids, index, item, grouped?}",
             has_doc,
             apply
         ),
@@ -61,7 +61,7 @@ fn effect_specs() -> Vec<CommandSpec> {
             "Effects",
             [],
             None,
-            "{ids?|id?: object ids (default: the selection), target?: \"object\"|\"contents\"} → {catalog: [{id, label, menu, params, defaults, raster, lengths: {always, absolute (while relative is false)} (distance params Scale Strokes & Effects scales)}] (installed effect plug-ins last: id plugin.<plug-in id>, menu Effect › Plug-ins), applied: [{id, effects, items: [{index, kind: fill|stroke, effects}]}] (an effect has skipped: true while Safe Mode skips it: a plug-in effect, which the object keeps and draws without), activeItem} for the selection",
+            "{ids?|id?: object ids (default: the selection), target?: \"object\"|\"contents\"} → {catalog: [{id, label, menu, params, defaults, raster, lengths: {always, absolute (while relative is false)} (distance params Scale Strokes & Effects scales)}], applied: [{id, effects, items: [{index, kind: fill|stroke, effects}]}], activeItem} for the selection",
             always,
             list
         ),
@@ -119,173 +119,7 @@ fn effect_specs() -> Vec<CommandSpec> {
             has_doc,
             move_effect
         ),
-        cmd!(
-            query "effect.deferredStatus",
-            "Deferred Effects",
-            [],
-            None,
-            "{} the live-effect plug-in stages the active document left undrawn: while a document is drawn on screen, the plug-in effects of its first view share a 2,000 ms budget (each run also keeps to its own 5,000 ms limit); a stage left out for want of time, or one that times out, fails or has no plug-in, draws its input art unchanged and stays listed until it gives a result (Effect › Refresh Deferred Effects, an edit to its input or parameters, or an export, which runs every stage under the per-call limit), or until its object is deleted or its effect is removed, moved or hidden (or its fill or stroke is hidden) → {budgetMs: 2000, effects: [{objectId (also an object in the art of a symbol, pattern, brush or opacity mask), effectIndex (in the object's effects, or in the fill's or stroke's), item? (the fill or stroke whose effect it is), pluginId, reason: budget|timeout|missing|failed|safeMode}]} (empty: none)",
-            has_doc,
-            deferred_status
-        ),
-        cmd!(
-            "effect.refreshDeferred",
-            "Refresh Deferred Effects",
-            ["Effect"],
-            None,
-            "{ids?|id?: [object id] (objects of the document, also in the art of a symbol, pattern, brush or opacity mask; an object without a deferred stage adds nothing; an id of no object is an error; `id` names one; default: every object with a deferred stage)} run the deferred live-effect plug-in stages of those objects again (effect.deferredStatus), sharing a fresh 2,000 ms budget; a stage that gives a result is drawn with it; not an undo step. Enabled when a stage is deferred → {refreshed, stillDeferred (left out for want of time again, or not reached because the object, or a group or layer holding it, is hidden, or with a part of its input too small for the refresh's drawing), failed (timed out, failed or has no plug-in)}",
-            has_deferred,
-            refresh_deferred
-        ),
     ]
-}
-
-/// The active document has deferred live-effect plug-in stages ([`deferred_status`]).
-fn has_deferred(s: &Session) -> std::result::Result<(), String> {
-    let st = s.active().ok_or("no document open")?;
-    if deferred_effects(&st.doc, &st.plugin_effects).is_empty() { Err("no plug-in effect is deferred".into()) } else { Ok(()) }
-}
-
-/// The objects the deferred stages of `fx` name, by id, each with whether it is in `d`'s layers.
-/// An object that is not is looked for in the art `d` draws from elsewhere, where live-effect
-/// plug-ins run too: the art of its symbols, patterns and brushes, and opacity masks.
-fn stage_objects(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals) -> std::collections::HashMap<u64, (Arc<Node>, bool)> {
-    let mut out = std::collections::HashMap::new();
-    let mut rest = Vec::new();
-    for object in fx.list().into_iter().map(|x| x.stage.object) {
-        match d.node_arc(NodeId(object)) {
-            Some(n) => {
-                out.insert(object, (n.clone(), true));
-            }
-            None => rest.push(object),
-        }
-    }
-    for (id, n) in definition_objects(d, &rest) {
-        out.entry(id).or_insert((n, false));
-    }
-    out
-}
-
-/// The objects of `ids` found in the art `d` draws from outside its layers: the art of its
-/// symbols, patterns and brushes, and opacity masks (in that art or in the layers).
-fn definition_objects(d: &Document, ids: &[u64]) -> std::collections::HashMap<u64, Arc<Node>> {
-    let mut out = std::collections::HashMap::new();
-    if ids.is_empty() {
-        return out;
-    }
-    let ids: std::collections::HashSet<u64> = ids.iter().copied().collect();
-    let brushes = vectorcraft_brush::library(d);
-    let symbols = d.symbols.iter().map(|s| &*s.art);
-    let patterns = d.patterns.iter().flat_map(|p| p.art.iter().map(|a| &**a));
-    let layers = d.layers.iter().map(|a| &**a);
-    let mut look = |n: &Node| {
-        if ids.contains(&n.id.0) {
-            out.entry(n.id.0).or_insert_with(|| Arc::new(n.clone()));
-        }
-    };
-    for a in symbols.chain(patterns).chain(brushes.iter().flat_map(|b| b.art())).chain(layers) {
-        vectorcraft_doc::swatches::walk_with_masks(a, &mut look);
-    }
-    out
-}
-
-/// Is plug-in `plugin`'s effect at `stage`'s place in `n` (`None`: no such object), and visible,
-/// on a visible fill or stroke when it is one's?
-fn stage_holds(n: Option<&Node>, stage: vectorcraft_plugins::deferred::Stage, plugin: &str) -> bool {
-    let Some(n) = n else { return false };
-    let list = match stage.item {
-        None => Some(n.appearance.effects.as_slice()),
-        Some(i) => n.appearance.items.get(i).filter(|it| it.visible()).map(|it| it.effects().as_slice()),
-    };
-    list.and_then(|l| l.get(stage.effect)).is_some_and(|e| e.visible && e.id == vectorcraft_plugins::effect::effect_id(plugin))
-}
-
-/// Drops the records of `fx`'s stages whose object or plug-in effect is no longer at their place
-/// in `d` ([`stage_holds`]), and gives the objects of the others ([`stage_objects`]).
-fn prune(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals) -> std::collections::HashMap<u64, (Arc<Node>, bool)> {
-    let objects = stage_objects(d, fx);
-    fx.retain(|stage, plugin| stage_holds(objects.get(&stage.object).map(|(n, _)| &**n), stage, plugin));
-    objects
-}
-
-/// The deferred stages of `d` as `effect.deferredStatus` lists them. The records of stages whose
-/// object or plug-in effect is no longer at their place in `d` are dropped first.
-fn deferred_effects(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals) -> Vec<Value> {
-    prune(d, fx);
-    fx.list()
-        .into_iter()
-        .map(|x| {
-            let mut v = json!({"objectId": x.stage.object, "effectIndex": x.stage.effect, "pluginId": x.plugin, "reason": x.reason.name()});
-            if let Some(i) = x.stage.item {
-                v["item"] = json!(i);
-            }
-            v
-        })
-        .collect()
-}
-
-/// `effect.deferredStatus`.
-fn deferred_status(s: &mut Session, _: &Value) -> Result<Value> {
-    let st = s.doc()?;
-    Ok(json!({"budgetMs": vectorcraft_plugins::deferred::OPENING_BUDGET_MS, "effects": deferred_effects(&st.doc, &st.plugin_effects)}))
-}
-
-/// Draws `n` alone, small, as the canvas would (its live-effect plug-ins run inside the view that
-/// applies): what matters is that it is drawn, not its pixels. Is every part of it drawn, none left
-/// out for its size?
-fn draw_small(renderer: &mut vectorcraft_render::Renderer, doc: &Document, n: &Arc<Node>) -> bool {
-    let Some(b) = n.geometric_bounds() else { return false };
-    let scale = 64.0 / b.width().max(b.height()).max(1.0);
-    let view = vectorcraft_geom::Affine::scale(scale) * vectorcraft_geom::Affine::translate((1.0 - b.x0, 1.0 - b.y0));
-    renderer.stats = Default::default();
-    renderer.render_node(doc, n, 66, 66, view);
-    renderer.stats.culled == 0
-}
-
-/// `effect.refreshDeferred`: each object of the document's layers is drawn again alone, small,
-/// inside the document's view, so its stages are run with the input they were deferred with; a
-/// hidden object, or one in a hidden layer or group, is not drawn. An object in the art of a
-/// symbol, pattern, brush or opacity mask runs where that art is used: the visible layers are
-/// drawn then. A stage input left out of a small drawing for its size stays deferred.
-fn refresh_deferred(s: &mut Session, p: &Value) -> Result<Value> {
-    let st = s.doc()?;
-    let (doc, fx) = (st.doc.clone(), st.plugin_effects.clone());
-    let ids = super::named_ids(p)?;
-    let objects = prune(&doc, &fx);
-    // An object of the art drawn outside the layers is valid whether or not it has a stage.
-    let elsewhere: Vec<u64> = ids.iter().flatten().filter(|id| doc.node(**id).is_none() && !objects.contains_key(&id.0)).map(|id| id.0).collect();
-    let found = definition_objects(&doc, &elsewhere);
-    if let Some(id) = elsewhere.iter().find(|id| !found.contains_key(id)) {
-        return Err(EngineError::NoNode(NodeId(*id)));
-    }
-    // Only the objects with a stage have anything to refresh.
-    let ids: Option<Vec<u64>> = ids.map(|ids| {
-        let mut ids: Vec<u64> = ids.iter().map(|id| id.0).filter(|id| objects.contains_key(id)).collect();
-        ids.sort_unstable();
-        ids.dedup();
-        ids
-    });
-    let counts = fx.refresh(ids.as_deref(), |targets| {
-        let mut renderer = vectorcraft_render::Renderer::new();
-        let mut whole = Vec::new();
-        fx.view(|| {
-            let mut elsewhere = false;
-            for id in targets {
-                match objects.get(id) {
-                    Some((n, true)) if doc.is_visible(NodeId(*id)) && draw_small(&mut renderer, &doc, n) => whole.push(*id),
-                    Some((_, false)) => elsewhere = true,
-                    _ => {}
-                }
-            }
-            if elsewhere {
-                for layer in doc.layers.iter().filter(|l| l.visible) {
-                    draw_small(&mut renderer, &doc, layer);
-                }
-            }
-        });
-        whole
-    });
-    Ok(json!({"refreshed": counts.refreshed, "stillDeferred": counts.still_deferred, "failed": counts.failed}))
 }
 
 fn ids_json(ids: &[NodeId]) -> Value {
@@ -575,11 +409,10 @@ fn loose_for_pathfinder(s: &Session, p: &Value, id: &str) -> Result<Option<Vec<N
     Ok((roots.len() >= 2 && !grouped).then_some(roots))
 }
 
-/// `effect.list`: the effect catalog (built-in and plug-in effects) and the effects applied to the selection, with the active item.
+/// `effect.list`: the effect catalog and the effects applied to the selection, with the active item.
 fn list(s: &mut Session, p: &Value) -> Result<Value> {
     let catalog: Vec<Value> = effects::effect_catalog()
         .into_iter()
-        .chain(effects::plugin_effects())
         .map(|e| {
             json!({"id": e.id, "label": e.label, "menu": e.menu, "params": e.params, "defaults": e.defaults, "raster": e.raster,
             "lengths": {"always": e.lengths.always, "absolute": e.lengths.absolute}})
@@ -587,22 +420,7 @@ fn list(s: &mut Session, p: &Value) -> Result<Value> {
         .collect();
     let mut applied = vec![];
     if s.active().is_some() {
-        // A plug-in effect Safe Mode skips says so (`skipped`): the object keeps it.
-        let fx = |e: &[Effect]| {
-            Value::Array(
-                e.iter()
-                    .map(|e| {
-                        let mut v = serde_json::to_value(e).unwrap_or(Value::Null);
-                        if vectorcraft_plugins::effect::skipped(&e.id)
-                            && let Some(o) = v.as_object_mut()
-                        {
-                            o.insert("skipped".into(), json!(true));
-                        }
-                        v
-                    })
-                    .collect(),
-            )
-        };
+        let fx = |e: &[Effect]| Value::Array(e.iter().map(|e| serde_json::to_value(e).unwrap_or(Value::Null)).collect());
         for id in appearance_targets(s, p)? {
             if let Some(n) = s.doc()?.doc.node(id) {
                 let items: Vec<Value> = n
@@ -1609,68 +1427,9 @@ fn expanded_node(
     changed.then_some(n)
 }
 
-/// Does `n`, an object in it, or the art of a symbol placed in it hold a plug-in effect that
-/// expanding it draws: a visible one, the object's own or a visible fill's or stroke's, on an
-/// object that expands ([`expandable`]; in a symbol's art, `in_art`, every object does, and so does
-/// every object in a group or layer with a raster effect, whose image draws all of it). A symbol's
-/// art counts where an instance of it expands. `seen` holds the symbols already looked into.
-fn holds_plugin_effect(d: &Document, n: &Node, in_art: bool, seen: &mut std::collections::HashSet<String>) -> bool {
-    let plugin = |e: &Effect| e.visible && vectorcraft_plugins::effect::plugin_id(&e.id).is_some();
-    let mut symbols = vec![];
-    let mut drawn = vec![];
-    let mut holds = false;
-    n.walk(&mut |c| {
-        if !in_art && is_container(c) && !rasterfx::raster_fx(c).is_empty() {
-            drawn.push(c);
-        }
-        if !in_art && !expandable(c) {
-            return;
-        }
-        holds |= c.appearance.effects.iter().any(plugin) || c.appearance.items.iter().any(|i| i.visible() && i.effects().iter().any(plugin));
-        if let NodeKind::SymbolInstance { symbol, .. } = &c.kind {
-            symbols.push(symbol.clone());
-        }
-    });
-    holds
-        || drawn.into_iter().any(|g| holds_plugin_effect(d, g, true, seen))
-        || symbols.into_iter().any(|name| {
-            seen.insert(name.clone()) && d.symbols.iter().find(|s| s.name == name).is_some_and(|s| holds_plugin_effect(d, &s.art, true, seen))
-        })
-}
 
 fn expand_appearance(s: &mut Session, p: &Value) -> Result<Value> {
     let roots = edit_targets(s, p, "effect.expandAppearance")?;
-    // In Safe Mode a plug-in effect draws nothing: expanding it would drop the effect and keep the
-    // geometry it hasn't changed.
-    if vectorcraft_plugins::safe_mode::active() {
-        // A dimension selected with the art it measures is left as it is, and so is the art of a graph design in a
-        // series, unless an effect of a group around it, the selected graph or series group or one inside it, draws it
-        // with that group: an effect of the group's own, or a raster effect of one of its fills or strokes (the group
-        // then becomes an image of all of it).
-        let mut d = super::dimension::without_kept(&s.doc()?.doc, &roots);
-        let draws_members = |g: &Node| g.appearance.effects.iter().any(|e| e.visible) || !rasterfx::raster_fx(g).is_empty();
-        let designs: Vec<NodeId> = super::appearance::design_art_in(&d, &roots)
-            .into_iter()
-            .filter(|art| {
-                !d.ancestry(*art).is_some_and(|up| {
-                    let from = up.iter().position(|a| roots.contains(a)).unwrap_or(up.len());
-                    up.get(from..up.len().saturating_sub(1)).is_some_and(|around| around.iter().filter_map(|a| d.node(*a)).any(draws_members))
-                })
-            })
-            .collect();
-        if !designs.is_empty() {
-            let view = d.to_mut();
-            for id in designs {
-                // Art already gone (inside other art removed) needs nothing more.
-                let _ = view.remove(id);
-            }
-        }
-        let d = &*d;
-        let mut seen = std::collections::HashSet::new();
-        if roots.iter().filter_map(|id| d.node(*id)).any(|n| holds_plugin_effect(d, n, false, &mut seen)) {
-            return Err(EngineError::Other("Expand Appearance: a plug-in effect in the selection can't be expanded in Safe Mode".into()));
-        }
-    }
     let failed = vectorcraft_render::decode_failures();
     let colorized_ok = super::paint::check_colorized(&s.doc()?.doc).is_ok();
     let mut raster = RasterBudget::new();

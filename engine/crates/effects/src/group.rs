@@ -288,12 +288,7 @@ fn reshaped_art(doc: Option<&Document>, n: &Node, hook: Option<OutlineHook>, nod
     let fx = crate::reshape::geometry_effects(n);
     let outline = hook.unwrap_or(&crate::outline_text);
     match &n.kind {
-        // A path with a live-effect plug-in that paints its pieces: the group of its pieces, each
-        // with its own paints, as the renderer draws it.
-        NodeKind::Path { guide: false, .. } | NodeKind::Compound { .. } if !fx.is_empty() => {
-            let painted = crate::reshape::has_painted_effects(n).then(|| crate::reshape::reshape(doc, n, None)).flatten();
-            Some(painted.unwrap_or_else(|| reshaped(n, n, doc)))
-        }
+        NodeKind::Path { guide: false, .. } | NodeKind::Compound { .. } if !fx.is_empty() => Some(reshaped(n, n, doc)),
         NodeKind::Group { .. } | NodeKind::Layer { .. } if !fx.is_empty() => match compound_shape_art_in(doc, n, hook, nodes) {
             Some(area) => Some(reshaped(&area, n, doc)),
             None => {

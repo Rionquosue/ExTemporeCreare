@@ -232,9 +232,6 @@ pub(crate) struct Reads {
     /// Type: the fonts, whether overprinting shows ([`crate::proof::overprints`]) and the
     /// substitution highlights.
     pub(super) text: bool,
-    /// Plug-in effects on its objects: the plug-ins installed. Those in the symbol and pattern art
-    /// it shows are found with the document's inputs ([`DocInputs`]).
-    pub(super) plugins: bool,
 }
 
 impl Reads {
@@ -249,7 +246,7 @@ impl Reads {
         let mut reads = Self::default();
         nodes.for_each(|n| reads.add(n));
         if reads.symbols || reads.patterns {
-            return Self { patterns: true, symbols: true, images: true, brushes: true, text: true, plugins: reads.plugins };
+            return Self { patterns: true, symbols: true, images: true, brushes: true, text: true };
         }
         reads
     }
@@ -259,11 +256,6 @@ impl Reads {
         self != Self::default()
     }
 
-    /// Can installing or removing a plug-in change what the content draws? It can when an object in
-    /// it has a plug-in effect, and when it shows symbol or pattern art.
-    pub(crate) fn plugins_can_change(self) -> bool {
-        self.plugins || self.symbols || self.patterns
-    }
 
     /// Does the content show symbol or pattern art?
     pub(crate) fn shows_definitions(self) -> bool {
@@ -273,7 +265,6 @@ impl Reads {
     fn add(&mut self, n: &Node) {
         let pattern = |p: &vectorcraft_color::Paint| matches!(p, vectorcraft_color::Paint::Pattern { .. });
         n.walk(&mut |c| {
-            self.plugins |= effects::has_plugin_effect(c);
             for item in &c.appearance.items {
                 self.patterns |= pattern(item.paint());
                 self.brushes |= matches!(item, AppearanceItem::Stroke(s) if s.brush.is_some());
@@ -340,13 +331,7 @@ pub(crate) struct DocInputs {
     pub(super) patterns: u64,
     pub(super) symbols: u64,
     pub(super) images: u64,
-    /// The swatches' and patterns' names, which the pieces of live-effect plug-ins that paint them
-    /// may name (`crate::live`).
-    pub(crate) names: u64,
     pub(crate) cms: usize,
-    /// Whether an object in a pattern's or a symbol's art, or in an opacity mask there, has a
-    /// visible plug-in effect.
-    pub(super) plugins: bool,
     /// Weak references to the values whose addresses the hashes hold: a weak reference keeps the
     /// allocation, not the value, so no other value gets one of those addresses while these
     /// inputs are kept.

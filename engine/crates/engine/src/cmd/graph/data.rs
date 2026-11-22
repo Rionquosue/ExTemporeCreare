@@ -1,6 +1,6 @@
 use super::edit::{regenerate, spec_of, target};
 use super::series::{switch_xy, transpose};
-use super::{Document, EngineError, GraphKind, GraphSpec, NodeId, Result, Session, Value, bad, json, switch_or, text_param};
+use super::{GraphKind, GraphSpec, Result, Session, Value, bad, json, switch_or, text_param};
 
 // ---------- data ----------
 
@@ -177,33 +177,7 @@ pub fn graph_data_from_grid(grid: &[Vec<String>]) -> Value {
     json!({ "series": series, "categories": categories, "rows": values })
 }
 
-/// The graph value (the CSV form [`apply_csv`] reads) of a graph data file's bytes, read as Graph
-/// Data's Import Data reads the file into its sheet and Apply sends the sheet: so applying the
-/// value gives a graph the data that Import Data and Apply give it.
-pub(crate) fn graph_csv_from_file(bytes: &[u8]) -> Result<String> {
-    let data = graph_data_from_grid(&graph_grid_from_text(&graph_data_text(bytes)));
-    let mut spec = GraphSpec::default();
-    apply_data(&mut spec, &data, "dataset.import")?;
-    Ok(spec.to_csv())
-}
 
-/// Apply CSV graph data to the graph root `id` and rebuild its art (Variables data merge), as `graph.setData` with
-/// `csv` does. Data the graph already holds leaves the graph as it is.
-pub(crate) fn apply_csv(d: &mut Document, id: NodeId, csv: &str) -> Result<()> {
-    let Some(node) = d.node(id) else {
-        return Err(EngineError::NoNode(id));
-    };
-    let Some(current) = node.extras().graph.as_deref() else {
-        return Err(bad("graph.applyCsv", format!("node {} is not a graph", id.0)));
-    };
-    let mut spec = current.clone();
-    apply_data(&mut spec, &json!({ "csv": csv }), "graph.applyCsv")?;
-    keep_right_series(&mut spec);
-    if spec == *current {
-        return Ok(());
-    }
-    regenerate(d, id, spec)
-}
 
 /// Drop right-axis series the data no longer has, so a series added later starts on the left.
 fn keep_right_series(g: &mut GraphSpec) {

@@ -557,9 +557,6 @@ pub(crate) fn unused_option_notes(asked: &Value, p: &Value) -> Vec<String> {
     // The keys of `given` that `f`, writing with `options` (the format's settings and the row's
     // own), doesn't read.
     let unread = |f: &Format, given: &Map<String, Value>, options: &Value| -> Vec<String> {
-        if vectorcraft_plugins::export::by_format(f.id).is_some() {
-            return Vec::new();
-        }
         let legacy = super::save::legacy_file(C, f, options);
         given.iter().filter(|(k, v)| !v.is_null() && !own(k) && listed(k) && !export_reads(f, legacy, k)).map(|(k, _)| k.clone()).collect()
     };

@@ -982,7 +982,7 @@ fn set_format(s: &mut Session, p: &Value) -> Result<Value> {
     // The change is made on a copy first: a call whose values are the ones the text already has
     // records no edit, undo step or revision. Only the type objects and graph label styles the call
     // changes are compared, not the whole document.
-    super::variablecmds::settle_typing(s)?;
+    super::settle_typing(s)?;
     let mut doc = (*s.doc()?.doc).clone();
     let mut changed = false;
     {

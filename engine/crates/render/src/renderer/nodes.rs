@@ -1,7 +1,7 @@
 use super::{
     Affine, Arc, BezPath, ClipEntry, ClipPaintEntry, Compose, Composite, Document, FillRule, Frame, GeomEntry, ISOLATION_DIM, Ink, MAX_GUIDE_DASHES,
     Node, NodeId, NodeKind, Rect, RenderContext, RenderOptions, Renderer, Shape, SymbolBoxes, TraceView, blend_mode, brush_fx, effects, fx, group,
-    holds_instance, holds_plugin_effect, images, kurbo, lru, mask_value, painted_items, plain_image, polygon_length, rects_overlap,
+    holds_instance, images, kurbo, lru, mask_value, painted_items, plain_image, polygon_length, rects_overlap,
     shape_masked_image, single_plain_fill, text_geom_snapped, white_shape_mask,
 };
 use crate::kept_paths::{self, KeptPath};
@@ -119,41 +119,6 @@ impl Renderer {
         }
     }
 
-    /// When a plug-in has been installed or removed since the last check
-    /// ([`effects::plugin_revision`]), drop what the caches keep from plug-in effects: the effect
-    /// geometry of paths with a plug-in effect, the cull bounds of objects that have one or hold one,
-    /// of symbol instances and of the objects that hold them, the regions of clipping paths that
-    /// have one or hold one, and the art drawn for the effects of
-    /// objects that have a plug-in effect or hold one. Rasters of raster effects and evaluations of live objects hold
-    /// the revision in their keys when what they draw has a plug-in effect (`fx::Inputs`,
-    /// `live::resources_key`).
-    ///
-    /// The same caches are dropped when a live-effect plug-in that paints its pieces is installed
-    /// and the names of `doc`'s swatches or patterns have changed since the last check: whether its
-    /// pieces are used depends on those names.
-    pub(crate) fn check_plugins(&mut self, doc: &Document) {
-        let revision = effects::plugin_revision();
-        let mut stale = false;
-        if revision != self.plugin_revision {
-            self.plugin_revision = revision;
-            self.painting_plugins = effects::any_plugin_paints_output();
-            stale = true;
-        }
-        if self.painting_plugins {
-            let names = fx::paint_names(doc);
-            stale |= names != self.paint_names;
-            self.paint_names = names;
-        }
-        if stale {
-            self.fx_geom.retain(|_, e| !effects::has_plugin_effect(&e.node));
-            self.fx_stages.retain(|_, e| !effects::has_plugin_effect(&e.0));
-            self.geom.retain(|_, e| !holds_plugin_effect(&e.node) && !holds_instance(&e.node));
-            // The art of a group holds what its members' plug-in effects draw.
-            self.fx_arts.retain(|(node, ..)| !holds_plugin_effect(node));
-            // A clipping path's plug-in effects shape the region it clips to.
-            self.clips.retain(|(node, _)| !holds_plugin_effect(node));
-        }
-    }
 
     /// Cached region a clip group's clipping path `a` clips to ([`effects::clip_outline`]):
     /// outlining text and uniting shapes is too slow to repeat every frame.

@@ -848,21 +848,8 @@ fn apply(s: &mut Session, read: PlaceRead) -> Result<Value> {
     if let Art::Dcs(a) = &loaded.art {
         warnings.extend(dcs::swatch_notes(&st.doc, &a.spots));
     }
-    // A PSD file's slices move and scale with its art; one that would leave the canvas is left out.
-    let read_count = read_slices.len();
-    let slices: Slices = read_slices
-        .into_iter()
-        .filter_map(|(r, o)| {
-            let corners = [Point::new(r.x0, r.y0), Point::new(r.x1, r.y0), Point::new(r.x0, r.y1), Point::new(r.x1, r.y1)].map(|c| m * c);
-            let placed = corners.iter().skip(1).fold(Rect::from_points(corners[0], corners[0]), |acc, c| acc.union_pt(*c));
-            super::slices::slice_rect_ok(placed).then_some((placed, o))
-        })
-        .collect();
-    match read_count - slices.len() {
-        0 => {}
-        1 => warnings.push("1 slice would lie outside the canvas and was left out".into()),
-        n => warnings.push(format!("{n} slices would lie outside the canvas and were left out")),
-    }
+    // Slices a PSD file carries are not brought in.
+    drop(read_slices);
     let (id, size, slice_ids) = s.edit("Place", |d, sel| {
         let node = transformed(build(d, loaded, link), m);
         let size = node.geometric_bounds_with(&d.symbol_boxes()).unwrap_or_default();
@@ -876,7 +863,7 @@ fn apply(s: &mut Session, read: PlaceRead) -> Result<Value> {
             None => (parent, usize::MAX),
         };
         let id = d.insert(into, index, node)?;
-        let slice_ids: Vec<u64> = slices.into_iter().map(|(r, o)| super::slices::add_slice(d, r, o).0).collect();
+        let slice_ids: Vec<u64> = Vec::new();
         // Template art is locked: nothing to select.
         if template {
             sel.clear()

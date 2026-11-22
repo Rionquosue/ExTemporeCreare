@@ -104,31 +104,15 @@ struct PatternCache {
     tiles: [FrameCache<TileKey, TileEntry>; 4],
     renderer: Option<Box<Renderer>>,
     depth: u32,
-    /// The plug-in revision ([`crate::effects::plugin_revision`]) the tiles were last checked
-    /// against (see [`PatternCache::check_plugins`]).
-    plugin_revision: u64,
 }
 
 impl Default for PatternCache {
     fn default() -> Self {
-        Self { tiles: std::array::from_fn(|_| FrameCache::new(lru::PATTERN_BUDGET, usize::MAX)), renderer: None, depth: 0, plugin_revision: 0 }
+        Self { tiles: std::array::from_fn(|_| FrameCache::new(lru::PATTERN_BUDGET, usize::MAX)), renderer: None, depth: 0 }
     }
 }
 
 impl PatternCache {
-    /// When a plug-in has been installed or removed since the last check, drop the tiles whose art
-    /// can draw differently with it: art with a plug-in effect, and art that shows symbols or
-    /// patterns ([`crate::fx::Reads::plugins_can_change`]).
-    fn check_plugins(&mut self) {
-        let revision = crate::effects::plugin_revision();
-        if revision == self.plugin_revision {
-            return;
-        }
-        self.plugin_revision = revision;
-        for tiles in &mut self.tiles {
-            tiles.retain(|e| !e.art.iter().any(|a| crate::fx::Reads::of(a).plugins_can_change()));
-        }
-    }
 }
 
 thread_local! {
@@ -186,7 +170,6 @@ fn rasterize(
     let opts = RenderOptions { mark_undecoded_images, ..Default::default() };
     r.image_left_out = Some(false);
     let pattern_images_left_out = images_left_out();
-    r.check_plugins(doc);
     r.check_symbols(doc);
     let symbols = doc.symbol_boxes().quick();
     r.stamp += 1;
@@ -271,7 +254,6 @@ pub(crate) fn set_pattern_paint(ctx: &mut RenderContext, name: &str, xf: Affine,
     let cms = vectorcraft_color::cms::active();
     let hit = CACHE.with(|c| {
         let mut c = c.borrow_mut();
-        c.check_plugins();
         let tiles = &mut c.tiles[ink.index()];
         let t = tiles.tick();
         tiles

@@ -10,26 +10,6 @@ pub enum DrawMode {
     Inside,
 }
 
-/// Plug-ins & Scratch Disks › Plug-in Instruction Budget: the instructions an object filter's run
-/// may use ([`vectorcraft_plugins::Plugin::large_limits`]).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum PluginBudget {
-    /// The plug-in's own limits.
-    #[default]
-    Normal,
-    /// At least [`vectorcraft_plugins::LARGE_FUEL`] instructions besides those for each byte of
-    /// input; the time budget is unchanged.
-    Large,
-}
-
-/// A saved Plug-in Instruction Budget: any value but `large`, of any type, reads as Normal, and the
-/// other preferences are read as they are.
-fn plugin_budget<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<PluginBudget, D::Error> {
-    let saved = <Value as serde::Deserialize>::deserialize(d)?;
-    Ok(if saved.as_str() == Some("large") { PluginBudget::Large } else { PluginBudget::Normal })
-}
-
 /// A saved Default Language as its tag: older preferences hold the language's name, and one the list
 /// no longer has reads as the default.
 fn language_tag<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<String, D::Error> {
@@ -207,13 +187,7 @@ pub struct Prefs {
     /// Type › Options › Additional Fonts Folder: a folder (read with its subfolders) whose fonts
     /// are listed and used as if installed (#683); empty for none.
     pub fonts_folder: String,
-    // Plug-ins & Scratch Disks
-    pub plugins_folder: String,
-    /// Plug-in Instruction Budget: the instructions each object filter run gets, from
-    /// `plugin.run`, a plug-in command and the app alike. Live effects, exporters and importers
-    /// keep their own budgets.
-    #[serde(deserialize_with = "plugin_budget")]
-    pub plugin_instruction_budget: PluginBudget,
+    // Scratch Disks
     pub scratch_primary: String,
     pub scratch_secondary: String,
     // User Interface
@@ -375,23 +349,12 @@ pub struct Prefs {
     /// File Handling → Use Compression: native saves are gzip-compressed (`document.save
     /// {compress}` overrides it).
     pub use_compression: bool,
-    /// Save for Web: the user's presets (the built-in ones aren't stored). A local library, not a
-    /// Preferences dialog field: resetting the preferences keeps it; `webExport.presets.*` edit it.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub web_export_presets: Vec<cmd::webexport::WebPreset>,
     /// The VectorCraft Options a native Save or Save As used last (Preview, Embed ICC Profiles,
     /// Create PDF-Compatible File…; not the artboards it picked, nor Use Compression, which its
     /// preference decides): `file.formatOptions` offers them for a document not yet saved as a
     /// native file. Not a Preferences dialog field.
     #[serde(skip_serializing_if = "serde_json::Map::is_empty")]
     pub native_save_options: serde_json::Map<String, serde_json::Value>,
-    /// Save for Web: the settings the dialog opens on (`webExport.settings`); none until set.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub web_export_settings: Option<cmd::webexport::WebSettings>,
-    /// Edit → Print Presets: the user's presets ([Default] isn't stored). A local library, not a
-    /// Preferences dialog field: resetting the preferences keeps it; `print.presets.*` edit it.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub print_presets: Vec<cmd::printpresets::PrintPreset>,
     /// Constrain Width and Height Proportions: the link between W and H in the Transform panel,
     /// the Properties panel and the Control bar (their size fields pass `proportional` to
     /// `object.setBounds`).
@@ -433,11 +396,6 @@ pub struct Prefs {
     /// Perspective Grid Options (double-click the Perspective Grid tool): whether the Plane
     /// Switching Widget shows and where (`perspective.widget.options`).
     pub perspective_widget: vectorcraft_tools::distort::perspective::widget::WidgetOptions,
-    /// What names and codes in other apps' shortcut sets stand for, as the user confirmed them on
-    /// import (`importMatches.*`). A local library, not a Preferences dialog field: resetting the
-    /// preferences keeps it.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub import_matches: Vec<cmd::importmatches::ImportMatch>,
 }
 
 /// The default Hold Shortcut Delay, in seconds (VectorCraft's own value).
@@ -558,8 +516,6 @@ impl Default for Prefs {
             hyphenation_language: s("en-US"),
             hyphenation_exceptions: String::new(),
             fonts_folder: String::new(),
-            plugins_folder: String::new(),
-            plugin_instruction_budget: PluginBudget::Normal,
             scratch_primary: s("Startup"),
             scratch_secondary: s("None"),
             ui_brightness: s("mediumDark"),
@@ -628,10 +584,7 @@ impl Default for Prefs {
             edit_original_system_defaults: true,
             append_converted: true,
             use_compression: false,
-            web_export_presets: vec![],
             native_save_options: serde_json::Map::new(),
-            web_export_settings: None,
-            print_presets: vec![],
             constrain_proportions: false,
             single_corner_radius: true,
             transform_panel_patterns: "default".to_string(),
@@ -641,7 +594,6 @@ impl Default for Prefs {
             perspective_presets: vec![],
             blend_options: None,
             perspective_widget: Default::default(),
-            import_matches: vec![],
         }
     }
 }
