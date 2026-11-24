@@ -25,6 +25,8 @@ mod axis;
 mod columns;
 mod commands;
 mod data;
+#[cfg(test)]
+pub(crate) use data::parse_csv;
 mod designs;
 mod edit;
 mod generate;

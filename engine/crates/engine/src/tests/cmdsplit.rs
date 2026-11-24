@@ -79,14 +79,6 @@ fn unique_name_from_counts_on_for_a_run_of_one_name() {
     assert_eq!(crate::cmd::unique_name_from("B", &mut next, |_| false), "B");
 }
 
-#[test]
-fn a_presets_file_with_too_many_presets_is_refused() {
-    let mut s = Session::new();
-    let presets: Vec<_> = (0..=crate::cmd::MAX_IMPORTED_PRESETS).map(|_| serde_json::json!({"name": "P"})).collect();
-    let file = serde_json::json!({"format": crate::cmd::printpresets::PRESET_FORMAT, "presets": presets}).to_string();
-    let e = s.execute("print.presets.import", &serde_json::json!({"data": file})).unwrap_err().to_string();
-    assert!(e.contains("over"), "{e}");
-}
 
 #[test]
 fn leaf_targets_expand_groups_and_stop_at_compound_paths() {

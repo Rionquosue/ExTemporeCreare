@@ -8,7 +8,6 @@ mod clipfx;
 mod imageoutline;
 mod rasterfollow;
 mod scale;
-mod solidcontext;
 mod transformfx;
 mod typestroke;
 

@@ -1989,8 +1989,7 @@ mod tests {
     }
 
     /// A pattern in a fill whose opacity is 0 paints nothing: Find doesn't select the object for
-    /// the pattern's type, a selection-only Change leaves that type in its font, and Print doesn't
-    /// count its font.
+    /// the pattern's type, and a selection-only Change leaves that type in its font.
     #[test]
     fn find_font_skips_patterns_at_an_opacity_of_0() {
         let mut s = Session::new();
@@ -2001,12 +2000,7 @@ mod tests {
         s.execute("edit.clear", &json!({})).unwrap();
         let painted = s.execute("shape.rectangle", &json!({"x": 0, "y": 20, "width": 50, "height": 20})).unwrap()["id"].as_u64().unwrap();
         s.execute("paint.setFill", &json!({"swatch": "Dots", "ids": [painted]})).unwrap();
-        let printed = |s: &Session| {
-            let d = &s.doc().unwrap().doc;
-            printed_type(d, &d.layers, &[Rect::new(-1000.0, -1000.0, 1000.0, 1000.0)]).0.into_iter().map(|(family, ..)| family).collect::<Vec<_>>()
-        };
         assert_eq!(s.execute("select.font", &json!({"family": "Source Serif 4"})).unwrap()["count"], 1);
-        assert_eq!(printed(&s), ["Source Serif 4"]);
         s.edit("Clear the fill", |d, _| {
             for it in d.node_mut(NodeId(painted)).unwrap().appearance.items.iter_mut() {
                 if let AppearanceItem::Fill(f) = it {
@@ -2017,7 +2011,6 @@ mod tests {
         })
         .unwrap();
         assert_eq!(s.execute("select.font", &json!({"family": "Source Serif 4"})).unwrap()["count"], 0);
-        assert!(printed(&s).is_empty(), "{:?}", printed(&s));
         s.execute("select.set", &json!({"ids": [painted]})).unwrap();
         let r = s
             .execute("text.replaceFont", &json!({"from": {"family": "Source Serif 4"}, "to": {"family": "Source Sans 3"}, "selectionOnly": true}))
@@ -2115,7 +2108,7 @@ mod tests {
 
     /// The characters of an inline graphic draw no glyph: their pattern fill paints only their
     /// underline, strikethrough or ruby reading. Without one, Find doesn't select the text for the
-    /// pattern's type and Print doesn't count its font.
+    /// pattern's type.
     #[test]
     fn find_font_skips_patterns_of_undecorated_inline_graphics() {
         let mut s = Session::new();
@@ -2139,21 +2132,15 @@ mod tests {
             .unwrap();
         };
         let found = |s: &mut Session| s.execute("select.font", &json!({"family": "Source Serif 4"})).unwrap()["count"].as_u64();
-        let printed = |s: &Session| {
-            let d = &s.doc().unwrap().doc;
-            printed_type(d, &d.layers, &[Rect::new(-1000.0, -1000.0, 1000.0, 1000.0)]).0.into_iter().map(|(family, ..)| family).collect::<Vec<_>>()
-        };
         style(&mut s, &|t| {
             for r in t.runs.iter_mut().filter(|r| r.inline.is_some()) {
                 r.style.fill = Paint::Pattern { pattern: "Dots".into(), xf: Default::default() };
             }
         });
         assert_eq!(found(&mut s), Some(0));
-        assert_eq!(printed(&s), ["Source Sans 3"]);
         // An underline paints with the pattern.
         style(&mut s, &|t| t.runs.iter_mut().filter(|r| r.inline.is_some()).for_each(|r| r.style.underline = true));
         assert_eq!(found(&mut s), Some(1));
-        assert_eq!(printed(&s), ["Source Sans 3", "Source Serif 4"]);
         // Vertical type draws no underline.
         style(&mut s, &|t| t.vertical = true);
         assert_eq!(found(&mut s), Some(0));
@@ -2424,39 +2411,4 @@ mod dirty_tests {
         assert!(!s.doc().unwrap().is_dirty(), "back to the saved state");
     }
 
-    /// The walk Print and the exports make over 300 instances with drop shadows, among 2,000
-    /// symbols, reads the symbol list once to find their symbols.
-    #[test]
-    fn printed_type_reads_the_symbol_list_once() {
-        let mut d = Document::new(200.0, 200.0);
-        for i in 0..2000 {
-            let art = Node::path(
-                d.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 1.0, 1.0)),
-                vectorcraft_doc::Appearance::basic(Paint::None, Paint::None, 0.0),
-            );
-            d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: format!("Filler {i}"), art: Arc::new(art) });
-        }
-        let art = Node::path(
-            d.alloc_id(),
-            vectorcraft_geom::shapes::rectangle(Rect::new(-10.0, -10.0, 10.0, 10.0)),
-            vectorcraft_doc::Appearance::basic(Paint::solid(vectorcraft_color::Color::BLACK), Paint::None, 0.0),
-        );
-        d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Mark".into(), art: Arc::new(art) });
-        let l = d.layers[0].id;
-        for i in 0..300 {
-            let xf = vectorcraft_geom::Affine::translate((f64::from(i % 20) * 10.0, f64::from(i / 20) * 10.0));
-            let mut n = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Mark".into(), xf });
-            n.appearance.effects.push(vectorcraft_doc::Effect {
-                id: "stylize.dropShadow".into(),
-                params: json!({"x": 1, "y": 1, "blur": 0}),
-                visible: true,
-            });
-            d.insert(Some(l), usize::MAX, n).unwrap();
-        }
-        let before = vectorcraft_doc::symbols_read();
-        printed_type(&d, &d.layers, &[Rect::new(0.0, 0.0, 100.0, 100.0)]);
-        let read = vectorcraft_doc::symbols_read() - before;
-        assert!(read <= d.symbols.len(), "{read} symbols read, {} in the document", d.symbols.len());
-    }
 }

@@ -86,6 +86,13 @@ impl AutomationRoots {
     }
 
 
+    /// Roots that grant no access of either kind: inside [`confine`] with them, every path a
+    /// command reads or writes is refused.
+    #[cfg(test)]
+    pub(crate) fn none() -> Arc<Self> {
+        Arc::new(Self { read: Vec::new(), write: Vec::new() })
+    }
+
     /// May the file or folder at `path` be read (or written)? It must lie inside one of the roots
     /// of that kind. `Err` says why not.
     pub fn check(&self, path: &str, access: Access) -> Result<(), String> {
@@ -392,13 +399,13 @@ mod tests {
         assert!(both.check(&s(base.join("in2")), Access::Read).is_err(), "only the narrow roots grant it");
         assert!(both.check(&s(base.join("out/x.svg")), Access::Write).is_err(), "only the first grants writes");
         assert_eq!(both.describe(), narrow.intersect(&roots).describe(), "either order");
-        let unconfined = ScopeHandle(Some(Scope::Unconfined), None, false);
+        let unconfined = ScopeHandle(Some(Scope::Unconfined));
         let within = |saved: ScopeHandle, here: Option<&Arc<AutomationRoots>>| {
             confine(here, || saved.within_current()).run(|| current().map(|r| r.describe()))
         };
         assert_eq!(within(unconfined.clone(), Some(&narrow)), Some(narrow.describe()), "a confined caller keeps its roots");
-        assert_eq!(within(ScopeHandle(Some(Scope::Confined(roots.clone())), None, false), None), Some(roots.describe()), "the saved roots stay");
-        assert_eq!(within(ScopeHandle(Some(Scope::Confined(roots.clone())), None, false), Some(&narrow)), Some(both.describe()));
+        assert_eq!(within(ScopeHandle(Some(Scope::Confined(roots.clone()))), None), Some(roots.describe()), "the saved roots stay");
+        assert_eq!(within(ScopeHandle(Some(Scope::Confined(roots.clone()))), Some(&narrow)), Some(both.describe()));
         assert!(unconfined.run(|| current().is_none()));
         let _ = std::fs::remove_dir_all(base);
     }

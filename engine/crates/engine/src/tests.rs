@@ -3252,7 +3252,7 @@ fn command_lookup_timing() {
     let hits: Vec<&str> = command_specs().iter().map(|c| c.id).collect();
     let missing: Vec<String> = (0..200 - NOT_BUILT_IN.len()).map(|i| format!("missing.command{i}")).collect();
     let misses: Vec<&str> = NOT_BUILT_IN.iter().copied().chain(missing.iter().map(String::as_str)).collect();
-    let linear = |id: &str| first_built_in(id).or_else(|| crate::cmd::plugin::find_spec(id));
+    let linear = |id: &str| first_built_in(id);
     for id in hits.iter().chain(&misses) {
         assert!(find_command(id).map(std::ptr::from_ref) == linear(id).map(std::ptr::from_ref), "{id:?}");
     }
@@ -3306,7 +3306,7 @@ fn every_command_survives_empty_params() {
     // The view toggles among them flip the process-wide proof view.
     let _proof_view = crate::tests_colormgmt::GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
     for sel in [false, true] {
-        for c in command_specs().iter().filter(|c| crate::runs_with_empty_params(c.id)) {
+        for c in command_specs().iter() {
             let mut s = session();
             let a = rect(&mut s, 0.0, 0.0, 10.0, 10.0);
             rect(&mut s, 20.0, 0.0, 10.0, 10.0);

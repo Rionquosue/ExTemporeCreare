@@ -63,6 +63,7 @@ mod panelcmds;
 pub mod params;
 mod path;
 pub(crate) mod pathops;
+mod param_locations;
 mod patterncmds;
 pub mod patternlib;
 pub mod pdfcmds;
@@ -828,6 +829,7 @@ pub(crate) use object::{keep_aligned_in, refresh_pixel_aligned};
 /// The rules `object.scale`, `object.reflect` and `object.shear` check their params with.
 pub use object::{reflect_axis, scale_factors, shear_tangent};
 pub(crate) use paint::LIVE_PAINT_BUCKET;
+pub use param_locations::{Location, ParamsPlace, key_location, location_in, location_keys};
 pub use select::SIMILAR;
 pub(crate) use vectorcraft_doc::range::parse_range;
 

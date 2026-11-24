@@ -421,9 +421,6 @@ fn catalog_path_keys_match_location_policy() {
         if key_location(k) != want {
             wrong.push(format!("key_location(`{k}`) is {:?}, not {want:?}", key_location(k)));
         }
-        if vectorcraft_engine::file_access::is_path_key(k) != want.is_some() {
-            wrong.push(format!("is_path_key(`{k}`) is {}", want.is_none()));
-        }
         for (c, named) in &catalog {
             if !named.contains(k) && !(c.params.contains('…') && takes_key(c.params, k)) {
                 continue;

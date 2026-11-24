@@ -7957,19 +7957,6 @@ fn metafiles_saving_states_without_end_are_read_within_the_cap() {
     });
 }
 
-#[test]
-fn deeply_nested_plugin_manifests_and_output_are_errors() {
-    on_a_small_stack(|| {
-        // (A manifest may be 64 kB.)
-        let deep = |n: usize| format!("{}{}", "[".repeat(n), "]".repeat(n));
-        assert!(vectorcraft_plugins::Manifest::parse(deep(30_000).as_bytes()).is_err());
-        assert!(vectorcraft_plugins::Manifest::parse(format!("{{\"params\": {}}}", deep(30_000)).as_bytes()).is_err());
-        let deep = deep(100_000);
-        for output in [deep.clone(), format!("{{\"objects\": {deep}}}"), format!("{{\"objects\": [{{\"kind\": \"path\", \"path\": {deep}}}]}}")] {
-            assert!(vectorcraft_plugins::objects::decode(output.as_bytes()).is_err());
-        }
-    });
-}
 
 /// A document whose symbol `s0` and pattern `p0` are each a line stroked with the brush `loop`,
 /// with an instance of the symbol and a square painted with the pattern on the layer. The brush

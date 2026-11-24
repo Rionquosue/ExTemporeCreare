@@ -639,97 +639,6 @@ fn delete_and_cut_of_a_picked_object_remove_nothing() {
     assert!(s.doc().unwrap().doc.node(inst).is_none());
 }
 
-#[test]
-fn commands_on_the_selection_leave_a_picked_objects_instance_alone() {
-    // A dynamic instance with an opacity mask, a plain square and the Desaturate plug-in, with an
-    // object of the instance picked.
-    let setup = || {
-        let mut s = session();
-        let inst = pair(&mut s, "dynamic");
-        let other = square(&mut s, 150.0);
-        let desaturate = include_bytes!("../../../plugins/tests/fixtures/desaturate.wasm");
-        let plugin = s.execute("plugin.install", &json!({"dataBase64": vectorcraft_format::base64_encode(desaturate)})).unwrap();
-        let mask = square(&mut s, 20.0);
-        s.execute("transparency.makeOpacityMask", &json!({"ids": [inst.0, mask.0]})).unwrap();
-        assert!(node(&s, inst).extras().mask.is_some());
-        s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();
-        (s, inst, other, plugin["id"].clone())
-    };
-    let (mut s, inst, other, plugin) = setup();
-    let doc = s.doc().unwrap().doc.clone();
-    // Each command runs on its own copy of the setup, compared with that copy as it was, so every
-    // command that fails is reported.
-    let mut failures = Vec::new();
-    for (cmd, p) in [
-        ("object.puppetWarp", json!({"pins": [[80, 30]], "moved": [[90, 40]], "rest": true})),
-        ("recolor.apply", json!({"map": {"#0000ff": "#00ff00"}})),
-        ("plugin.run", json!({"id": plugin, "params": {"amount": 100}})),
-        ("object.group", json!({})),
-        ("object.ungroup", json!({})),
-        ("object.hide", json!({})),
-        ("object.lock", json!({})),
-        ("object.arrange.bringToFront", json!({})),
-        ("object.expand", json!({})),
-        ("object.rotate", json!({"angle": 45})),
-        ("symbol.instance.reset", json!({})),
-        ("symbol.instance.setAppearance", json!({"path": [1], "opacity": 50})),
-        ("symbol.adjust", json!({"tool": "shift", "points": [[80, 30], [95, 30]], "radius": 200})),
-        ("symbol.edit", json!({})),
-        ("select.globalEdit", json!({})),
-        ("object.blend.release", json!({})),
-        ("object.repeat.release", json!({})),
-        ("object.intertwine.release", json!({})),
-        ("object.objectsOnPath.expand", json!({})),
-        ("transparency.set", json!({"opacity": 50, "isolate": true})),
-        ("transparency.releaseOpacityMask", json!({})),
-        ("transparency.setOpacityMask", json!({"invert": true, "clip": false})),
-        ("transparency.disableOpacityMask", json!({})),
-        ("transparency.unlinkOpacityMask", json!({})),
-        ("transparency.editOpacityMask", json!({})),
-        ("transparency.viewOpacityMask", json!({"on": true})),
-        ("paint.editGradient", json!({"angle": 30})),
-        ("paint.setGradientGeom", json!({"start": [62, 30], "end": [98, 30]})),
-        ("paint.swap", json!({})),
-        ("stroke.set", json!({"weight": 3})),
-        ("path.moveAnchors", json!({"dx": 5, "dy": 5})),
-        (
-            "file.place",
-            json!({"name": "a.svg", "dataBase64": vectorcraft_format::base64_encode(b"<svg xmlns='http://www.w3.org/2000/svg' width='9' height='9'><rect width='9' height='9'/></svg>"), "replace": true}),
-        ),
-        ("object.intertwine.arrange", json!({"at": [80, 30]})),
-        ("transparency.editOpacityMask", json!({"id": null})),
-        ("transparency.viewOpacityMask", json!({"on": true, "id": null})),
-    ] {
-        let (mut t, ..) = setup();
-        let (doc, undo) = (t.doc().unwrap().doc.clone(), undo_steps(&t));
-        match t.execute(cmd, &p) {
-            Ok(r) => failures.push(format!("{cmd}: ran ({r})")),
-            Err(e) if !e.to_string().contains("symbol instance") => failures.push(format!("{cmd}: {e}")),
-            Err(_) => {}
-        }
-        if t.doc().unwrap().selection.symbol_part.is_none() {
-            failures.push(format!("{cmd}: the object is no longer picked"));
-        }
-        if t.doc().unwrap().doc != doc {
-            failures.push(format!("{cmd}: the document changed"));
-        }
-        if undo_steps(&t) != undo {
-            failures.push(format!("{cmd}: an undo step was added"));
-        }
-    }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-    // Copy copies the instance whole.
-    s.execute("edit.copy", &json!({})).unwrap();
-    assert!(matches!(&s.clipboard.nodes[..], [n] if matches!(n.kind, NodeKind::SymbolInstance { .. })));
-    // The picked object's paint still changes.
-    s.execute("paint.setFill", &json!({"color": "#ff0000"})).unwrap();
-    assert!(node(&s, inst).extras().symbol_overrides[0].fill.is_some());
-    // A command given ids acts on them.
-    s.execute("object.rotate", &json!({"ids": [other.0], "angle": 45})).unwrap();
-    assert_ne!(node(&s, other).kind, doc.node(other).unwrap().kind, "the named object turns");
-    s.execute("transparency.setOpacityMask", &json!({"id": inst.0, "invert": true})).unwrap();
-    assert!(node(&s, inst).extras().mask.as_ref().is_some_and(|m| m.invert), "the named instance's mask changes");
-}
 
 #[test]
 fn the_commands_without_a_check_for_a_picked_object_use_its_instance() {
@@ -1400,7 +1309,7 @@ fn a_lent_selection_tool_moves_the_instance_of_a_picked_object() {
 #[test]
 fn read_only_commands_read_the_instance_of_a_picked_object() {
     let mut failures = Vec::new();
-    for spec in crate::cmd::command_specs().iter().filter(|c| !c.journal && crate::runs_with_empty_params(c.id)) {
+    for spec in crate::cmd::command_specs().iter().filter(|c| !c.journal) {
         let mut s = session();
         let inst = pair(&mut s, "dynamic");
         s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();

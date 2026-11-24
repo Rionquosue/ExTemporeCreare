@@ -261,6 +261,17 @@ pub(crate) fn uncached<T>(f: impl FnOnce() -> T) -> T {
 }
 
 
+/// Every key the description `doc` takes, those of the commands its `…` entries name included, or
+/// `None` when that isn't known: it doesn't parse, a `…` entry names no command, or one names a
+/// command in [`UNCHECKED`].
+#[cfg(test)]
+pub(crate) fn accepted_keys(doc: &'static str) -> Option<Vec<&'static str>> {
+    match known(doc) {
+        Some(known) => known.accepted.clone(),
+        None => accepted(doc, 0),
+    }
+}
+
 /// Does the description `doc` name `key` as a parameter (its own keys, and those of the commands
 /// its `…` entries name)?
 pub fn takes_key(doc: &'static str, key: &str) -> bool {

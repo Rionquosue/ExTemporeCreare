@@ -1630,9 +1630,7 @@ fn reshape_leaves_apart(
     for e in fx {
         let Some(bounds) = warped.bounds(art) else { break };
         let params = merged_params(&e.id, &e.params);
-        // Where a live-effect plug-in sits, which it is listed by when it is deferred.
-        let effect = owner.iter().position(|x| std::ptr::eq(x, *e)).or_else(|| listed.iter().position(|x| std::ptr::eq(*x, *e)));
-        let step = Step { e, params: &params, bounds, seed, effect, apart, rows, doc, wholes: &wholes, held };
+        let step = Step { e, params: &params, bounds, seed, apart, rows, wholes: &wholes, held };
         // Art with linked masks keeps its shape under an effect that a mask in it could not take
         // as the art it masks did, so no mask is left apart from its art.
         let before = masked.then(|| (art.clone(), used));
@@ -1663,9 +1661,8 @@ fn reshape_leaves_apart(
 }
 
 /// One geometry effect of an object run over its art ([`reshape_leaves_apart`]): the effect, its
-/// merged params, the reference box and seed of the object's art, where a deferred live-effect
-/// plug-in is listed, whether each Transform copy becomes an object, the document that the
-/// swatches and patterns of painted pieces are looked up in, [`copies_whole`] of the art of
+/// merged params, the reference box and seed of the object's art, whether each Transform copy
+/// becomes an object, [`copies_whole`] of the art of
 /// each linked mask before the first effect, by the id of the object it masks, and whether one of
 /// the object's effects holds the raster effects in its art back from its Transform effects
 /// ([`follow_art`]).
@@ -1674,10 +1671,8 @@ struct Step<'a> {
     params: &'a serde_json::Value,
     bounds: Rect,
     seed: u64,
-    effect: Option<usize>,
     apart: bool,
     rows: bool,
-    doc: Option<&'a Document>,
     wholes: &'a HashMap<NodeId, bool>,
     held: bool,
 }
@@ -2871,9 +2866,7 @@ fn shares_stage(items: &[AppearanceItem], j: usize) -> bool {
         return false;
     }
     match first.effects().get(j) {
-        Some(e) if e.visible && is_geometry(&e.id) => {
-            (reaches_appearance(e) || items.iter().all(AppearanceItem::is_fill))
-        }
+        Some(e) if e.visible && is_geometry(&e.id) => reaches_appearance(e) || items.iter().all(AppearanceItem::is_fill),
         _ => true,
     }
 }

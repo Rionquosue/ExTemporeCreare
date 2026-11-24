@@ -475,8 +475,6 @@ fn open_exts_cover_every_readable_format() {
         assert!(!filters[0].1.contains(e), "All readable files lists documents only, not .{e}");
     }
     assert!(filters.contains(&("Export presets", SCREEN_EXPORT_PRESET_EXTS)), "File › Open imports export presets");
-    assert!(filters.contains(&("Scripts", crate::cmd::scripts::EXTS)), "File › Open checks scripts");
-    assert_eq!(filters.last(), Some(&("Plug-ins", crate::cmd::plugin::EXTS)), "File › Open installs plug-ins");
 }
 
 #[test]
@@ -1567,28 +1565,6 @@ fn a_turned_cmyk_jpeg_keeps_its_icc_profile_from_every_segment() {
     assert!(kept.as_deref() == Some(icc.as_slice()), "the whole ICC profile: {:?} bytes", kept.map(|k| k.len()));
 }
 
-/// With `importer` named, a file up to the importer's limit is read whole and a larger one is an
-/// error, whatever its content.
-#[test]
-fn read_path_for_a_named_importer_stops_at_the_limit() {
-    let limit = vectorcraft_plugins::import::MAX_INPUT_BYTES as u64;
-    let dir = tmp_dir("read-path-limit");
-    let path = dir.join("drawing.tuv");
-    let name = path.to_string_lossy().into_owned();
-    let named = json!({"importer": "plugin.test.notinstalled"});
-    let sized = |len: u64| {
-        std::fs::write(&path, b"\x89PNG\r\n\x1a\n").unwrap();
-        std::fs::OpenOptions::new().write(true).open(&path).unwrap().set_len(len).unwrap();
-    };
-    for len in [8, 64 << 10, 70_000, limit] {
-        sized(len);
-        assert_eq!(importer::read_path(&name, &named).unwrap().len() as u64, len);
-    }
-    sized(limit + 1);
-    let e = importer::read_path(&name, &named).unwrap_err();
-    assert!(e.to_string().contains("larger than") && e.to_string().contains("drawing.tuv"), "{e}");
-    let _ = std::fs::remove_dir_all(&dir);
-}
 
 /// #3084, #2096: Export for Screens writes JPGs a strict reader opens, in every colour model and at
 /// the qualities and scales the reports used. A four-component (CMYK) file has no JFIF segment,

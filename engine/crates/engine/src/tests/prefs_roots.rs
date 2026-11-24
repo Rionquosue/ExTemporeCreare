@@ -28,7 +28,7 @@ fn folder(name: &str) -> PathBuf {
 }
 
 /// The folder preferences that name the folder outside the read root.
-const OUTSIDE: [&str; 3] = ["pluginsFolder", "scratchPrimary", "templatesFolder"];
+const OUTSIDE: [&str; 2] = ["scratchPrimary", "templatesFolder"];
 
 /// A session whose folder preferences name `inside` (fonts, and the Data Recovery folder with
 /// spaces around it) and `outside` (the [`OUTSIDE`] ones, the Templates folder with spaces around
@@ -37,7 +37,6 @@ fn session(inside: &str, outside: &str) -> Session {
     let mut s = Session::new();
     s.prefs.fonts_folder = inside.to_string();
     s.prefs.recovery_folder = format!(" {inside} ");
-    s.prefs.plugins_folder = outside.to_string();
     s.prefs.scratch_primary = outside.to_string();
     s.prefs.scratch_secondary = "None".to_string();
     s.prefs.templates_folder = format!(" {outside} ");
@@ -84,24 +83,24 @@ fn prefs_commands_leave_out_folders_outside_the_read_root() {
     assert!(!holds(&list, &outside), "{list}");
     let row = |key: &str| list.as_array().unwrap().iter().find(|r| r["key"] == key).cloned().unwrap();
     assert_eq!(row("fontsFolder")["value"], json!(inside));
-    assert_eq!(row("pluginsFolder")["value"], Value::Null);
-    assert_eq!(row("pluginsFolder")["kind"], json!("text"), "the row stays");
+    assert_eq!(row("scratchPrimary")["value"], Value::Null);
+    assert_eq!(row("scratchPrimary")["kind"], json!("text"), "the row stays");
 
     // A request that sets another preference, or resets a category without folders.
-    let set = confine(roots.as_ref(), || run(&mut s, "prefs.set", json!({"values": {"keyboardIncrement": 2, "pluginsFolder": outside}})));
-    assert_eq!(set, json!({"keyboardIncrement": 2.0, "pluginsFolder": null}), "a folder kept as it was is left out too");
+    let set = confine(roots.as_ref(), || run(&mut s, "prefs.set", json!({"values": {"keyboardIncrement": 2, "scratchPrimary": outside}})));
+    assert_eq!(set, json!({"keyboardIncrement": 2.0, "scratchPrimary": null}), "a folder kept as it was is left out too");
     let reset = confine(roots.as_ref(), || run(&mut s, "prefs.reset", json!({"category": "General"})));
     assert!(!holds(&reset, &outside), "{reset}");
     assert_eq!(reset["prefs"]["fontsFolder"], json!(inside));
 
     // Unconfined and with only a write root.
     let all = run(&mut s, "prefs.get", json!({}));
-    assert_eq!(all["prefs"]["pluginsFolder"], json!(outside), "unconfined, the folder is shown");
+    assert_eq!(all["prefs"]["scratchPrimary"], json!(outside), "unconfined, the folder is shown");
     assert_eq!(all["prefs"]["screenExportPresets"][1]["settings"]["folder"], json!(outside));
     let write_only = AutomationRoots::new(&[], &[&base.join("in")]).unwrap();
     let all = confine(write_only.as_ref(), || run(&mut s, "prefs.get", json!({})));
     assert_eq!(all["prefs"]["fontsFolder"], Value::Null, "without a read root no folder is shown");
     assert_eq!(all["prefs"]["recoveryFolder"], Value::Null);
-    assert_eq!(s.prefs.plugins_folder, outside, "the preferences are unchanged");
+    assert_eq!(s.prefs.scratch_primary, outside, "the preferences are unchanged");
     let _ = std::fs::remove_dir_all(&base);
 }

@@ -188,25 +188,6 @@ fn steps_kept_outside_a_command_keep_to_the_shared_budget() {
     assert_eq!(undo_lens(&s), [13, 1]);
     s.commit_interaction().unwrap();
     assert_eq!(undo_lens(&s), [History::MIN_STEPS, 2], "the drag's step counts against the other document's");
-    // A script run across frames, whose step is kept after `script.run` returns.
-    s.history_budget = usize::MAX;
-    assert!(s.set_active(0));
-    moves(&mut s, 4);
-    assert!(s.set_active(1));
-    s.script_frames = true;
-    let source = "for (var i = 0; i < 3000000; i++) {} vc.run('object.move', {dx: 1, dy: 0});";
-    assert_eq!(s.execute("script.run", &json!({"source": source, "name": "t.js"})).unwrap()["running"], true);
-    s.history_budget = 1;
-    let mut slices = 0;
-    let r = loop {
-        slices += 1;
-        assert!(slices < 100_000, "the script ends");
-        if let Some(r) = s.script_pump() {
-            break r;
-        }
-    };
-    assert_eq!(r.unwrap()["ok"], true);
-    assert_eq!(undo_lens(&s), [History::MIN_STEPS, 3], "the run's step counts against the other document's");
     // An edit a frontend makes itself, outside a command.
     s.history_budget = usize::MAX;
     assert!(s.set_active(0));
@@ -220,7 +201,7 @@ fn steps_kept_outside_a_command_keep_to_the_shared_budget() {
         Ok(())
     })
     .unwrap();
-    assert_eq!(undo_lens(&s), [History::MIN_STEPS, 4], "the edit's step counts against the other document's");
+    assert_eq!(undo_lens(&s), [History::MIN_STEPS, 3], "the edit's step counts against the other document's");
 }
 
 #[test]
@@ -242,13 +223,6 @@ fn each_document_keeps_its_last_steps_however_small_the_budget() {
     assert_eq!(first_x(&s), x - History::MIN_STEPS as f64);
     assert!(s.execute("edit.undo", &json!({})).is_err(), "the older steps went");
     assert_eq!(s.doc().unwrap().history.redo.len(), History::MIN_STEPS);
-    // A held history keeps all of its steps until it is released.
-    assert!(s.set_active(0));
-    s.docs[0].history.held = true;
-    moves(&mut s, 3);
-    assert_eq!(undo_lens(&s)[0], History::MIN_STEPS + 3, "a held history keeps its steps");
-    s.docs[0].history.held = false;
-    s.trim_histories();
     assert_eq!(undo_lens(&s), [History::MIN_STEPS, History::MIN_STEPS, History::MIN_STEPS, 0]);
 }
 
