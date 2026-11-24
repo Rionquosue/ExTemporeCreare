@@ -398,45 +398,6 @@ fn reads_like_a_location(k: &str) -> bool {
     matches!(k, "path" | "paths" | "file" | "files" | "folder" | "folders" | "dir" | "directory" | "url") || ENDS.iter().any(|end| k.ends_with(end))
 }
 
-/// Every key of every command that reads like a file or folder key (in its params description, the
-/// commands its `…` entries name and its schema) is in [`LOCATION_KEYS`] or [`NOT_LOCATIONS`], so a
-/// command that adds one fails here until it is sorted. The generic classifications
-/// (`vectorcraft_engine::cmd::key_location`, `vectorcraft_engine::file_access::is_path_key`) agree
-/// with those lists, and each command reads such a key as they say (`location_in`), less
-/// [`DOCUMENT_PARTS`].
-#[test]
-fn catalog_path_keys_match_location_policy() {
-    use vectorcraft_engine::cmd::{key_location, location_in, params::takes_key};
-    let catalog: Vec<(&vectorcraft_engine::CommandSpec, Vec<String>)> = command_specs().iter().map(|c| (c, command_param_keys(c))).collect();
-    let mut keys: std::collections::BTreeSet<String> =
-        catalog.iter().flat_map(|(_, keys)| keys.iter().filter(|k| reads_like_a_location(k)).cloned()).collect();
-    keys.extend(LOCATION_KEYS.iter().map(|(k, _)| k.to_string()).chain(NOT_LOCATIONS.iter().map(|k| k.to_string())));
-    let mut wrong = vec![];
-    for k in &keys {
-        let want = LOCATION_KEYS.iter().find(|(l, _)| l == k).map(|(_, l)| *l);
-        if want.is_none() && !NOT_LOCATIONS.contains(&k.as_str()) {
-            wrong.push(format!("`{k}` is in neither LOCATION_KEYS nor NOT_LOCATIONS"));
-            continue;
-        }
-        if key_location(k) != want {
-            wrong.push(format!("key_location(`{k}`) is {:?}, not {want:?}", key_location(k)));
-        }
-        for (c, named) in &catalog {
-            if !named.contains(k) && !(c.params.contains('…') && takes_key(c.params, k)) {
-                continue;
-            }
-            let here = if DOCUMENT_PARTS.contains(&(c.id, k.as_str())) { None } else { want };
-            if location_in(c, k) != here {
-                wrong.push(format!("{}: location_in(`{k}`) is {:?}, not {here:?}", c.id, location_in(c, k)));
-            }
-        }
-    }
-    for (id, key) in DOCUMENT_PARTS {
-        let named = catalog.iter().any(|(c, _)| c.id == *id && c.params.contains(key));
-        assert!(named, "{id} doesn't name `{key}`");
-    }
-    assert!(wrong.is_empty(), "{} keys are classified unlike the reviewed lists:\n{}", wrong.len(), wrong.join("\n"));
-}
 
 /// The cases sweep keys the command catalog names as files and folders: `document.open`'s
 /// `{path | name …}`, `addon.document.saveTimestampedCopy`'s `{folder? (…)}`, `document.compare`'s

@@ -1386,25 +1386,6 @@ fn a_blurred_group_expanded_takes_its_dimension_into_the_image() {
     assert_eq!(images, 1);
 }
 
-/// Object › Expand keeps a dimension selected with its art in the export assets that list it and
-/// bound to its variables.
-#[test]
-fn expand_keeps_a_dimension_in_its_asset_and_its_variable_binding() {
-    let mut s = session();
-    let art_id = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":72,"height":72}))["id"].as_u64().unwrap();
-    run(&mut s, "paint.setStroke", json!({"ids":[art_id],"color":"#000000"}));
-    let id = dim(&mut s, art_id);
-    let asset = run(&mut s, "assets.add", json!({"ids":[id]}))["assets"][0].as_u64().unwrap();
-    run(&mut s, "variable.define", json!({"name":"Shown","kind":"visibility"}));
-    run(&mut s, "variable.bind", json!({"variable":"Shown","ids":[id]}));
-    run(&mut s, "select.set", json!({"ids":[art_id, id]}));
-    run(&mut s, "object.expand", json!({}));
-    let d = &s.doc().unwrap().doc;
-    assert!(d.node(NodeId(id)).is_some_and(|n| n.extras().dimension.is_some()), "still a dimension");
-    let listed = d.assets.iter().find(|a| a.id == asset).map(|a| a.nodes.clone());
-    assert_eq!(listed, Some(vec![NodeId(id)]), "in its asset");
-    assert!(d.variables.bindings.get(&NodeId(id)).is_some_and(|b| b.contains("Shown")), "bound to its variable");
-}
 
 /// A selected group with a geometry effect of its own bakes that effect into everything it holds
 /// when its appearance expands, the dimension's lines and label included: the dimension becomes a

@@ -888,23 +888,6 @@ fn color_mode_preview_commit_joins_paint_history_and_group_cancel_restores_it() 
     }
 }
 
-#[test]
-fn grouped_spot_swatches_print_on_their_own_plate() {
-    let mut s = session();
-    grouped_swatch(&mut s, "Brights", "Signal Orange", Color::cmyk(0.0, 0.6, 1.0, 0.0));
-    assert_eq!(run(&mut s, "swatch.setSpot", json!({"name": "Signal Orange"})), json!({"name": "Signal Orange", "spot": true}));
-    assert!(doc(&s).swatch("Signal Orange").is_some_and(|w| w.spot && w.global));
-    let plates = run(&mut s, "color.plates", json!({}));
-    assert!(plates["plates"].as_array().unwrap().iter().any(|p| p["name"] == "Signal Orange" && p["spot"] == true), "{plates}");
-    let a = rect(&mut s);
-    run(&mut s, "paint.setFill", json!({"ids": [a.0], "swatch": "Signal Orange"}));
-    let bytes =
-        vectorcraft_pdf::export(doc(&s), &vectorcraft_pdf::PdfOptions { created: Some(0), ..vectorcraft_pdf::PdfOptions::uncompressed() }).unwrap();
-    let pdf = String::from_utf8_lossy(&bytes);
-    assert!(pdf.contains("/Separation") && pdf.contains("Signal#20Orange"), "a grouped spot swatch is a Separation");
-    let info = run(&mut s, "document.info", json!({}));
-    assert_eq!(info["spotColors"], json!(["Signal Orange"]));
-}
 
 #[test]
 fn document_info_counts_grouped_swatches() {

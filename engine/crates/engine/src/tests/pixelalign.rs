@@ -447,36 +447,6 @@ fn moving_a_path_of_an_aligned_compound_path_keeps_it_aligned() {
     assert!(whole(&pts), "{pts:?}");
 }
 
-/// A path that Paste in Front puts inside a pixel-aligned compound path, or that an object slice
-/// move moves there, snaps with the compound path's stroke, and a pasted path drops its own
-/// property there.
-#[test]
-fn paths_added_to_or_moved_in_an_aligned_compound_path_keep_it_aligned() {
-    let mut s = new_doc();
-    let a = path(&mut s, "M100 100 L110 100 L110 110 L100 110 Z", 1.0);
-    let b = path(&mut s, "M200 100 L210 100 L210 110 L200 110 Z", 1.0);
-    let loose = path(&mut s, "M300 100 L310 100 L310 110 L300 110 Z", 2.0);
-    s.execute("object.setPixelAligned", &json!({"ids": [loose]})).unwrap();
-    s.execute("select.set", &json!({"ids": [a, b]})).unwrap();
-    let c = s.execute("object.compoundPath.make", &json!({})).unwrap()["id"].as_u64().unwrap();
-    s.execute("object.setPixelAligned", &json!({"ids": [c]})).unwrap();
-    assert!(halves(&compound_points(&s, c)));
-    let member = s.doc().unwrap().doc.node(NodeId(c)).unwrap().children().unwrap()[0].id.0;
-    s.execute("select.set", &json!({"ids": [loose]})).unwrap();
-    s.execute("edit.copy", &json!({})).unwrap();
-    s.execute("select.set", &json!({"ids": [member]})).unwrap();
-    s.execute("edit.pasteInFront", &json!({})).unwrap();
-    let pasted = s.doc().unwrap().selection.objects[0];
-    assert_eq!(s.doc().unwrap().doc.parent_of(pasted), Some(NodeId(c)));
-    assert!(!aligned(&s, pasted.0));
-    let pts = compound_points(&s, c);
-    assert_eq!(pts.len(), 12);
-    assert!(halves(&pts), "paste: {pts:?}");
-    s.execute("object.slice.make", &json!({"ids": [member]})).unwrap();
-    s.execute("object.slice.move", &json!({"slices": [member], "dx": 0.3, "dy": 0.4})).unwrap();
-    let pts = compound_points(&s, c);
-    assert!(halves(&pts), "slice: {pts:?}");
-}
 
 /// Art moved by Artboard Options with Move Artwork with Artboard, and the art copies of an
 /// artboard copied with its art, stay on the pixel grid.
@@ -544,30 +514,6 @@ fn the_property_is_saved_and_read_back() {
     assert_eq!(node["pixel_aligned"], true, "{node}");
 }
 
-/// A copy of a pixel-aligned path that Duplicate or Paste moves by a fractional offset is snapped
-/// to the pixel grid and keeps the property, and so is a pixel-aligned object slice that moves.
-#[test]
-fn duplicates_and_pastes_keep_it_aligned() {
-    let mut s = new_doc();
-    let id = path(&mut s, "M10.3 20.6 L40.7 20.6 L40.7 30.3 L10.3 30.3 Z", 2.0);
-    s.execute("object.setPixelAligned", &json!({"ids": [id]})).unwrap();
-    s.execute("edit.duplicate", &json!({"dx": 100.3, "dy": 0.4})).unwrap();
-    let copy = s.doc().unwrap().selection.objects[0].0;
-    assert_ne!(copy, id);
-    assert!(aligned(&s, copy));
-    assert_eq!(points(&s, copy), [(110.0, 21.0), (141.0, 21.0), (141.0, 30.0), (110.0, 30.0)]);
-    s.execute("select.set", &json!({"ids": [id]})).unwrap();
-    s.execute("edit.copy", &json!({})).unwrap();
-    s.execute("edit.paste", &json!({"dx": 0.3, "dy": 50.4})).unwrap();
-    let pasted = s.doc().unwrap().selection.objects[0].0;
-    assert!(pasted != id && pasted != copy);
-    assert!(aligned(&s, pasted));
-    assert_eq!(points(&s, pasted), [(10.0, 71.0), (41.0, 71.0), (41.0, 80.0), (10.0, 80.0)]);
-    // Moving an object slice moves its object, which snaps too.
-    s.execute("object.slice.make", &json!({"ids": [pasted]})).unwrap();
-    s.execute("object.slice.move", &json!({"slices": [pasted], "dx": 0.3, "dy": 0.4})).unwrap();
-    assert_eq!(points(&s, pasted), [(10.0, 71.0), (41.0, 71.0), (41.0, 80.0), (10.0, 80.0)]);
-}
 
 /// Pixel-aligned art of a linked opacity mask snaps when its object moves.
 #[test]

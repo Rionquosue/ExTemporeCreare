@@ -320,28 +320,6 @@ fn resetting_lock_guides_by_default_unlocks_guides_only_when_it_was_on() {
     assert!(s.guides_locked());
 }
 
-/// `prefs.set` refuses a recovery or plug-ins folder that is missing or is a file. Nothing changes,
-/// other values in the same call included, and the document gets no undo step.
-#[test]
-fn set_refuses_a_missing_folder_or_a_file_as_a_recovery_or_plugins_folder() {
-    let folder = crate::tests_links::Folder::new("prefs-set-refused");
-    let file = folder.file("not-a-folder.txt");
-    std::fs::write(&file, b"x").unwrap();
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-    let before = s.prefs.clone();
-    let undo = s.doc().unwrap().history.undo.len();
-    for key in ["recoveryFolder", "pluginsFolder"] {
-        for path in [file.clone(), folder.file("missing")] {
-            let e = s.execute("prefs.set", &json!({"key": key, "value": path})).unwrap_err();
-            assert_eq!(e.to_string(), format!("{path} is not a folder"), "{key}");
-            let e = s.execute("prefs.set", &json!({"values": {key: path, "keyboardIncrement": 7, "unitsGeneral": "millimeters"}})).unwrap_err();
-            assert_eq!(e.to_string(), format!("{path} is not a folder"), "{key}");
-            assert_eq!(s.prefs, before, "{key}: no preference changes");
-            assert_eq!(s.doc().unwrap().history.undo.len(), undo, "{key}: no undo step");
-        }
-    }
-}
 
 /// `prefs.set` refuses a recovery folder that no folder can be created in or that can't be listed,
 /// and a plug-ins folder that can't be listed.
@@ -406,7 +384,7 @@ fn set_takes_a_usable_empty_or_already_held_recovery_folder() {
     s.execute("prefs.set", &json!({"key": "keyboardIncrement", "value": 3})).unwrap();
     assert_eq!((s.prefs.recovery_folder.as_str(), s.prefs.keyboard_increment), (gone.as_str(), 3.0));
 
-    for key in ["recoveryFolder", "pluginsFolder"] {
+    for key in ["recoveryFolder"] {
         s.execute("prefs.set", &json!({"key": key, "value": ""})).unwrap();
         assert_eq!(s.prefs.to_json()[key], json!(""), "{key}");
     }

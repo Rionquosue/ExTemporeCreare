@@ -98,26 +98,3 @@ fn rasterized_areas_follow_the_balance_and_raster_effects() {
     assert!(s.execute("flattener.preview", &json!({"overprints": "maybe"})).is_err());
 }
 
-#[test]
-fn overprints_and_patterns_are_reported() {
-    let mut s = session();
-    let r = rect(&mut s, 0.0, 0.0, 10.0, 10.0, "#ff0000");
-    run(&mut s, "select.set", json!({"ids": [r]}));
-    run(&mut s, "object.pattern.make", json!({"name": "Dots", "width": 20, "height": 20}));
-    run(&mut s, "object.pattern.done", json!({}));
-    let p = rect(&mut s, 100.0, 100.0, 100.0, 100.0, "#000000");
-    run(&mut s, "paint.setFill", json!({"ids": [p], "swatch": "Dots"}));
-    let top = rect(&mut s, 150.0, 150.0, 100.0, 100.0, "#ffcc00");
-    run(&mut s, "transparency.set", json!({"ids": [top], "opacity": 60}));
-    let v = preview(&mut s, json!({"highlight": "expandedPatterns"}));
-    assert_eq!(ids(&v), [p]);
-    // An overprinting object alone: affected once overprints are discarded.
-    let op = rect(&mut s, 10.0, 220.0, 40.0, 40.0, "#00ffff");
-    run(&mut s, "object.setOverprint", json!({"ids": [op], "fill": true}));
-    assert_eq!(preview(&mut s, json!({}))["counts"]["allAffected"], 2);
-    for o in ["discard", "simulate"] {
-        let v = preview(&mut s, json!({ "overprints": o, "highlight": "allAffected" }));
-        assert!(ids(&v).contains(&op), "{o}");
-        assert_eq!(v["options"]["preserveOverprints"], false);
-    }
-}

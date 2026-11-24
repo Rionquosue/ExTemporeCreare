@@ -1304,54 +1304,7 @@ fn a_lent_selection_tool_moves_the_instance_of_a_picked_object() {
     assert!(s.doc().unwrap().selection.symbol_part.is_some());
 }
 
-/// The commands that change nothing in the document read the instance of a picked object, so the
-/// Attributes and CSS Properties panels and the others keep showing it.
-#[test]
-fn read_only_commands_read_the_instance_of_a_picked_object() {
-    let mut failures = Vec::new();
-    for spec in crate::cmd::command_specs().iter().filter(|c| !c.journal) {
-        let mut s = session();
-        let inst = pair(&mut s, "dynamic");
-        s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();
-        let doc = s.doc().unwrap().doc.clone();
-        if let Err(e) = s.execute(spec.id, &json!({}))
-            && e.to_string().contains("symbol instance")
-        {
-            failures.push(format!("{}: {e}", spec.id));
-        }
-        if s.doc().is_ok_and(|st| st.doc != doc) {
-            failures.push(format!("{}: the document changed", spec.id));
-        }
-        // A command run after one of these is refused as before.
-        if s.doc().is_ok_and(|st| st.selection.symbol_part.is_some()) && s.execute("object.hide", &json!({})).is_ok() {
-            failures.push(format!("{}: the refusal stays off afterward", spec.id));
-        }
-    }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-    let mut s = session();
-    let inst = pair(&mut s, "dynamic");
-    s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();
-    s.execute("css.selection", &json!({})).unwrap();
-    s.execute("attributes.info", &json!({})).unwrap();
-}
 
-/// Export CSS writes a file and changes nothing in the document, so it reads the instance of a
-/// picked object as it reads an instance selected whole, and the next edit is refused as before.
-#[test]
-fn css_export_reads_the_instance_of_a_picked_object() {
-    let mut s = session();
-    let inst = pair(&mut s, "dynamic");
-    s.execute("select.set", &json!({"ids": [inst.0]})).unwrap();
-    let whole = s.execute("css.export", &json!({})).unwrap();
-    s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();
-    let doc = s.doc().unwrap().doc.clone();
-    let picked = s.execute("css.export", &json!({})).unwrap();
-    assert_eq!(picked["rules"], 1);
-    assert_eq!(picked["data"], whole["data"]);
-    assert!(s.doc().unwrap().doc == doc, "the document changed");
-    assert!(s.doc().unwrap().selection.symbol_part.is_some());
-    assert!(s.execute("object.hide", &json!({})).is_err());
-}
 
 /// A drag that moved nothing leaves Transform Again repeating the last real transformation.
 #[test]

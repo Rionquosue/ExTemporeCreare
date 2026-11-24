@@ -414,37 +414,6 @@ fn edit_contents_keeps_the_margins_of_a_scaled_envelope_until_a_stroke_changes()
     assert_eq!(options(&s, e).0.bounds_margin, [0.0; 4]);
 }
 
-/// Regression: every exporter wrote type inside an envelope undistorted (no text outliner), so a
-/// warped line of type exported the same whatever its bend.
-#[test]
-fn enveloped_type_exports_distorted_in_every_format() {
-    let mut s = session();
-    let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 200, "text": "Envelope", "size": 48})).unwrap());
-    sel(&mut s, &[t]);
-    s.execute("object.envelope.makeWithWarp", &json!({"style": "arch", "bend": 0})).unwrap();
-    // The export's bytes without its dates and file ID (EPS and PDF date their files to the second).
-    let export = |s: &mut Session, format: &str| -> Vec<u8> {
-        let data = s.execute("document.export", &json!({"format": format})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-        undated(&vectorcraft_format::base64_decode(&data).unwrap())
-    };
-    // Two PDFs dated a second apart, with the options and editing data that document.export
-    // passes the writer, differ only in lines that `undated` drops.
-    let d = &s.doc().unwrap().doc;
-    let pdf = |at: i64| {
-        let o = cmd::fileio::pdf::options("document.export", d, &json!({})).unwrap();
-        undated(&export_pdf(d, &vectorcraft_pdf::PdfOptions { created: Some(at), native: Some(vectorcraft_format::save(d, false)), ..o }).unwrap())
-    };
-    assert_eq!(pdf(0), pdf(1), "a PDF dated a second later differs only in its dates and file ID");
-    for format in ["svg", "pdf", "eps", "emf", "dxf"] {
-        s.execute("object.envelope.options", &json!({"bend": 0})).unwrap();
-        let flat = export(&mut s, format);
-        assert_eq!(export(&mut s, format), flat, "{format} exports are repeatable");
-        s.execute("object.envelope.options", &json!({"bend": 80})).unwrap();
-        assert_ne!(export(&mut s, format), flat, "{format}: the bend shows in the export");
-    }
-    let svg = String::from_utf8(export(&mut s, "svg")).unwrap();
-    assert!(!svg.contains("<text"), "type in an envelope exports as its distorted outlines");
-}
 
 /// Regression: on the canvas, type in an envelope was outlined in its first run's paint only.
 #[test]

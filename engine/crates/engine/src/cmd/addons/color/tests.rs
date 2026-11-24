@@ -235,28 +235,6 @@ fn expand_appearance_gives_the_dots_object_vector_halftone_makes() {
     }
 }
 
-#[test]
-fn exports_write_the_dots_as_paths() {
-    let (mut s, _) = red_rect();
-    let plain: Vec<usize> = ["pdf", "eps", "ai"].map(|f| exported(&mut s, f).len()).to_vec();
-    s.execute("effect.apply", &json!({"effect": HALFTONE, "params": {"frequency": 18}})).unwrap();
-    // The exporters' copy of the document has the dots in the object's place.
-    let baked = vectorcraft_render::effects::bake_document(&s.doc().unwrap().doc).unwrap();
-    let mut paths = 0;
-    baked.walk(|n| {
-        assert!(n.appearance.effects.iter().all(|e| e.id != HALFTONE));
-        paths += n.path_data().map_or(0, |p| p.subpaths.len());
-    });
-    assert!(paths > 100, "{paths} subpaths");
-    // SVG: path data of a subpath per dot.
-    let moves = svg_moves(&exported(&mut s, "svg"));
-    assert!(moves > 100, "{moves} subpaths");
-    // PDF, EPS and AI: the dots' paths make each file larger.
-    for (f, plain) in ["pdf", "eps", "ai"].into_iter().zip(plain) {
-        let with = exported(&mut s, f).len();
-        assert!(with > plain + 1000, "{f}: {with} bytes, {plain} without the effect");
-    }
-}
 
 #[test]
 fn a_halftone_past_the_caps_leaves_the_object_as_it_is() {

@@ -177,7 +177,7 @@ fn save_as_takes_on_path_format_and_options() {
     let svg = s.execute("file.formatOptions", &json!({"format": "svg"})).unwrap();
     assert_eq!(svg["options"]["outlineText"]["value"], false, "another format shows its defaults");
     let ids: Vec<&str> = o["saveFormats"].as_array().unwrap().iter().map(|f| f["id"].as_str().unwrap()).collect();
-    assert_eq!(ids, ["vectorcraft", "template", "pdf", "svg", "svgz", "ai", "eps"]);
+    assert_eq!(ids, ["vectorcraft", "template", "pdf", "svg", "svgz"]);
     // SVGZ is gzip-compressed SVG and reopens as SVGZ.
     let svgz = path(&d, "doc.svgz");
     s.execute("file.saveAs", &json!({"path": svgz})).unwrap();
@@ -411,12 +411,8 @@ fn save_plans_suggest_names_and_folders() {
     let p = plan(&s, SaveMode::Save, json!({}));
     assert_eq!((p.path, p.name.as_str(), p.format.id, p.folder), (None, "Map.vectorcraft", "vectorcraft", None));
     assert_eq!(plan(&s, SaveMode::Copy, json!({"format": "pdf"})).name, "Map copy.pdf");
-    assert_eq!(plan(&s, SaveMode::Template, json!({"format": "svg"})).format.id, "template", "a template is native or .ait");
-    // A native template by default; .ait when the format, else the path, names it.
+    assert_eq!(plan(&s, SaveMode::Template, json!({"format": "svg"})).format.id, "template", "a template is native");
     assert_eq!(plan(&s, SaveMode::Template, json!({})).name, "Map template.vctemplate");
-    assert_eq!(plan(&s, SaveMode::Template, json!({"format": "ait"})).name, "Map template.ait");
-    assert_eq!(plan(&s, SaveMode::Template, json!({"path": "/t/Map.ait"})).format.id, "ait");
-    assert_eq!(plan(&s, SaveMode::Template, json!({"path": "/t/Map.ait", "format": "template"})).format.id, "template");
     assert_eq!(SaveMode::of("file.saveCopy"), Some(SaveMode::Copy));
     assert_eq!(crate::cmd::fileio::save_filters("svg")[0], ("SVG", &["svg"][..]));
 }
@@ -522,134 +518,12 @@ fn transparency_grid_round_trips_without_dirtying() {
 
 
 
-#[test]
-fn eps_save_with_use_artboards_and_a_named_artboard_reports_it_as_the_range() {
-    let d = dir("eps-named-artboard");
-    let eps_path = path(&d, "Art.eps");
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 2})).unwrap();
-    rect(&mut s);
-    let options = json!({"useArtboards": true, "artboard": 1, "previewFormat": "none", "thumbnails": false});
-    s.execute("document.save", &json!({"path": eps_path, "options": options})).unwrap();
-    let o = s.execute("file.formatOptions", &json!({})).unwrap();
-    assert_eq!(o["options"]["useArtboards"]["value"], true);
-    assert_eq!(o["options"]["range"]["value"], "2", "the saved artboard, not All");
-    std::fs::remove_dir_all(d).unwrap();
-}
-
-#[test]
-fn eps_save_with_use_artboards_refuses_to_replace_the_file_read_from_before_writing_any_file() {
-    let d = dir("eps-artboards-lossy-sibling");
-    let eps_path = path(&d, "Art.eps");
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 2})).unwrap();
-    rect(&mut s);
-    let options = json!({"useArtboards": true, "previewFormat": "none", "thumbnails": false});
-    let r = s.execute("document.save", &json!({"path": eps_path, "options": options})).unwrap();
-    let sibling = r["files"][1].as_str().unwrap().to_string();
-    let original = std::fs::read(&sibling).unwrap();
-    std::fs::remove_file(&eps_path).unwrap();
-    let st = s.doc_mut().unwrap();
-    st.imported_from = Some(sibling.clone());
-    st.import_losses.push("test import omitted artwork".into());
-    let err = s.execute("document.save", &json!({"path": eps_path, "options": options})).unwrap_err().to_string();
-    assert!(err.contains("acknowledgeLoss") && err.contains(&sibling), "{err}");
-    assert_eq!(std::fs::read(&sibling).unwrap(), original);
-    assert!(!std::path::Path::new(&eps_path).exists(), "no file of the set is written when one is refused");
-    s.execute("document.save", &json!({"path": eps_path, "options": options, "acknowledgeLoss": true})).unwrap();
-    assert!(std::path::Path::new(&eps_path).exists());
-    std::fs::remove_dir_all(d).unwrap();
-}
-
-
-#[test]
-fn eps_save_retains_lossy_import_overwrite_protection_and_transparency_warning() {
-    let d = dir("eps-import-warning");
-    let eps_path = path(&d, "Artwork.eps");
-    let mut s = session();
-    rect(&mut s);
-    s.execute("transparency.set", &json!({"opacity": 50})).unwrap();
-    let r = s.execute("document.save", &json!({"path": eps_path, "previewFormat": "none", "thumbnails": false})).unwrap();
-    assert!(r["warnings"].as_array().unwrap().iter().any(|w| w.as_str().unwrap().contains("flatten")), "{r}");
-    let original = std::fs::read(&eps_path).unwrap();
-    let st = s.doc_mut().unwrap();
-    st.imported_from = Some(eps_path.clone());
-    st.import_losses.push("test import omitted artwork".into());
-    rect(&mut s);
-    assert!(s.execute("document.save", &json!({})).unwrap_err().to_string().contains("acknowledgeLoss"));
-    assert_eq!(std::fs::read(&eps_path).unwrap(), original);
-    s.execute("document.save", &json!({"acknowledgeLoss": true})).unwrap();
-    assert_ne!(std::fs::read(&eps_path).unwrap(), original);
-    std::fs::remove_dir_all(d).unwrap();
-}
 
 
 
-#[test]
-fn eps_with_damaged_editing_data_requires_confirmation_before_save_back() {
-    let d = dir("eps-damaged-editing");
-    let eps_path = path(&d, "damaged.eps");
-    let mut s = session();
-    rect(&mut s);
-    let r = s.execute("document.exportEps", &json!({"previewFormat": "none", "thumbnails": false, "cmykPostScript": false})).unwrap();
-    let mut bytes = b64(&r);
-    let at = bytes.windows(9).position(|w| w == b"native\n% ").unwrap() + 12;
-    bytes[at] = b'z';
-    std::fs::write(&eps_path, &bytes).unwrap();
-    let opened = s.execute("document.open", &json!({"path": eps_path})).unwrap();
-    assert_eq!(opened["restored"], false);
-    assert!(opened["warnings"].as_array().unwrap().iter().any(|w| w.as_str().unwrap().contains("editing data can't be read")), "{opened}");
-    rect(&mut s);
-    assert!(s.execute("document.save", &json!({})).unwrap_err().to_string().contains("acknowledgeLoss"));
-    assert_eq!(std::fs::read(&eps_path).unwrap(), bytes);
-    std::fs::remove_dir_all(d).unwrap();
-}
 
 
-/// #4646: a new document's units and ruler guides survive Save, Close and Open in every format
-/// that carries the whole document (an SVG keeps them only with Preserve Editing).
-#[test]
-fn units_and_ruler_guides_survive_save_and_reopen() {
-    let d = dir("units-guides");
-    for ext in ["vectorcraft", "pdf", "ai", "eps"] {
-        let mut s = Session::new();
-        s.execute("file.new", &json!({"width": 200, "height": 100, "units": "Millimeters"})).unwrap();
-        s.execute("guide.add", &json!({"vertical": true, "pos": 50})).unwrap();
-        s.execute("guide.add", &json!({"vertical": false, "pos": 30})).unwrap();
-        rect(&mut s);
-        let p = path(&d, &format!("a.{ext}"));
-        s.execute("document.save", &json!({"path": p})).unwrap();
-        s.execute("file.close", &json!({})).unwrap();
-        s.execute("document.open", &json!({"path": p})).unwrap();
-        let doc = &s.doc().unwrap().doc;
-        let guides: Vec<_> = doc.ruler_guides().iter().map(|g| (g.vertical, g.pos)).collect();
-        assert_eq!((doc.units, guides), (vectorcraft_doc::Unit::Millimeters, vec![(true, 50.0), (false, 30.0)]), "{ext}");
-    }
-    let _ = std::fs::remove_dir_all(d);
-}
 
-/// A ruler guide hidden or locked on its own (the Layers panel's eye and lock on its row,
-/// `layer.setProps` on its node) stays so through Save, Close and Open, and the other guide stays
-/// visible and unlocked.
-#[test]
-fn a_guide_hidden_or_locked_on_its_own_survives_save_and_reopen() {
-    let d = dir("guide-flags");
-    for ext in ["vectorcraft", "pdf", "ai", "eps"] {
-        let mut s = Session::new();
-        s.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
-        for pos in [10, 20, 30] {
-            s.execute("guide.add", &json!({"vertical": true, "pos": pos})).unwrap();
-        }
-        rect(&mut s);
-        let ids: Vec<u64> = s.doc().unwrap().doc.ruler_guides().iter().map(|g| g.id.unwrap().0).collect();
-        s.execute("layer.setProps", &json!({"ids": [ids[1]], "visible": false})).unwrap();
-        s.execute("layer.setProps", &json!({"ids": [ids[2]], "locked": true})).unwrap();
-        let p = path(&d, &format!("a.{ext}"));
-        s.execute("document.save", &json!({"path": p})).unwrap();
-        s.execute("file.close", &json!({})).unwrap();
-        s.execute("document.open", &json!({"path": p})).unwrap();
-        let flags: Vec<_> = s.doc().unwrap().doc.ruler_guides().iter().map(|g| (g.pos, g.hidden, g.locked)).collect();
-        assert_eq!(flags, [(10.0, false, false), (20.0, true, false), (30.0, false, true)], "{ext}");
-    }
-    let _ = std::fs::remove_dir_all(d);
-}
+
+
+

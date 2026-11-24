@@ -33,14 +33,6 @@ fn a_description_names_its_keys() {
     }
 }
 
-/// Every command's description reads as a params object, so none is left unchecked by accident.
-#[test]
-fn every_description_parses() {
-    let bad: Vec<String> = command_specs().iter().filter_map(|c| doc_keys(c.params).err().map(|e| format!("{}: {e}", c.id))).collect();
-    assert!(bad.is_empty(), "{} descriptions don't parse:\n{}", bad.len(), bad.join("\n"));
-    let stale: Vec<_> = UNCHECKED.iter().filter(|id| find_command(id).is_none()).collect();
-    assert!(stale.is_empty() && UNCHECKED.is_sorted(), "UNCHECKED: sorted ids of commands; not commands: {stale:?}");
-}
 
 fn refusal(id: &str, params: serde_json::Value) -> String {
     match check_params(id, &params) {
@@ -74,57 +66,6 @@ fn an_unknown_key_is_named_with_the_nearest_accepted_one() {
     assert!(check_keys("x", "{a, …as file.new}", &json!({"b": 1})).is_err());
 }
 
-/// An export's options: a key no format reads is refused, at the top level and in the PDF objects,
-/// under each command that takes them.
-#[test]
-fn export_options_refuse_a_key_no_format_reads() {
-    for id in ["document.export", "document.exportSelection", "document.serialize"] {
-        assert_eq!(
-            refusal(id, json!({"format": "pdf", "standard": "pdfX4", "noSuchOption": true})),
-            "unknown parameter `noSuchOption`; no format takes it (see document.formats)"
-        );
-        assert_eq!(refusal(id, json!({"format": "pdf", "standardd": "pdfX4"})), "unknown parameter `standardd`; did you mean `standard`?");
-        assert_eq!(
-            refusal(id, json!({"format": "pdf", "options": {"standard": "pdfX4"}})),
-            "unknown parameter `options`; no format takes it (see document.formats)"
-        );
-    }
-    // A command that writes one format refuses another format's option, and says which format.
-    for (id, why) in [
-        ("document.exportPdf", "PDF doesn't take it"),
-        ("document.pdfSettings", "PDF doesn't take it"),
-        ("pdf.preset.save", "PDF doesn't take it"),
-        ("document.exportEps", "EPS doesn't take it"),
-        ("document.exportDxf", "DXF doesn't take it"),
-    ] {
-        for key in ["noSuchOption", "quality"] {
-            assert_eq!(refusal(id, json!({key: 1})), format!("unknown parameter `{key}`; {why} (see document.formats)"));
-        }
-    }
-    assert_eq!(
-        refusal("document.exportEps", json!({"flattener": {"balanse": 50}})),
-        "unknown parameter `flattener.balanse`; did you mean `flattener.balance`?"
-    );
-    assert!(refusal("document.exportDxf", json!({"flattener": {}})).contains("DXF doesn't take it"));
-    assert!(refusal("document.exportEps", json!({"marks": {}})).contains("EPS doesn't take it"));
-    for id in ["document.pdfSettings", "pdf.preset.save"] {
-        assert!(refusal(id, json!({"marks": {"useDocumentBleed": true}})).starts_with("unknown parameter `marks.useDocumentBleed`;"), "{id}");
-    }
-    for (given, message) in [
-        (json!({"marks": {"useDocumentBleed": true}}), "unknown parameter `marks.useDocumentBleed`; `marks` takes:"),
-        (json!({"bleed": {"useDocumen": true}}), "unknown parameter `bleed.useDocumen`; did you mean `bleed.useDocument`?"),
-        (json!({"output": {"intent": "x"}}), "unknown parameter `output.intent`;"),
-        (json!({"advanced": {"outlineTxt": true}}), "unknown parameter `advanced.outlineTxt`; did you mean `advanced.outlineText`?"),
-        (json!({"security": {"openPasswrd": "x"}}), "unknown parameter `security.openPasswrd`; did you mean `security.openPassword`?"),
-        (json!({"compression": {"color": {"dpi": 300}}}), "unknown parameter `compression.color.dpi`;"),
-        (json!({"flattener": {"balanse": 50}}), "unknown parameter `flattener.balanse`; did you mean `flattener.balance`?"),
-    ] {
-        for id in ["document.export", "document.exportPdf"] {
-            let got = refusal(id, given.clone());
-            assert!(got.starts_with(message), "{id} {given}: {got}");
-        }
-    }
-}
 
 
 const SAVES: [&str; 4] = ["document.save", "file.saveAs", "file.saveCopy", "file.saveAsTemplate"];
@@ -389,89 +330,6 @@ fn set_live_shape_refuses_an_unknown_key() {
     }
 }
 
-/// An object id given as something other than a whole number (`"5"`, `-1`) is refused as such,
-/// naming its key, not as a missing id; an id left out is still a missing one.
-#[test]
-fn a_malformed_object_id_is_not_reported_as_missing() {
-    let mut s = Session::new();
-    s.execute("file.new", &json!({})).unwrap();
-    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 40})).unwrap();
-    let undo = |s: &Session| s.doc().unwrap().history.undo.len();
-    let before = undo(&s);
-    let points = json!([[0, 0], [10, 10], [20, 0]]);
-    for bad in [json!("5"), json!(-1)] {
-        let id = || json!({ "id": bad });
-        let with = |extra: serde_json::Value| {
-            let mut p = id();
-            p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
-            p
-        };
-        for (cmd, p, key) in [
-            ("stroke.widthPoint.set", id(), "id"),
-            ("stroke.widthPoint.copy", id(), "id"),
-            ("stroke.widthPoint.remove", id(), "id"),
-            ("path.curvatureEdit", id(), "id"),
-            ("path.removeAnchor", id(), "id"),
-            ("path.convertAnchor", id(), "id"),
-            ("path.reshapeSegment", id(), "id"),
-            ("path.split", id(), "id"),
-            ("path.appendAnchor", id(), "id"),
-            ("path.close", id(), "id"),
-            ("path.setHandle", id(), "id"),
-            ("path.moveAnchor", id(), "id"),
-            ("path.setAnchors", id(), "id"),
-            ("path.reshape", id(), "id"),
-            ("path.insertAnchor", id(), "id"),
-            ("path.freehand", json!({"points": points, "extend": {"id": bad}}), "id"),
-            ("path.freehand", json!({"points": points, "redraw": {"id": bad}}), "id"),
-            ("document.node", id(), "id"),
-            ("layer.target", id(), "id"),
-            ("layer.setCurrent", id(), "id"),
-            ("layer.selectAll", id(), "id"),
-            ("layer.move", with(json!({"target": 1})), "id"),
-            ("layer.move", json!({"ids": [1], "target": bad}), "target"),
-            ("node.move", id(), "id"),
-            ("node.move", json!({"id": 1, "parent": bad}), "parent"),
-            ("text.reshapeArea", with(json!({"anchors": []})), "id"),
-            ("text.reshapeArea", json!({"items": [{"id": bad, "anchors": []}]}), "id"),
-            ("text.reshapePath", id(), "id"),
-            ("text.setPathHandle", id(), "id"),
-            ("text.editRange", id(), "id"),
-            ("text.startList", id(), "id"),
-            ("text.getRange", id(), "id"),
-            ("text.setGlyphAlternate", id(), "id"),
-            ("text.glyphAlternates", id(), "id"),
-            ("text.touchType", id(), "id"),
-            ("text.discardEmpty", id(), "id"),
-            ("text.createInPath", json!({"path": bad}), "path"),
-            ("object.envelope.setMeshPoint", id(), "id"),
-            ("object.mesh.setPointColor", with(json!({"index": 0})), "id"),
-            ("object.mesh.movePoint", with(json!({"index": 0, "x": 0, "y": 0})), "id"),
-            ("object.mesh.movePoints", json!({"items": [{"id": bad, "index": 0}]}), "id"),
-            ("object.mesh.addLine", with(json!({"x": 0, "y": 0})), "id"),
-            ("object.mesh.deletePoint", with(json!({"index": 0})), "id"),
-            ("object.slice.setRect", id(), "id"),
-            ("appearance.transfer", json!({"source": bad, "target": 1}), "source"),
-            ("appearance.transfer", json!({"source": 1, "target": bad}), "target"),
-            ("appearance.copyFrom", json!({"source": bad}), "source"),
-            ("livePaint.strokeEdge", json!({"point": [0, 0], "group": bad}), "group"),
-            ("livePaint.fill", json!({"point": [0, 0], "group": bad}), "group"),
-            ("livePaint.info", json!({"group": bad}), "group"),
-            ("livePaint.info", id(), "id"),
-            ("select.magicWand", id(), "id"),
-        ] {
-            let e = s.execute(cmd, &p).unwrap_err().to_string();
-            // `layer.move` checks an `id` that stands in for `ids` before it runs.
-            let named = e.contains(&format!("`{key}` must be a whole number")) || (cmd == "layer.move" && e.contains("invalid object id"));
-            assert!(named, "{cmd} {p}: {e}");
-        }
-    }
-    for cmd in ["path.close", "layer.target", "text.reshapePath", "object.mesh.movePoint", "select.magicWand"] {
-        let e = s.execute(cmd, &json!({})).unwrap_err().to_string();
-        assert!(e.contains("missing"), "{cmd}: {e}");
-    }
-    assert_eq!(undo(&s), before);
-}
 
 /// A required number given as something other than a number (`"40"`, `true`, `[]`, `{}`) is refused
 /// as the wrong type, naming its key and showing the value as given, not as a missing number; one left

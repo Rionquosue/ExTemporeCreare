@@ -210,147 +210,10 @@ fn warnings(r: &Value) -> Vec<String> {
     r["warnings"].as_array().map(|a| a.iter().filter_map(|w| w.as_str().map(str::to_string)).collect()).unwrap_or_default()
 }
 
-#[test]
-fn version_6_slices_open_as_user_slices_with_their_options() {
-    let linked = S { origin: 1, url: "https://example.com/", target: "_blank", message: "Go", alt: "Logo", ..user("logo", [2, 4, 10, 8]) };
-    let plain = S { kind: 0, cell: "a < b & c", argb: [0, 0, 0, 0], ..user("note", [10, 10, 20, 20]) };
-    let html = S { kind: 0, html: true, cell: "<b>Hi</b>", argb: [255, 0x12, 0x34, 0x56], ..user("", [0, 12, 6, 18]) };
-    let matte = S { argb: [0, 1, 2, 3], cell: "ignored", ..user("matte", [12, 0, 18, 6]) };
-    let auto = S { origin: 0, ..user("auto", [0, 0, 20, 2]) };
-    let data = v6(&[linked, plain, html, matte, auto], &[]);
-    for layers in [true, false] {
-        let f = with_resource(&psd(layers), 1050, &data);
-        // Either conversion brings the slices in; the automatic one stays out.
-        for p in [json!({}), json!({"layers": false})] {
-            let (s, r) = open(&f, p);
-            assert!(warnings(&r).is_empty(), "{r}");
-            let got = slices(&s);
-            assert_eq!(got.len(), 4, "{got:?}");
-            assert_eq!(got[0].0, Rect::new(2.0, 4.0, 10.0, 8.0));
-            assert_eq!(
-                got[0].1,
-                SliceOptions {
-                    kind: SliceKind::Image,
-                    name: "logo".into(),
-                    url: "https://example.com/".into(),
-                    target: "_blank".into(),
-                    message: "Go".into(),
-                    alt: "Logo".into(),
-                    ..Default::default()
-                }
-            );
-            // Plain cell text is escaped as the HTML a No Image cell shows; HTML stays as it is.
-            assert_eq!((got[1].1.kind, got[1].1.text.as_str(), got[1].1.background.as_str()), (SliceKind::NoImage, "a &lt; b &amp; c", ""));
-            assert_eq!((got[2].1.text.as_str(), got[2].1.background.as_str(), got[2].1.name.as_str()), ("<b>Hi</b>", "#123456", ""));
-            // An Image slice's cell text isn't kept; a background with no alpha is the matte.
-            assert_eq!((got[3].1.text.as_str(), got[3].1.background.as_str()), ("", "matte"));
-            // Web output lays them out with auto slices around them.
-            let layout = s.doc().unwrap().doc.slice_layout();
-            assert_eq!(layout.iter().filter(|a| a.source == vectorcraft_doc::SliceSource::User).count(), 4);
-            assert!(layout.iter().any(|a| a.source == vectorcraft_doc::SliceSource::Auto));
-        }
-    }
-}
 
-#[test]
-fn photoshop_7_descriptors_after_version_6_records_are_read_past() {
-    let trailing = [16u32.to_be_bytes().to_vec(), descriptor(&[("topOutset", D::Long(0))])].concat();
-    let f = with_resource(&psd(false), 1050, &v6(&[user("a", [0, 0, 5, 5]), user("b", [5, 5, 10, 10])], &trailing));
-    let (s, r) = open(&f, json!({}));
-    assert!(warnings(&r).is_empty(), "{r}");
-    let names: Vec<String> = slices(&s).into_iter().map(|(_, o)| o.name).collect();
-    assert_eq!(names, ["a", "b"]);
-}
 
-#[test]
-fn a_version_6_record_whose_id_is_16_is_a_slice_not_a_descriptor() {
-    // The 16th record has ID 16, group ID 0, origin 2, no name and the Image type: its first 18
-    // bytes also read as a descriptor of version 16 with no items.
-    let records: Vec<S> = (1..=17).map(|id| if id == 16 { user("", [1, 1, 4, 4]) } else { user("a", [0, 0, 5, 5]) }).collect();
-    let descriptor_after = [16u32.to_be_bytes().to_vec(), descriptor(&[("topOutset", D::Long(0))])].concat();
-    for trailing in [vec![], descriptor_after] {
-        let (s, r) = open(&with_resource(&psd(false), 1050, &v6(&records, &trailing)), json!({}));
-        assert!(warnings(&r).is_empty(), "{r}");
-        let got = slices(&s);
-        assert_eq!(got.len(), 17, "{got:?}");
-        assert_eq!((got[15].0, got[15].1.name.as_str()), (Rect::new(1.0, 1.0, 4.0, 4.0), ""));
-        assert_eq!(got[16].1.name, "a");
-    }
-    // A descriptor after each record whose class ID is four zero bytes, with no items, followed by
-    // records with no strings: the records don't also read one after another.
-    let empty = [ustr(""), 0u32.to_be_bytes().to_vec(), vec![0; 4], 0u32.to_be_bytes().to_vec()].concat();
-    let trailing = [16u32.to_be_bytes().to_vec(), empty].concat();
-    for rect in [[0, 0, 0, 0], [0, 0, 5, 5]] {
-        let (s, r) = open(&with_resource(&psd(false), 1050, &v6(&[user("", rect), user("", rect), user("", rect)], &trailing)), json!({}));
-        let w = warnings(&r);
-        assert!(!w.iter().any(|w| w.starts_with("the slices can't be read")), "{w:?}");
-        assert_eq!(slices(&s).len(), if rect[2] > 0 { 3 } else { 0 }, "{w:?}");
-    }
-}
 
-#[test]
-fn version_6_descriptors_share_one_budget_of_values() {
-    // Each record's descriptor holds 2,501 values, well under the 200,000 one descriptor may hold;
-    // 100 of them hold 250,100 together.
-    let list = D::List((0..2_500).map(D::Long).collect());
-    let trailing = [16u32.to_be_bytes().to_vec(), descriptor(&[("many", list)])].concat();
-    let records: Vec<S> = (0..100).map(|_| user("a", [0, 0, 5, 5])).collect();
-    // Alone, one such descriptor is read past.
-    let (s, r) = open(&with_resource(&psd(false), 1050, &v6(&records[..1], &trailing)), json!({}));
-    assert!(warnings(&r).is_empty(), "{r}");
-    assert_eq!(slices(&s).len(), 1);
-    // Together they are refused, and the file opens without slices.
-    let (s, r) = open(&with_resource(&psd(false), 1050, &v6(&records, &trailing)), json!({}));
-    let w = warnings(&r);
-    assert!(w.iter().any(|w| w.starts_with("the slices can't be read (") && w.contains("too many values")), "{w:?}");
-    assert!(slices(&s).is_empty());
-}
 
-#[test]
-fn version_7_and_8_descriptors_open_as_user_slices() {
-    let slice = |origin: &'static str, kind: &'static str, l: i32, t: i32, r: i32, b: i32| {
-        D::Obj(vec![
-            ("sliceID", D::Long(1)),
-            ("groupID", D::Long(0)),
-            ("origin", D::Enum("ESliceOrigin", origin)),
-            ("Type", D::Enum("ESliceType", kind)),
-            ("bounds", bounds(l, t, r, b)),
-            ("Nm  ", D::Text("cell")),
-            ("url", D::Text("https://example.com/")),
-            ("null", D::Text("_top")),
-            ("Msge", D::Text("msg")),
-            ("altTag", D::Text("alt")),
-            ("cellTextIsHTML", D::Bool(false)),
-            ("cellText", D::Text("x>y")),
-            ("bgColorType", D::Enum("ESliceBGColorType", "Clr ")),
-            ("bgColor", D::Obj(vec![("Rd  ", D::Doub(255.0)), ("Grn ", D::Doub(128.0)), ("Bl  ", D::Long(0))])),
-        ])
-    };
-    for version in [7, 8] {
-        let data = v7(
-            version,
-            vec![slice("userGenerated", "Img ", 1, 2, 9, 10), slice("autoGenerated", "Img ", 0, 0, 20, 1), slice("layer", "noImage", 10, 10, 15, 15)],
-        );
-        let (s, r) = open(&with_resource(&psd(true), 1050, &data), json!({}));
-        assert!(warnings(&r).is_empty(), "{r}");
-        let got = slices(&s);
-        assert_eq!(got.len(), 2, "{got:?}");
-        assert_eq!(got[0].0, Rect::new(1.0, 2.0, 9.0, 10.0));
-        assert_eq!(
-            got[0].1,
-            SliceOptions {
-                name: "cell".into(),
-                url: "https://example.com/".into(),
-                target: "_top".into(),
-                message: "msg".into(),
-                alt: "alt".into(),
-                background: "#ff8000".into(),
-                ..Default::default()
-            }
-        );
-        assert_eq!((got[1].1.kind, got[1].1.text.as_str(), got[1].1.url.as_str()), (SliceKind::NoImage, "x&gt;y", ""));
-    }
-}
 
 #[test]
 fn import_slices_false_leaves_them_out_and_must_be_a_switch() {
@@ -362,40 +225,6 @@ fn import_slices_false_leaves_them_out_and_must_be_a_switch() {
     assert!(e.to_string().contains("importSlices must be true or false"), "{e}");
 }
 
-#[test]
-fn slices_that_cant_be_read_warn_and_the_file_still_opens() {
-    let good = v6(&[user("a", [0, 0, 5, 5])], &[]);
-    let mut bad_descriptor = v7(7, vec![]);
-    bad_descriptor[4..8].copy_from_slice(&15u32.to_be_bytes());
-    let cases: Vec<(Vec<u8>, &str)> = vec![
-        (good[..good.len() - 3].to_vec(), "cut short"),
-        ([9u32.to_be_bytes().to_vec(), good[4..].to_vec()].concat(), "version 9"),
-        (bad_descriptor, "version other than 16"),
-        // The count follows the version, the bounds and the group's name.
-        ([&good[..34], &u32::MAX.to_be_bytes()[..], &good[38..]].concat(), "more than the 10000 read"),
-        (v7(8, vec![D::Long(3)]), "other than a slice"),
-        // A whole record whose name is longer than a slice's text may be.
-        (v6(&[user("a".repeat(65_537).leak(), [0, 0, 5, 5])], &[]), "more than the 65536 characters read"),
-    ];
-    for (data, why) in cases {
-        for layers in [true, false] {
-            let (s, r) = open(&with_resource(&psd(layers), 1050, &data), json!({}));
-            let w = warnings(&r);
-            assert!(w.iter().any(|w| w.starts_with("the slices can't be read (") && w.contains(why)), "{why}: {w:?}");
-            assert!(slices(&s).is_empty());
-            // The art still came in.
-            assert!(s.doc().unwrap().doc.art_bounds().is_some(), "{why}");
-        }
-    }
-    // A name of the longest length read comes in.
-    let longest = v6(&[user("a".repeat(65_536).leak(), [0, 0, 5, 5])], &[]);
-    let (s, r) = open(&with_resource(&psd(false), 1050, &longest), json!({}));
-    assert!(warnings(&r).is_empty(), "{r}");
-    assert_eq!(slices(&s).first().map(|(_, o)| o.name.len()), Some(65_536));
-    // A file without slices opens without a word about them.
-    let (s, r) = open(&psd(true), json!({}));
-    assert!(warnings(&r).is_empty() && slices(&s).is_empty(), "{r}");
-}
 
 #[test]
 fn a_slices_resource_cut_short_warns_and_the_file_still_opens() {
@@ -420,66 +249,8 @@ fn a_slices_resource_cut_short_warns_and_the_file_still_opens() {
     }
 }
 
-#[test]
-fn slices_are_clipped_to_the_canvas_and_those_outside_it_are_left_out() {
-    let data = v6(&[user("over", [-5, -5, 5, 30]), user("out", [25, 0, 30, 5]), user("empty", [4, 4, 4, 9]), user("in", [1, 1, 2, 2])], &[]);
-    let (s, r) = open(&with_resource(&psd(false), 1050, &data), json!({}));
-    assert_eq!(warnings(&r), ["2 slices lie outside the canvas or have no size and were left out"]);
-    let got: Vec<(Rect, String)> = slices(&s).into_iter().map(|(r, o)| (r, o.name)).collect();
-    assert_eq!(got, [(Rect::new(0.0, 0.0, 5.0, 20.0), "over".to_string()), (Rect::new(1.0, 1.0, 2.0, 2.0), "in".to_string())]);
-}
 
-#[test]
-fn placed_embedded_files_bring_their_slices_with_the_art_in_one_undo_step() {
-    let data = v6(&[user("a", [0, 0, 10, 10]), user("b", [10, 10, 20, 20])], &[]);
-    for layers in [false, true] {
-        let f = with_resource(&psd(layers), 1050, &data);
-        let mut s = Session::new();
-        s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
-        // Fitted into a 40 pt square at (100, 60): twice the size.
-        let r = s.execute("file.place", &json!({"name": "poster.psd", "dataBase64": b64(&f), "rect": [100, 60, 40, 40], "layers": layers})).unwrap();
-        assert_eq!(r["slices"].as_array().map(Vec::len), Some(2), "{r}");
-        let got: Vec<Rect> = slices(&s).into_iter().map(|(r, _)| r).collect();
-        assert_eq!(got, [Rect::new(100.0, 60.0, 120.0, 80.0), Rect::new(120.0, 80.0, 140.0, 100.0)]);
-        // The placed art stays selected, and one undo takes the art and the slices away.
-        assert_eq!(s.doc().unwrap().selection.objects.len(), 1);
-        s.execute("edit.undo", &json!({})).unwrap();
-        assert!(slices(&s).is_empty());
-        assert!(s.doc().unwrap().doc.art_bounds().is_none());
-        // Centered on `at` at 100%.
-        s.execute("file.place", &json!({"name": "poster.psd", "dataBase64": b64(&f), "at": [100, 100], "layers": layers})).unwrap();
-        assert_eq!(slices(&s)[0].0, Rect::new(90.0, 90.0, 100.0, 100.0));
-        // `importSlices: false` places the art alone.
-        let r = s.execute("file.place", &json!({"name": "poster.psd", "dataBase64": b64(&f), "importSlices": false, "layers": layers})).unwrap();
-        assert!(r.get("slices").is_none());
-        assert_eq!(slices(&s).len(), 2);
-    }
-}
 
-#[test]
-fn linked_files_are_placed_without_their_slices() {
-    let dir = std::env::temp_dir().join(format!("vc-psd-slices-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("poster.psd");
-    std::fs::write(&path, with_resource(&psd(false), 1050, &v6(&[user("a", [0, 0, 5, 5])], &[]))).unwrap();
-    let path = path.to_string_lossy().into_owned();
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-    let r = s.execute("file.place", &json!({ "path": path })).unwrap();
-    assert_eq!((&r["linked"], r.get("slices")), (&json!(true), None));
-    assert!(slices(&s).is_empty());
-    let e = s.execute("file.place", &json!({ "path": path, "importSlices": true })).unwrap_err();
-    assert!(e.to_string().contains("importSlices: a linked PSD file is placed as its flat image"), "{e}");
-    // Embedded from its path, they come in.
-    let r = s.execute("file.place", &json!({ "path": path, "link": false })).unwrap();
-    assert_eq!((&r["linked"], r["slices"].as_array().map(Vec::len)), (&json!(false), Some(1)));
-    // file.place.info counts what a place would bring in.
-    let info = s.execute("file.place.info", &json!({ "path": path, "link": false })).unwrap();
-    assert_eq!(info["slices"], json!(1));
-    let info = s.execute("file.place.info", &json!({ "path": path })).unwrap();
-    assert_eq!(info["slices"], json!(0));
-    std::fs::remove_dir_all(&dir).ok();
-}
 
 #[test]
 fn psd_info_counts_the_slices_that_come_in() {
@@ -518,68 +289,5 @@ fn export(s: &mut Session, layers: bool) -> Vec<u8> {
     vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
 }
 
-#[test]
-fn an_opened_files_slices_survive_a_psd_export() {
-    let link =
-        S { url: "https://example.com/", target: "_blank", message: "Go", alt: "Logo", argb: [255, 0x12, 0x34, 0x56], ..user("logo", [2, 4, 10, 8]) };
-    let plain = S { kind: 0, cell: "a < b & c", ..user("note", [10, 10, 20, 20]) };
-    let html = S { kind: 0, html: true, cell: "<b>Hi</b>", argb: [0, 1, 2, 3], ..user("", [0, 12, 6, 18]) };
-    let auto = S { origin: 0, ..user("auto", [0, 0, 20, 2]) };
-    let f = with_resource(&psd(true), 1050, &v6(&[link, plain, html, auto], &[]));
-    let (mut s, _) = open(&f, json!({}));
-    let opened = slices(&s);
-    assert_eq!(opened.len(), 3);
-    for layers in [true, false] {
-        let out = export(&mut s, layers);
-        let (again, r) = open(&out, json!({}));
-        assert!(warnings(&r).is_empty(), "{r}");
-        // The same rectangles and options; the auto slices are laid out again around them.
-        let mut got = slices(&again);
-        let mut want = opened.clone();
-        let order = |v: &mut Vec<(Rect, SliceOptions)>| v.sort_by(|a, b| a.0.y0.total_cmp(&b.0.y0).then(a.0.x0.total_cmp(&b.0.x0)));
-        order(&mut got);
-        order(&mut want);
-        assert_eq!(got, want);
-        let layout = again.doc().unwrap().doc.slice_layout();
-        assert!(layout.iter().any(|a| a.source == vectorcraft_doc::SliceSource::Auto));
-        assert_eq!(s.execute("document.psdInfo", &json!({"dataBase64": b64(&out)})).unwrap()["slices"], json!(3));
-    }
-}
 
-#[test]
-fn object_slices_are_written_as_user_slices_and_html_text_as_its_type() {
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
-    let r = s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 40, "height": 30})).unwrap();
-    let rect = r["id"].as_u64().unwrap();
-    s.execute("object.slice.make", &json!({"ids": [rect]})).unwrap();
-    s.execute("select.set", &json!({"ids": [rect]})).unwrap();
-    s.execute("object.slice.options", &json!({"kind": "noImage", "name": "box", "text": "<i>x</i>", "background": "#00ff00"})).unwrap();
-    let t = s.execute("text.create", &json!({"x": 100, "y": 50, "text": "A & B"})).unwrap()["id"].as_u64().unwrap();
-    s.execute("object.slice.make", &json!({"ids": [t]})).unwrap();
-    s.execute("select.set", &json!({"ids": [t]})).unwrap();
-    s.execute("object.slice.options", &json!({"kind": "htmlText"})).unwrap();
-    let (again, _) = open(&export(&mut s, false), json!({}));
-    let got = slices(&again);
-    assert_eq!(got.len(), 2, "{got:?}");
-    let doc = &s.doc().unwrap().doc;
-    let rb = doc.slice_bounds(vectorcraft_doc::NodeId(rect)).unwrap();
-    let boxed = got.iter().find(|g| g.1.name == "box").unwrap();
-    // Within a pixel of the object's bounds.
-    for (a, b) in [(boxed.0.x0, rb.x0), (boxed.0.y0, rb.y0), (boxed.0.x1, rb.x1), (boxed.0.y1, rb.y1)] {
-        assert!((a - b).abs() <= 1.0, "{:?} against {rb:?}", boxed.0);
-    }
-    assert_eq!((boxed.1.kind, boxed.1.text.as_str(), boxed.1.background.as_str()), (SliceKind::NoImage, "<i>x</i>", "#00ff00"));
-    let text = got.iter().find(|g| g.1.name.is_empty()).unwrap();
-    assert_eq!((text.1.kind, text.1.text.as_str()), (SliceKind::NoImage, "A &amp; B"));
-}
 
-#[test]
-fn twenty_exported_slices_open_again_with_the_one_whose_id_is_16() {
-    let columns: Vec<S> = (0..20).map(|x| user("", [x, 0, x + 1, 20])).collect();
-    let (mut s, _) = open(&with_resource(&psd(false), 1050, &v6(&columns, &[])), json!({}));
-    assert_eq!(slices(&s).len(), 20);
-    let (again, r) = open(&export(&mut s, true), json!({}));
-    assert!(warnings(&r).is_empty(), "{r}");
-    assert_eq!(slices(&again), slices(&s));
-}

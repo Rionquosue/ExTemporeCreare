@@ -33,18 +33,16 @@ fn each_attribute_sets_reads_back_and_undoes_in_one_step() {
     let mut s = session();
     let a = rect(&mut s, 10.0);
     let i = info(&mut s, json!({}));
-    assert_eq!((i["overprintFill"].clone(), i["showCenter"].clone(), i["imageMap"].clone()), (json!(false), json!(true), json!("none")));
+    assert_eq!((i["showCenter"].clone(), i["imageMap"].clone()), (json!(true), json!("none")));
     assert_eq!((i["url"].clone(), i["note"].clone(), i["fillRule"].clone()), (json!(""), json!(""), json!("nonZero")));
     let changed = run(
         &mut s,
         "attributes.set",
-        json!({"overprintFill": true, "overprintStroke": true, "showCenter": false, "imageMap": "Rectangle", "url": " https://example.com ", "note": "hello"}),
+        json!({"showCenter": false, "imageMap": "Rectangle", "url": " https://example.com ", "note": "hello"}),
     );
     assert_eq!(changed["changed"], 1);
     let i = info(&mut s, json!({}));
     for (k, v) in [
-        ("overprintFill", json!(true)),
-        ("overprintStroke", json!(true)),
         ("showCenter", json!(false)),
         ("imageMap", json!("rectangle")),
         ("url", json!("https://example.com")),

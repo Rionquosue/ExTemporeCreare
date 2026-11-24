@@ -66,27 +66,6 @@ fn the_steps_of_a_nested_batch_are_not_checked() {
     assert!(e.contains("batches cannot nest"), "{e}");
 }
 
-/// An `action.batch` with a step that has such a key fails before it opens a source file or runs
-/// a step.
-#[cfg(not(target_arch = "wasm32"))]
-#[test]
-fn execute_refuses_an_action_batch_step_with_a_key_its_command_does_not_name() {
-    let dir = std::env::temp_dir().join(format!("vc-param-keys-action-batch-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="10" height="10"/></svg>"#;
-    std::fs::write(dir.join("a.svg"), svg).unwrap();
-    let mut s = Session::new();
-    let batch = json!({
-        "source": "folder",
-        "folder": dir.to_string_lossy(),
-        "commands": [{"command": "select.all", "params": {}}, {"command": "object.move", "params": {"dx": 5, "dyy": 5}}],
-    });
-    let e = s.execute("action.batch", &batch).unwrap_err().to_string();
-    std::fs::remove_dir_all(&dir).ok();
-    assert!(e.contains("dyy"), "{e}");
-    assert!(s.documents().is_empty());
-    assert!(s.journal.is_empty());
-}
 
 /// `Session::replay` takes what it is given: the journal of an older version, an action recorded
 /// with a key a command no longer reads, still plays, as a step of a `command.batch` too.

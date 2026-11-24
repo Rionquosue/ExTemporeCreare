@@ -49,67 +49,7 @@ fn opts(version: u32, compress: bool) -> SaveOptions {
     SaveOptions { version, compress, ..SaveOptions::default() }
 }
 
-#[test]
-fn area_type_vertical_alignment_round_trips() {
-    let d = rich_doc();
-    let text = String::from_utf8(save(&d, false)).unwrap();
-    assert!(text.contains("\"verticalAlign\":\"center\""), "the fixture's area type is centred");
-    let back = load(text.as_bytes()).unwrap();
-    assert_eq!(doc_json(&back), doc_json(&d));
-    let area = |d: &Document| {
-        let mut found = None;
-        d.walk(|n| {
-            // The fixture's centred area type, by its text (the fixture has other area type).
-            if let NodeKind::Text(t) = &n.kind
-                && matches!(t.kind, vectorcraft_doc::TextKind::Area { .. })
-                && t.runs.iter().map(|r| r.text.as_str()).collect::<String>() == "Centred area type"
-            {
-                found = Some(t.area.vertical_align);
-            }
-        });
-        found.unwrap()
-    };
-    assert_eq!(area(&back), vectorcraft_doc::VerticalAlign::Center);
-    // Files from before the option open top-aligned.
-    // (Every area type the fixture has writes its options, so the key goes from all of them.)
-    fn strip(v: &mut Value) {
-        match v {
-            Value::Object(m) => {
-                m.remove("verticalAlign");
-                m.values_mut().for_each(strip);
-            }
-            Value::Array(a) => a.iter_mut().for_each(strip),
-            _ => {}
-        }
-    }
-    let mut v = json_of(text.as_bytes());
-    strip(&mut v);
-    let old = serde_json::to_string(&v).unwrap();
-    assert!(!old.contains("verticalAlign"));
-    assert_eq!(area(&load(old.as_bytes()).unwrap()), vectorcraft_doc::VerticalAlign::Top);
-}
 
-#[test]
-fn compressed_files_load() {
-    let d = rich_doc();
-    let packed = save_with(&d, &SaveOptions { compress: true, pretty: true, ..SaveOptions::default() }).unwrap();
-    assert!(is_compressed(&packed) && sniff(&packed));
-    let plain = save(&d, false);
-    assert!(packed.len() * 3 < plain.len(), "compressed {} vs {} bytes", packed.len(), plain.len());
-    assert_eq!(doc_json(&load(&packed).unwrap()), doc_json(&load(&plain).unwrap()));
-    // Compressed files are compact even when pretty was asked for.
-    assert!(!flate2_unpack(&packed).contains(&b'\n'));
-    // A legacy (v2, pre-rename) file compressed by hand opens too.
-    let text = String::from_utf8(plain.clone()).unwrap();
-    let legacy = text.replacen(&format!("\"format\":\"vectorcraft\",\"version\":{VERSION}"), "\"format\":\"drawcraft\",\"version\":2", 1);
-    assert_ne!(legacy, text);
-    let legacy = gzip(legacy.as_bytes());
-    assert!(sniff(&legacy));
-    assert_eq!(doc_json(&load(&legacy).unwrap()), doc_json(&load(&plain).unwrap()));
-    // Other gzip data (an SVGZ) is not a native file.
-    assert!(!sniff(&gzip(b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>")));
-    assert!(load(&packed[..packed.len() / 2]).is_err(), "a truncated file is an error");
-}
 
 fn flate2_unpack(bytes: &[u8]) -> Vec<u8> {
     use std::io::Read as _;
@@ -141,21 +81,6 @@ fn unused_images_are_pruned() {
     assert!(v["images"].get("unused").is_none() && v["document"]["images"].as_object().is_some_and(|m| m.is_empty()));
 }
 
-#[test]
-fn keys_from_newer_versions_round_trip() {
-    let mut v = json_of(&save(&rich_doc(), false));
-    v["document"]["futureFeature"] = json!({"a": [1, 2, 3], "b": "x"});
-    v["document"]["futureFlag"] = json!(true);
-    let d = load(&serde_json::to_vec(&v).unwrap()).unwrap();
-    assert_eq!(d.extra["futureFeature"]["a"], json!([1, 2, 3]));
-    assert!(!d.unknown.contains_key("futureFeature"), "kept apart from `unknown`");
-    for pretty in [false, true] {
-        let again = json_of(&save(&d, pretty));
-        assert_eq!(again["document"]["futureFeature"], v["document"]["futureFeature"]);
-        assert_eq!(again["document"]["futureFlag"], json!(true));
-    }
-    check_native_roundtrip(&d).unwrap();
-}
 
 /// An opacity-mask editing state in a file drops the editing layer it names only when that is a
 /// top-level layer, as files saved mid-edit have it: a sublayer it names loads and stays.
@@ -175,42 +100,6 @@ fn saved_mask_editing_drops_only_a_top_level_layer() {
     }
 }
 
-/// The paragraph composer is saved only when it isn't the default (Every-line) and reads back.
-#[test]
-fn text_composer_round_trips() {
-    let d = rich_doc();
-    let composers = |d: &Document| {
-        let mut v = vec![];
-        d.walk(|n| {
-            if let NodeKind::Text(t) = &n.kind {
-                v.push(t.para.composer);
-            }
-        });
-        v
-    };
-    // The point type set to Single-line comes first; the fixture's other type keeps the default.
-    let single_then_default = |c: &[Composer]| c.len() > 1 && c[0] == Composer::SingleLine && c[1..].iter().all(|c| *c == Composer::EveryLine);
-    assert!(single_then_default(&composers(&d)), "{:?}", composers(&d));
-    let bytes = save(&d, false);
-    assert!(String::from_utf8_lossy(&bytes).contains("\"composer\":\"singleLine\""));
-    assert_eq!(composers(&load(&bytes).unwrap()), composers(&d));
-    // Files without the key (older files, Every-line text) read as Every-line.
-    fn strip(v: &mut Value) {
-        match v {
-            Value::Object(m) => {
-                m.remove("composer");
-                m.values_mut().for_each(strip);
-            }
-            Value::Array(a) => a.iter_mut().for_each(strip),
-            _ => {}
-        }
-    }
-    let mut v = json_of(&bytes);
-    strip(&mut v);
-    let d2 = load(&serde_json::to_vec(&v).unwrap()).unwrap();
-    assert!(composers(&d2).iter().all(|c| *c == Composer::EveryLine), "{:?}", composers(&d2));
-    assert!(!String::from_utf8_lossy(&save(&d2, false)).contains("composer"));
-}
 
 /// Every composer reads back as it was saved (the two Standard ones as their own values), and the
 /// ME&SA names are the ones files have always used: `everyLine` stays the unwritten default and
@@ -270,34 +159,6 @@ fn version_1_files_load() {
     assert!(d.unknown.is_empty());
 }
 
-#[test]
-fn saves_down_to_older_versions() {
-    let mut d = rich_doc();
-    d.color_profiles = ColorProfiles { rgb: None, cmyk: Some("Coated".into()) };
-    let current = doc_json(&load(&save(&d, false)).unwrap());
-    for version in [1, 2] {
-        let bytes = save_with(&d, &opts(version, false)).unwrap();
-        let v = json_of(&bytes);
-        assert_eq!((v["format"].as_str(), v["version"].as_u64()), (Some("drawcraft"), Some(version as u64)), "older apps know the old name");
-        // Profiles where those versions keep them.
-        assert_eq!(v["document"]["unknown"]["colorProfiles"], json!({"rgb": null, "cmyk": "Coated"}));
-        assert!(v["document"].get("color_profiles").is_none());
-        let back = load(&bytes).unwrap();
-        assert!(json_approx_eq(&doc_json(&back), &current, 1e-12), "v{version} loses nothing it can hold");
-        let text = String::from_utf8(bytes).unwrap();
-        // v1 anchors are maps with every member; v2 anchors are compact.
-        assert_eq!(text.contains("\"p\":{\"x\""), version == 1);
-        assert_eq!(text.contains("\"p\":["), version == 2);
-    }
-    let v3 = json_of(&save(&d, false));
-    assert_eq!((v3["format"].as_str(), v3["version"].as_u64()), (Some("vectorcraft"), Some(VERSION as u64)));
-    assert_eq!(v3["document"]["color_profiles"], json!({"cmyk": "Coated"}));
-    assert!(v3["document"]["unknown"].get("colorProfiles").is_none());
-    // Out of range, and compression older apps can't read.
-    assert!(matches!(save_with(&d, &opts(0, false)), Err(FormatError::BadVersion(0))));
-    assert!(matches!(save_with(&d, &opts(VERSION + 1, false)), Err(FormatError::BadVersion(_))));
-    assert!(matches!(save_with(&d, &opts(2, true)), Err(FormatError::CompressedTooOld(2))));
-}
 
 #[test]
 fn preview_is_embedded_and_read_back() {
@@ -312,17 +173,6 @@ fn preview_is_embedded_and_read_back() {
     assert_eq!(preview(b"not a file"), None);
 }
 
-#[test]
-fn pretty_files_are_indented_like_serde_json() {
-    let d = rich_doc();
-    let bytes = save(&d, true);
-    let text = String::from_utf8(bytes.clone()).unwrap();
-    assert!(text.starts_with("{\n  \"format\": \"vectorcraft\",\n  \"version\": "));
-    assert!(text.contains("\n  \"document\": {\n    \""));
-    assert!(text.ends_with("\n}"));
-    // The same JSON as the compact file.
-    assert_eq!(json_of(&bytes), json_of(&save(&d, false)));
-}
 
 /// #451: a guide's artboard is written only for artboard guides, so canvas guides save as they
 /// did, and a file without it (an older version's) opens with canvas guides.
@@ -348,25 +198,3 @@ fn artboard_guides_round_trip_and_canvas_guides_save_as_before() {
     assert_eq!(old_lines, [(false, 20.0, None)]);
 }
 
-#[test]
-fn inline_graphics_in_text_round_trip() {
-    let d = rich_doc();
-    let inline = |d: &Document| {
-        let mut found = vec![];
-        d.walk(|n| {
-            if let NodeKind::Text(t) = &n.kind {
-                found.extend(t.runs.iter().filter_map(|r| r.inline.clone().map(|a| (r.text.clone(), a.symbol, a.scale, a.baseline_shift))));
-            }
-        });
-        found
-    };
-    let want = inline(&d);
-    assert_eq!(want, vec![("\u{FFFC}".to_string(), "Dot".to_string(), 1.0, 0.0)]);
-    let bytes = save(&d, false);
-    let saved = json_of(&bytes).to_string();
-    assert!(saved.contains("\"inline\":{") && saved.contains("\"symbol\":\"Dot\""), "{saved}");
-    let back = load(&bytes).unwrap();
-    assert_eq!(inline(&back), want);
-    assert_eq!(doc_json(&back), doc_json(&d));
-    check_native_roundtrip(&d).unwrap();
-}

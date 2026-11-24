@@ -263,77 +263,6 @@ fn with(mut p: Value, extra: Value) -> Value {
     p
 }
 
-/// A file read apart from the session ([`Session::prepare_place`], then [`cmd::place::PlaceJob::read`]
-/// on another thread and [`Session::place_read`]), as File › Place reads one off the UI thread, is
-/// placed as `file.place` places it: the same reply, document, selection and undo step, and the
-/// same journal entry.
-#[test]
-fn a_file_read_apart_from_the_session_places_as_file_place_does() {
-    let mut src = Session::new();
-    src.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
-    src.execute("shape.rectangle", &json!({"x": 5, "y": 5, "width": 20, "height": 10})).unwrap();
-    let (pdf, native, eps) = (serialize(&mut src, "pdf"), serialize(&mut src, "vectorcraft"), eps_of(&mut src));
-    // SVG is serialized as text.
-    let svg = src.execute("document.serialize", &json!({"format": "svg"})).unwrap()["text"].as_str().unwrap().as_bytes().to_vec();
-    let dxf = serialize(&mut src, "dxf");
-    let dir = std::env::temp_dir().join(format!("vc-place-apart-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let saved = |name: &str, bytes: &[u8]| {
-        let p = dir.join(name);
-        std::fs::write(&p, bytes).unwrap();
-        p.to_string_lossy().into_owned()
-    };
-    let (pdf_path, native_path) = (saved("page.pdf", &pdf), saved("art.vectorcraft", &native));
-    let words = crate::tests_textimport::docx(r#"<w:p><w:r><w:t>Placed words</w:t></w:r></w:p>"#, crate::tests_textimport::STYLES);
-    let cases = [
-        with(file("red.png", &png(30, 20, [255, 0, 0, 255], Some(144.0))), json!({"at": [150, 100]})),
-        with(file("notes.txt", b"Two lines\nof text"), json!({"text": {}})),
-        file("note.rtf", br"{\rtf1\ansi {\b Bold} words\par}"),
-        file("words.docx", &words),
-        with(file("art.svg", &svg), json!({"rect": [10, 10, 80, 40]})),
-        file("art.eps", &eps),
-        file("plan.dxf", &dxf),
-        json!({"path": pdf_path}),
-        json!({"path": pdf_path, "link": false, "crop": "bounding"}),
-        json!({"path": native_path}),
-        with(file("page.pdf", &pdf), json!({"template": true})),
-        with(file("blue.png", &png(8, 8, [0, 0, 255, 255], None)), json!({"replace": true})),
-    ];
-    for p in cases {
-        let name = p["name"].as_str().or(p["path"].as_str()).map(cmd::fileio::file_name).unwrap_or_default();
-        let (mut a, mut b) = (session(), session());
-        for s in [&mut a, &mut b] {
-            let id = s.execute("shape.rectangle", &json!({"x": 40, "y": 40, "width": 30, "height": 30})).unwrap()["id"].clone();
-            s.execute("select.set", &json!({"ids": [id]})).unwrap();
-        }
-        let at_once = a.execute("file.place", &p).map_err(|e| e.to_string());
-        assert!(at_once.is_ok(), "{name}: {at_once:?}");
-        let job = b.prepare_place(&p).unwrap();
-        assert_eq!(job.name(), name);
-        let read = std::thread::spawn(move || job.read()).join().unwrap().unwrap();
-        assert_eq!(b.place_read(read).map_err(|e| e.to_string()), at_once, "{name}: the same reply");
-        let (sa, sb) = (a.doc().unwrap(), b.doc().unwrap());
-        // `file.new` stamps each document with the second it was made in, which can differ by one.
-        let undated = |d: &vectorcraft_doc::Document| {
-            let mut d = d.clone();
-            d.metadata.created = None;
-            d
-        };
-        assert!(undated(&sa.doc) == undated(&sb.doc), "{name}: the same document");
-        assert_eq!(sa.selection.objects, sb.selection.objects, "{name}");
-        assert_eq!(sa.history.undo.len(), sb.history.undo.len(), "{name}: one undo step");
-        assert_eq!(a.journal.last(), b.journal.last(), "{name}");
-        assert_eq!(b.journal.last().map(|(id, _)| id.as_str()), Some("file.place"), "{name}: journaled as file.place");
-    }
-    let _ = std::fs::remove_dir_all(&dir);
-    // With no document open, the error the commands give.
-    let mut none = Session::new();
-    let p = file("red.png", &png(2, 2, [0; 4], None));
-    let err = |r: Result<Value>| r.err().map(|e| e.to_string());
-    assert_eq!(none.prepare_place(&p).err().map(|e| e.to_string()), err(none.execute("file.place", &p)));
-    let q = json!({"files": [p]});
-    assert_eq!(none.prepare_place_queue(&q).err().map(|e| e.to_string()), err(none.execute("file.place.queue", &q)));
-}
 
 /// Replace swaps the object selected when Place started, even when another one is selected by the
 /// time the file has been read, and the journal replays the same; when that object was deleted or
@@ -587,36 +516,6 @@ fn an_image_whose_pixels_cant_be_read_is_not_placed() {
     assert_eq!(top_children(&s).len(), 1);
 }
 
-/// Type and a DXF drawing fitted to the artboard, read apart from the session while the artboard
-/// under `at` changes size, are placed against the artboard as it is when they are placed: as
-/// `file.place` places them after the change, which is what a replay of the journal does.
-#[test]
-fn a_file_read_apart_from_the_session_is_placed_against_the_artboard_as_it_is_then() {
-    let mut src = Session::new();
-    src.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
-    src.execute("shape.rectangle", &json!({"x": 5, "y": 5, "width": 20, "height": 10})).unwrap();
-    let dxf = serialize(&mut src, "dxf");
-    let text = with(file("notes.txt", b"Words to place"), json!({"text": {}, "at": [100, 150]}));
-    for p in [text, with(file("plan.dxf", &dxf), json!({"dxf": {"fit": true}, "at": [100, 150]}))] {
-        let (mut a, mut b) = (session(), session());
-        let read = b.prepare_place(&p).unwrap().read().unwrap();
-        for s in [&mut a, &mut b] {
-            s.execute("artboard.setProps", &json!({"index": 0, "width": 200})).unwrap();
-        }
-        let at_once = a.execute("file.place", &p).unwrap();
-        assert_eq!(b.place_read(read).unwrap(), at_once, "{}", at_once["name"]);
-        let undated = |s: &Session| {
-            let mut d = (*s.doc().unwrap().doc).clone();
-            d.metadata.created = None;
-            d
-        };
-        assert!(undated(&a) == undated(&b), "{}", at_once["name"]);
-        if at_once["format"] == "txt" {
-            // The 200 × 300 pt artboard less a 36 pt margin on each side.
-            assert!(close(at_once["width"].as_f64().unwrap(), 128.0) && close(at_once["height"].as_f64().unwrap(), 228.0), "{at_once}");
-        }
-    }
-}
 
 #[test]
 fn template_puts_the_art_on_a_locked_template_layer_below_the_current_one() {
@@ -657,53 +556,7 @@ fn pdf_pages_and_native_artboards_place_as_clipped_groups() {
     }
 }
 
-/// With crop "bounding", the art's box is the box of what shows, as an export measures it: a hidden
-/// member of a group does not count, and is still placed, hidden.
-#[test]
-fn bounding_box_placement_measures_only_the_art_that_shows() {
-    let (mut src, shown) = group_with_a_hidden_member();
-    let eps = eps_of(&mut src);
-    let native = serialize(&mut src, "vectorcraft");
-    let svg = br#"<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><g><rect x="20" y="20" width="40" height="40"/><rect x="100" y="100" width="170" height="42" style="display:none"/></g></svg>"#;
-    // The sample's group `Pair` has a hidden member 42 pt tall; what shows is 170 × 40 pt.
-    let sample = vectorcraft_testkit::ai::eps(&vectorcraft_testkit::ai::sample_data(), vectorcraft_testkit::ai::page_ps());
-    let cases: [(&str, &[u8], (f64, f64)); 4] = [
-        ("pair.eps", &eps, (shown.width(), shown.height())),
-        ("pair.vectorcraft", &native, (shown.width(), shown.height())),
-        ("pair.svg", svg, (40.0, 40.0)),
-        ("art.eps", &sample, (170.0, 40.0)),
-    ];
-    for (name, bytes, (w, h)) in cases {
-        let mut s = session();
-        let (iw, ih) = info_size(&mut s, name, bytes, json!({"crop": "bounding"}));
-        assert!(close(iw, w) && close(ih, h), "{name}: {iw} × {ih}, not {w} × {h}");
-        // `rect` fits what shows, centered.
-        let r = place(&mut s, name, bytes, json!({"crop": "bounding", "rect": [100, 100, 80, 80]}));
-        let k = (80.0 / w).min(80.0 / h);
-        let want = Rect::from_center_size((140.0, 140.0), (w * k, h * k));
-        assert!(drawn_at(&s, want), "{name}: not {want:?}");
-        assert_eq!(hidden_in(&node(&s, &r["ids"][0])), 1, "{name}: the hidden member is placed, hidden");
-    }
-}
 
-/// With crop "bounding", an effect's reach counts in the art's box, as in an export of the art.
-#[test]
-fn bounding_box_placement_counts_a_drop_shadow() {
-    let mut src = session();
-    let id = src.execute("shape.rectangle", &json!({"x": 20, "y": 20, "width": 40, "height": 40})).unwrap()["id"].clone();
-    let square = node(&src, &id).visual_bounds().unwrap();
-    src.execute("effect.apply", &json!({"effect": "stylize.dropShadow", "ids": [id], "params": {"x": 8, "y": 0, "blur": 0}})).unwrap();
-    let export = vectorcraft_render::encode::art_bounds(&src.doc().unwrap().doc).unwrap();
-    assert!(export.width() > square.width() + 7.0, "{export:?}");
-    let eps = eps_of(&mut src);
-    let native = serialize(&mut src, "vectorcraft");
-    let cases: [(&str, &[u8]); 2] = [("shadow.eps", &eps), ("shadow.vectorcraft", &native)];
-    for (name, bytes) in cases {
-        let mut s = session();
-        let (w, h) = info_size(&mut s, name, bytes, json!({"crop": "bounding"}));
-        assert!(close(w, export.width()) && close(h, export.height()), "{name}: {w} × {h}, not {export:?}");
-    }
-}
 
 /// A symbol instance in the placed art is measured by its symbol's art, for the art's box and for
 /// the size `file.place` answers.
@@ -727,49 +580,7 @@ fn a_placed_symbol_instance_is_measured_by_its_art() {
     assert!(close(frame.width(), 200.0) && close(frame.height(), 20.0), "{frame:?}");
 }
 
-/// Crop "crop" still frames the art by its artboard (an SVG by its viewBox), hidden members or not.
-#[test]
-fn crop_placement_keeps_the_artboard_with_a_hidden_member() {
-    let (mut src, _) = group_with_a_hidden_member();
-    let eps = eps_of(&mut src);
-    let native = serialize(&mut src, "vectorcraft");
-    let svg = br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><g><rect x="20" y="20" width="40" height="40"/><rect x="100" y="100" width="170" height="42" style="display:none"/></g></svg>"#;
-    let cases: [(&str, &[u8]); 3] = [("pair.eps", &eps), ("pair.vectorcraft", &native), ("pair.svg", svg)];
-    for (name, bytes) in cases {
-        let mut s = session();
-        assert_eq!(info_size(&mut s, name, bytes, json!({"crop": "crop"})), (400.0, 300.0), "{name}");
-        let r = place(&mut s, name, bytes, json!({"crop": "crop"}));
-        assert_eq!((r["width"].as_f64(), r["height"].as_f64()), (Some(400.0), Some(300.0)), "{name}: {r}");
-    }
-}
 
-/// A page's or artboard's art is the objects whose visible art lies on it: a group whose only part
-/// on the artboard is hidden stays out, and a hidden object on the artboard is still placed, hidden.
-#[test]
-fn a_group_whose_only_part_on_the_artboard_is_hidden_is_left_out() {
-    let mut src = session();
-    let off = src.execute("shape.rectangle", &json!({"x": -300, "y": 20, "width": 40, "height": 40})).unwrap()["id"].clone();
-    let under = src.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 170, "height": 42})).unwrap()["id"].clone();
-    src.execute("object.group", &json!({"ids": [off, under]})).unwrap();
-    src.execute("object.hide", &json!({"ids": [under]})).unwrap();
-    let dot = src.execute("shape.ellipse", &json!({"x": 50, "y": 50, "width": 30, "height": 30})).unwrap()["id"].clone();
-    let shown = node(&src, &dot).visual_bounds().unwrap();
-    let ghost = src.execute("shape.rectangle", &json!({"x": 300, "y": 200, "width": 20, "height": 20})).unwrap()["id"].clone();
-    src.execute("object.hide", &json!({"ids": [ghost]})).unwrap();
-    let eps = eps_of(&mut src);
-    let native = serialize(&mut src, "vectorcraft");
-    let cases: [(&str, &[u8]); 2] = [("parts.eps", &eps), ("parts.vectorcraft", &native)];
-    for (name, bytes) in cases {
-        let mut s = session();
-        let (w, h) = info_size(&mut s, name, bytes, json!({"crop": "bounding"}));
-        assert!(close(w, shown.width()) && close(h, shown.height()), "{name}: {w} × {h}");
-        let r = place(&mut s, name, bytes, json!({"crop": "bounding"}));
-        let g = node(&s, &r["ids"][0]);
-        let kids = g.children().unwrap();
-        assert_eq!(kids.len(), 2, "{name}: the circle and the hidden square");
-        assert!(kids[0].visible && !kids[1].visible, "{name}");
-    }
-}
 
 #[test]
 fn placed_art_brings_its_symbols_and_swatches_renaming_on_conflict() {

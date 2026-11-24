@@ -55,19 +55,6 @@ fn check_sample(s: &Session) {
     assert_eq!((im.width, im.height), (2, 1));
 }
 
-#[test]
-fn an_illustrator_eps_opens_with_its_layers() {
-    let mut s = Session::new();
-    let r = open(&mut s, "art.eps", &ai::eps(&ai::sample_data(), ai::page_ps()), json!({})).unwrap();
-    assert_eq!((&r["format"], &r["warnings"]), (&json!("eps"), &json!([])), "{r}");
-    check_sample(&s);
-    // Saved as EPS and opened again, it comes back the same.
-    let eps = s.execute("document.exportEps", &json!({})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(eps["dataBase64"].as_str().unwrap()).unwrap();
-    let r = open(&mut s, "again.eps", &bytes, json!({})).unwrap();
-    assert_eq!(r["restored"], json!(true), "{r}");
-    check_sample(&s);
-}
 
 #[test]
 fn an_illustrator_ai_file_opens_from_its_editing_data() {
@@ -148,107 +135,8 @@ fn an_ai_file_opens_with_its_active_artboard() {
     assert_eq!(d.opened_artboard, Some(d.artboards[1].id), "{r}");
 }
 
-/// A `.ai` or `.ait` file VectorCraft wrote reopens, restored from the document it carries, on the
-/// artboard its editing copy names as active; without the copy, on the first artboard.
-#[test]
-fn a_restored_ai_file_opens_on_the_artboard_active_when_saved() {
-    let mut doc = vectorcraft_doc::Document::new(100.0, 100.0);
-    let first = doc.artboards[0].clone();
-    for (i, id) in [(1.0, 7), (2.0, 9)] {
-        let x0 = i * 150.0;
-        doc.artboards.push(vectorcraft_doc::Artboard { id, rect: vectorcraft_geom::Rect::new(x0, 0.0, x0 + 100.0, 100.0), ..first.clone() });
-    }
-    let mut s = Session::new();
-    // The view's artboard, one the document doesn't have, none, and the first.
-    for (active, opened, reopened) in
-        [(Some(7), None, Some(7)), (Some(99), Some(9), Some(9)), (None, Some(9), Some(9)), (Some(first.id), Some(9), None)]
-    {
-        for (cmd, format) in [("document.save", "ai"), ("file.saveAsTemplate", "ait")] {
-            let mut d = doc.clone();
-            d.opened_artboard = opened;
-            s.add_document(d, None);
-            s.doc_mut().unwrap().active_artboard = active;
-            let saved = s.execute(cmd, &json!({"format": format})).unwrap();
-            let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-            let r = open(&mut s, &format!("again.{format}"), &bytes, json!({})).unwrap();
-            assert_eq!(r["restored"], json!(true), "{r}");
-            let d = &s.doc().unwrap().doc;
-            assert_eq!(d.artboards.iter().map(|a| a.id).collect::<Vec<_>>(), [first.id, 7, 9]);
-            assert_eq!(d.opened_artboard, reopened, "{format} {active:?} {opened:?}");
-        }
-    }
-    // A file saved without its PDF part still has the editing copy.
-    s.add_document(doc.clone(), None);
-    s.doc_mut().unwrap().active_artboard = Some(7);
-    let saved = s.execute("document.save", &json!({"format": "ai", "options": {"pdfCompatible": false}})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let r = open(&mut s, "again.ai", &bytes, json!({})).unwrap();
-    assert_eq!(r["restored"], json!(true), "{r}");
-    assert_eq!(s.doc().unwrap().doc.opened_artboard, Some(7), "{r}");
-    // Without the editing copy, the file reopens on the first artboard.
-    s.add_document(doc.clone(), None);
-    s.doc_mut().unwrap().active_artboard = Some(7);
-    let saved = s.execute("document.save", &json!({"format": "ai", "options": {"editingData": false}})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let r = open(&mut s, "again.ai", &bytes, json!({})).unwrap();
-    assert_eq!(r["restored"], json!(true), "{r}");
-    assert_eq!(s.doc().unwrap().doc.opened_artboard, None, "{r}");
-}
 
-/// A `.ai` save names the view's active artboard in its editing copy, else the one the document
-/// opened on, else the first; the file read from that copy opens on it.
-#[test]
-fn an_ai_save_names_its_active_artboard() {
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 60, "height": 40, "artboards": 3})).unwrap();
-    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 20, "height": 20})).unwrap();
-    let ids: Vec<u32> = s.doc().unwrap().doc.artboards.iter().map(|a| a.id).collect();
-    let opts = LoadOptions { native: false, ..Default::default() };
-    let active = |s: &mut Session, format: &str| {
-        let cmd = if format == "ait" { "file.saveAsTemplate" } else { "file.saveCopy" };
-        let saved = s.execute(cmd, &json!({"format": format})).unwrap();
-        let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-        let l = load::load_with(&format!("a.{format}"), &bytes, &opts).unwrap();
-        assert!(l.editing_data && !l.restored, "{:?}", l.warnings);
-        assert_eq!(l.doc.artboards.len(), 3);
-        l.doc.opened_artboard.and_then(|id| l.doc.artboards.iter().position(|a| a.id == id)).unwrap_or(0)
-    };
-    assert_eq!(active(&mut s, "ai"), 0);
-    // The view's.
-    s.doc_mut().unwrap().active_artboard = Some(ids[2]);
-    assert_eq!((active(&mut s, "ai"), active(&mut s, "ait")), (2, 2));
-    // The one the document opened on, when the view names none or an artboard it doesn't have.
-    Arc::make_mut(&mut s.doc_mut().unwrap().doc).opened_artboard = Some(ids[1]);
-    for view in [None, Some(99)] {
-        s.doc_mut().unwrap().active_artboard = view;
-        assert_eq!(active(&mut s, "ai"), 1, "{view:?}");
-    }
-    // The view's first artboard over the one the document opened on.
-    s.doc_mut().unwrap().active_artboard = Some(ids[0]);
-    assert_eq!(active(&mut s, "ai"), 0);
-    assert_eq!(s.doc().unwrap().doc.opened_artboard, Some(ids[1]), "the document is unchanged");
-}
 
-/// A `.ai` export (`document.serialize`, `document.export`, with or without `selectedOnly`) names
-/// the view's active artboard in its editing copy, as a save does.
-#[test]
-fn an_ai_export_names_its_active_artboard() {
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 60, "height": 40, "artboards": 3})).unwrap();
-    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 20, "height": 20})).unwrap();
-    let ids: Vec<u32> = s.doc().unwrap().doc.artboards.iter().map(|a| a.id).collect();
-    s.doc_mut().unwrap().active_artboard = Some(ids[2]);
-    let opts = LoadOptions { native: false, ..Default::default() };
-    for (cmd, selected) in [("document.serialize", false), ("document.serialize", true), ("document.export", false)] {
-        let out = s.execute(cmd, &json!({"format": "ai", "selectedOnly": selected})).unwrap();
-        let bytes = vectorcraft_format::base64_decode(out["dataBase64"].as_str().unwrap()).unwrap();
-        let l = load::load_with("a.ai", &bytes, &opts).unwrap();
-        assert!(l.editing_data && !l.restored, "{cmd}: {:?}", l.warnings);
-        let active = l.doc.opened_artboard.and_then(|id| l.doc.artboards.iter().position(|a| a.id == id));
-        assert_eq!(active, Some(2), "{cmd} {selected}");
-    }
-    assert_eq!(s.doc().unwrap().doc.opened_artboard, None, "the document is unchanged");
-}
 
 #[test]
 fn an_ai_unread_group_keeps_its_layers_and_live_neighbor() {
@@ -272,44 +160,6 @@ fn an_ai_unread_group_keeps_its_layers_and_live_neighbor() {
     assert!(result["warnings"].to_string().contains("`ZZ` (1)"), "{result}");
 }
 
-#[test]
-fn a_differing_object_keeps_the_layers_with_a_note() {
-    let square = |cmyk: &str, x: f64| format!("{cmyk} k\n{}f\n", ai::rect(x, 40.0, x + 16.0, 56.0));
-    let front = square("0 0 0 1", 90.0) + &square("0 0 1 0", 160.0);
-    let data = ai::editing_data(200.0, 100.0, &(ai::layer("Back", &square("0 0 1 0", 20.0)) + &ai::layer("Front", &front)));
-    let page = "0 0 1 0 k 20 40 16 16 re f 1 0 0 0 k 90 40 16 16 re f 0 0 1 0 k 160 40 16 16 re f";
-    let mut session = Session::new();
-    let result = open(&mut session, "differs.ai", &ai::ai(&compressed(data.as_bytes()), page), json!({})).unwrap();
-    let doc = &session.doc().unwrap().doc;
-    assert_eq!(names(&doc.layers), ["Back", "Front"], "{result}");
-    let front = doc.layers[1].children().unwrap();
-    assert!(matches!(front[0].kind, NodeKind::Group { .. }) && matches!(front[1].kind, NodeKind::Path { .. }), "{result}");
-    let replacement = &front[0].children().unwrap()[0];
-    assert!(
-        matches!(replacement.appearance.items.first(), Some(vectorcraft_doc::AppearanceItem::Fill(fill))
-        if fill.paint == vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0))),
-        "{result}"
-    );
-    assert!(
-        result["warnings"].to_string().contains("objects that drew differently from the file's own page came in as its art: Front (1)"),
-        "{result}"
-    );
-    // An export to the file's own path is refused unless it is given `acknowledgeLoss`.
-    let d = std::env::temp_dir().join(format!("vc-aidiffers-{}", std::process::id()));
-    std::fs::create_dir_all(&d).unwrap();
-    let path = d.join("differs.ai");
-    let file = ai::ai(&compressed(data.as_bytes()), page);
-    std::fs::write(&path, &file).unwrap();
-    let path = path.to_string_lossy().to_string();
-    let mut s = Session::new();
-    s.execute("document.open", &json!({"path": path})).unwrap();
-    let e = s.execute("document.export", &json!({"path": path})).unwrap_err().to_string();
-    assert!(e.contains("left things out") && e.contains("objects that drew differently"), "{e}");
-    assert_eq!(std::fs::read(&path).unwrap(), file);
-    s.execute("document.export", &json!({"path": path, "acknowledgeLoss": true})).unwrap();
-    assert_ne!(std::fs::read(&path).unwrap(), file);
-    std::fs::remove_dir_all(d).ok();
-}
 
 /// A palette of three swatches and a color group `Inks` holding a fourth.
 const INKS_PALETTE: &str = "%AI5_BeginPalette\n0 0 Pb\n0 0 0 0 1 1 1 Xa\n(White)\nPc\n0.04 0.3 0 0 81.96 21 -8 (Pink ink) 0 2 Xx\n(Pink ink)\nPc\n\
@@ -760,66 +610,6 @@ fn has_type(nodes: &[Node]) -> bool {
     found
 }
 
-/// A `.ai` copied in a file manager pastes the objects of its editing data, as `document.open`
-/// reads it: both layers' objects in their stacking order, into the active layer, with their names
-/// and hidden members, and its type as type. Without `editingData`, as for a PDF, its page pastes:
-/// the shown layer's art without names.
-#[test]
-fn a_copied_ai_file_pastes_from_its_editing_data() {
-    let mut s = Session::new();
-    s.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
-    let file = ai::ai(&compressed(&ai::sample_data()), ai::page_pdf());
-    let (r, pasted) = paste(&mut s, &file, true);
-    assert_eq!(r["count"], 7, "{r}");
-    let pasted_names: Vec<String> = pasted.iter().map(|n| n.name.clone().unwrap_or_default()).collect();
-    assert_eq!(pasted_names, ["Pair", "Ring", "Window", "Shaded", "", "Sub", ""]);
-    let pair = pasted[0].children().unwrap();
-    assert!(pair[0].visible && !pair[1].visible, "the hidden member stays hidden");
-    assert!(matches!(pasted[5].kind, NodeKind::Layer { .. }) && pasted[5].locked, "the sublayer comes as it is");
-    assert_eq!(pasted.iter().map(|n| n.visible).collect::<Vec<_>>(), [true, true, true, false, false, false, false], "the hidden layer's objects");
-    let layers = &s.doc().unwrap().doc.layers;
-    assert_eq!(layers.len(), 1, "no layer is added");
-    assert!(pasted.iter().all(|n| layers[0].children().unwrap().iter().any(|c| c.id == n.id)), "into the active layer");
-    // The same editing data in an EPS: the same objects, the hidden layer's objects hidden.
-    let eps = ai::eps(&ai::sample_data(), ai::page_ps());
-    s.execute("clipboard.importEps", &json!({"dataBase64": vectorcraft_format::base64_encode(&eps)})).unwrap();
-    s.execute("edit.paste", &json!({})).unwrap();
-    let st = s.doc().unwrap();
-    let shown = |nodes: Vec<&Node>| nodes.iter().map(|n| (n.name.clone().unwrap_or_default(), n.visible)).collect::<Vec<_>>();
-    assert_eq!(shown(st.selection.in_paint_order(&st.doc).into_iter().filter_map(|id| st.doc.node(id)).collect()), shown(pasted.iter().collect()));
-    let (r, page) = paste(&mut s, &file, false);
-    assert!(page.iter().all(|n| n.name.is_none()), "{r}");
-    // A page of text only, or only a placeholder (saved without PDF compatibility): the editing
-    // data's objects all the same.
-    for (page, boxed) in [(TEXT_ART, "/ArtBox [0 0 200 100]"), (PLACEHOLDER, "")] {
-        let (r, pasted) = paste(&mut s, &ai::ai_with(&compressed(&ai::sample_data()), page, boxed), true);
-        assert_eq!(pasted.first().and_then(|n| n.name.as_deref()), Some("Pair"), "{page}: {r}");
-        assert_eq!(r["count"], 7, "{page}: {r}");
-    }
-    // Type: a text object from the editing data, outlines from the page.
-    let data = ai::editing_data(
-        200.0,
-        100.0,
-        &ai::layer("Art", &format!("0 g\n{}f\n/AI11Text :\n0 /FreeUndo ,\n0 /FrameIndex ,\n0 /StoryIndex ,\n;\n", ai::rect(10.0, 10.0, 50.0, 50.0))),
-    );
-    let typed = ai::ai(&compressed(data.as_bytes()), SQUARE_AND_TYPE);
-    // (The page's type comes in as type too now that PDF import keeps it, so only this side is told apart.)
-    let (r, pasted) = paste(&mut s, &typed, true);
-    assert!(has_type(&pasted), "{r}: {pasted:?}");
-    // A `.ai` VectorCraft wrote: the document it carries, its hidden square too.
-    let mut other = Session::new();
-    other.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
-    for x in [10, 100] {
-        other.execute("shape.rectangle", &json!({"x": x, "y": 10, "width": 40, "height": 40})).unwrap();
-    }
-    other.execute("object.hide", &json!({})).unwrap();
-    let saved = other.execute("document.export", &json!({"format": "ai"})).unwrap();
-    let saved = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let (r, pasted) = paste(&mut s, &saved, true);
-    assert_eq!(pasted.iter().map(|n| n.visible).collect::<Vec<_>>(), [true, false], "{r}");
-    let (r, page) = paste(&mut s, &saved, false);
-    assert!(page.iter().all(|n| n.visible), "{r}");
-}
 
 /// A PDF saved with the editing data opens from it, as a `.ai` does (#868).
 #[test]
@@ -853,29 +643,6 @@ fn a_pdfs_art_past_the_page_opens_whole_from_its_editing_data() {
     assert!(s.doc().unwrap().doc.art_bounds().is_some_and(|b| b.x1 < 200.5));
 }
 
-/// A `.ai` or a PDF whose editing data can't be decompressed opens from its PDF part with a note
-/// that its layers weren't read, and an export to its own path is refused unless it is given
-/// `acknowledgeLoss`.
-#[test]
-fn a_file_whose_editing_data_cant_be_decompressed_is_not_written_over_unasked() {
-    let d = std::env::temp_dir().join(format!("vc-aiundecoded-{}", std::process::id()));
-    std::fs::create_dir_all(&d).unwrap();
-    let damaged = b"%AI12_CompressedDataxx";
-    for (name, file) in [("art.ai", ai::ai(damaged, ai::page_pdf())), ("art.pdf", ai::pdf(damaged, ai::page_pdf()))] {
-        let path = d.join(name);
-        std::fs::write(&path, &file).unwrap();
-        let path = path.to_string_lossy().to_string();
-        let mut s = Session::new();
-        let r = s.execute("document.open", &json!({"path": path})).unwrap();
-        assert!(r["warnings"].to_string().contains("layers weren't read from its editing data (its zlib compression is damaged)"), "{name}: {r}");
-        let e = s.execute("document.export", &json!({"path": path})).unwrap_err().to_string();
-        assert!(e.contains("left things out") && e.contains("layers weren't read"), "{name}: {e}");
-        assert_eq!(std::fs::read(&path).unwrap(), file, "{name}");
-        s.execute("document.export", &json!({"path": path, "acknowledgeLoss": true})).unwrap();
-        assert_ne!(std::fs::read(&path).unwrap(), file, "{name}");
-    }
-    std::fs::remove_dir_all(d).ok();
-}
 
 /// Editing data that can't be read leaves the file as its PDF part reads, with that part's notes
 /// and then a note saying why its layers weren't read: a `.ai`'s art outside its artboards is
@@ -1090,92 +857,7 @@ fn a_copied_ai_file_whose_editing_data_cant_be_read_pastes_its_page() {
     assert_eq!(r["count"], 7, "{r}");
 }
 
-#[test]
-fn what_the_reader_doesnt_read_opens_as_before_with_a_warning() {
-    let symbols = ai::editing_data(200.0, 100.0, &ai::layer("Art", "/SymbolInstance :\n(Dot) /SymbolRef ,\n;\n"));
-    let mut s = Session::new();
-    let r = open(&mut s, "symbols.eps", &ai::eps(symbols.as_bytes(), ai::page_ps()), json!({})).unwrap();
-    assert!(r["warnings"].to_string().contains("layers weren't read") && r["warnings"].to_string().contains("symbols"), "{r}");
-    assert_eq!(names(&s.doc().unwrap().doc.layers), ["Layer 1"]);
-    let r = open(&mut s, "symbols.ai", &ai::ai(&compressed(symbols.as_bytes()), ai::page_pdf()), json!({})).unwrap();
-    assert!(r["warnings"].to_string().contains("symbols") && r["warnings"].to_string().contains("PDF part"), "{r}");
-}
 
-/// A `.ai` whose document data has a variable library opens with its variables, data sets, active
-/// data set and lock, whether its layers are read or it comes in as its PDF part: `variable.list`
-/// and `dataset.list` report them. A variable of unknown kind can't be bound. What of the library
-/// can't be read is noted. With its layers read, the object a variable is bound to comes in bound,
-/// and selecting a data set changes it; the bindings to objects the file doesn't have are noted.
-#[test]
-fn an_ai_file_opens_its_variable_library() {
-    let library = ai::variable_library_data(&ai::sample_variable_sets("variableAndTypes", &[]));
-    let square = format!("0 1 1 0 1 0 0 Xa\n{}f\n{}", ai::rect(10.0, 50.0, 40.0, 90.0), ai::named("path_x5F_1"));
-    let notes = |r: &Value| {
-        r["warnings"].as_array().map_or(vec![], |w| w.iter().filter(|w| w.as_str().unwrap().contains("variable")).cloned().collect::<Vec<_>>())
-    };
-    let skipped = |n: usize| {
-        json!(format!("the file's variable bindings weren't all read (bindings skipped: {n}): those objects aren't bound to their variables"))
-    };
-    let check = |s: &mut Session, bound: usize| {
-        let r = s.execute("variable.list", &json!({})).unwrap();
-        assert_eq!(
-            r,
-            json!({"variables": [
-                {"name": "v_text", "kind": "text", "bindings": 0},
-                {"name": "v_visible", "kind": "visibility", "bindings": bound},
-                {"name": "v_file", "kind": "image", "bindings": 0},
-                {"name": "v_graph", "kind": "graph", "bindings": 0},
-                {"name": "v_unbound", "kind": "unknown", "bindings": 0},
-            ], "locked": true, "sort": {"by": "none", "descending": false}})
-        );
-        let r = s.execute("dataset.list", &json!({})).unwrap();
-        assert_eq!(r["active"], "ds_two", "{r}");
-        let names: Vec<&str> = r["datasets"].as_array().unwrap().iter().map(|d| d["name"].as_str().unwrap()).collect();
-        assert_eq!(names, ["ds_one", "ds_two", "ds_three"]);
-        assert_eq!(
-            r["datasets"][1]["values"],
-            json!({"v_text": {"text": "line one\nline two & < é"}, "v_visible": {"visible": false}, "v_file": {"image": ai::SAMPLE_MISSING_FILE}})
-        );
-    };
-    let mut s = Session::new();
-    let layered = ai::editing_data(200.0, 100.0, &format!("{library}{}", ai::layer("Art", &square)));
-    let file = ai::ai(&compressed(layered.as_bytes()), "1 0 0 rg 10 50 30 40 re f");
-    let r = open(&mut s, "variables.ai", &file, json!({})).unwrap();
-    assert_eq!(names(&s.doc().unwrap().doc.layers), ["Art"], "{r}");
-    // The library's text and image variables are bound to objects the file doesn't have.
-    assert_eq!(notes(&r), [skipped(2)], "{r}");
-    check(&mut s, 1);
-    let id = s.doc().unwrap().doc.layers[0].children().unwrap()[0].id;
-    assert_eq!(s.doc().unwrap().doc.variables.objects_of("v_visible"), [id]);
-    s.execute("dataset.select", &json!({"name": "ds_two"})).unwrap();
-    assert!(!s.doc().unwrap().doc.node(id).unwrap().visible, "ds_two hides the square");
-    s.execute("dataset.select", &json!({"name": "ds_one"})).unwrap();
-    assert!(s.doc().unwrap().doc.node(id).unwrap().visible, "ds_one shows it");
-    let e = s.execute("variable.bind", &json!({"variable": "v_unbound", "ids": [id.0]})).unwrap_err();
-    assert!(e.to_string().contains("a variable of unknown kind can't be bound to objects"), "{e}");
-    // Its layers can't be read (a symbol): it comes in as its PDF part, with the library and none
-    // of its bindings.
-    let symbols = ai::editing_data(200.0, 100.0, &format!("{library}{}", ai::layer("Art", "/SymbolInstance :\n(Dot) /SymbolRef ,\n;\n")));
-    let r = open(&mut s, "symbols.ai", &ai::ai(&compressed(symbols.as_bytes()), ai::page_pdf()), json!({})).unwrap();
-    assert!(r["warnings"].to_string().contains("PDF part"), "{r}");
-    assert_eq!(notes(&r), [skipped(3)], "{r}");
-    check(&mut s, 0);
-    // A graph value isn't read: the note says how many entries were left out.
-    let graph = ai::xml_element("v_graph", &[], &[ai::xml_text(ai::XmlValue::Str("a,b"))]);
-    let partly = ai::variable_library_data(&ai::sample_variable_sets("none", &[graph]));
-    let layered = ai::editing_data(200.0, 100.0, &format!("{partly}{}", ai::layer("Art", &square)));
-    let r = open(&mut s, "graph.ai", &ai::ai(&compressed(layered.as_bytes()), "1 0 0 rg 10 50 30 40 re f"), json!({})).unwrap();
-    assert_eq!(
-        notes(&r),
-        [json!("the file's variable library was partly read (entries skipped: 1): the Variables panel lists the rest"), skipped(2)],
-        "{r}"
-    );
-    // Without a library, no note and no variables.
-    let plain = ai::editing_data(200.0, 100.0, &ai::layer("Art", &square));
-    let r = open(&mut s, "plain.ai", &ai::ai(&compressed(plain.as_bytes()), "1 0 0 rg 10 50 30 40 re f"), json!({})).unwrap();
-    assert!(notes(&r).is_empty(), "{r}");
-    assert_eq!(s.execute("variable.list", &json!({})).unwrap()["variables"], json!([]));
-}
 
 /// An Objects on Path group in a `.ai` file opens as one: its record names the group's children by
 /// their ids in the opened document.
@@ -1679,25 +1361,6 @@ fn outlined_threaded_type_of_the_editing_data_shows_the_text_of_every_frame() {
     assert!(doc.text_threads.is_empty(), "outlined frames are in no thread: {:?}", doc.text_threads);
 }
 
-#[test]
-fn editing_data_false_opens_only_what_the_page_prints() {
-    let mut s = Session::new();
-    for (name, file) in [("art.eps", ai::eps(&ai::sample_data(), ai::page_ps())), ("art.ai", ai::ai(&compressed(&ai::sample_data()), ai::page_pdf()))]
-    {
-        let r = open(&mut s, name, &file, json!({"editingData": false})).unwrap();
-        let layers = &s.doc().unwrap().doc.layers;
-        assert_eq!(layers.len(), 1, "{name}: {r}");
-        assert_ne!(names(layers), ["Art"], "{name}: the page's layer");
-    }
-    let e = open(&mut s, "art.eps", &ai::eps(&ai::sample_data(), ai::page_ps()), json!({"editingData": "no"})).unwrap_err().to_string();
-    assert!(e.contains("editingData must be true, false or \"always\""), "{e}");
-    // `always`: the editing data, as by default (whether it draws as the page does is the reader's).
-    open(&mut s, "art.ai", &ai::ai(&compressed(&ai::sample_data()), ai::page_pdf()), json!({"editingData": "always"})).unwrap();
-    assert_eq!(names(&s.doc().unwrap().doc.layers), ["Art", "Hidden"]);
-    // A file that is only its editing data can't open without it.
-    let e = open(&mut s, "art.ai", &ai::ai(&compressed(&ai::sample_data()), PLACEHOLDER), json!({"editingData": false})).unwrap_err().to_string();
-    assert!(e.contains("placeholder"), "{e}");
-}
 
 /// A CMYK image opens with the same ink amounts from a `.ai` file's editing data as from its PDF
 /// part.
@@ -1729,22 +1392,6 @@ fn a_cmyk_image_keeps_its_inks_from_the_editing_data_as_from_the_pdf_part() {
     assert_eq!(opened(&s), [Some(inks.to_vec())], "from the PDF part");
 }
 
-#[test]
-fn fit_to_artwork_bounds_leaves_out_the_hidden_art_and_guides_the_editing_data_has() {
-    // A shown square; a hidden one and a long guide far from it, which the page doesn't draw.
-    let art =
-        format!("0 g\n{}f\n1 Xw\n{}f\n0 Xw\n-500 20 m\n700 20 L\n(N) *\n", ai::rect(10.0, 10.0, 50.0, 50.0), ai::rect(150.0, 60.0, 190.0, 95.0));
-    let data = ai::editing_data(200.0, 100.0, &ai::layer("Art", &art));
-    let mut s = Session::new();
-    let r = open(&mut s, "fit.eps", &ai::eps(data.as_bytes(), "0 setgray 10 10 40 40 rectfill\n"), json!({})).unwrap();
-    let layer = &s.doc().unwrap().doc.layers[0];
-    let kids = layer.children().unwrap();
-    assert_eq!(kids.len(), 3, "{r}");
-    assert!(!kids[1].visible && matches!(kids[2].kind, NodeKind::Path { guide: true, .. }));
-    s.execute("artboard.fitToArt", &json!({})).unwrap();
-    // The square, 50 to 90 down the 100-point page.
-    assert_eq!(s.doc().unwrap().doc.artboards[0].rect, vectorcraft_geom::Rect::new(10.0, 50.0, 50.0, 90.0));
-}
 
 #[test]
 fn type_asked_for_as_outlines_opens_a_file_whose_type_shows_from_its_pdf_part() {
@@ -2157,26 +1804,3 @@ fn open_rows(s: &Session) -> (Vec<String>, Vec<String>) {
     (rows, open)
 }
 
-/// #1475: a `.ai` another app wrote keeps no open rows VectorCraft reads, so it opens with every
-/// row closed, its top-level layers as its groups; a `.ai` VectorCraft wrote, and other formats,
-/// open as before (with their top-level layers open unless the file says otherwise).
-#[test]
-fn an_illustrator_ai_file_opens_with_its_layers_closed() {
-    let mut s = Session::new();
-    for file in [ai::ai(&compressed(&ai::sample_data()), ai::page_pdf()), ai::eps(&ai::sample_data(), ai::page_ps())] {
-        let r = open(&mut s, "art.ai", &file, json!({})).unwrap();
-        assert_eq!((&r["format"], &r["restored"]), (&json!("ai"), &json!(false)), "{r}");
-        let (rows, open) = open_rows(&s);
-        assert!(rows.contains(&"Art".into()) && rows.contains(&"Pair".into()) && rows.contains(&"Sub".into()), "{rows:?}");
-        assert_eq!(open, Vec::<String>::new(), "{r}");
-    }
-    // The same art as an EPS: its top-level layers open.
-    open(&mut s, "art.eps", &ai::eps(&ai::sample_data(), ai::page_ps()), json!({})).unwrap();
-    assert_eq!(open_rows(&s).1, ["Art", "Hidden"]);
-    // Saved as .ai by VectorCraft, it opens with the rows it was saved with.
-    let saved = s.execute("document.save", &json!({"format": "ai"})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let r = open(&mut s, "again.ai", &bytes, json!({})).unwrap();
-    assert_eq!(r["restored"], json!(true), "{r}");
-    assert_eq!(open_rows(&s).1, ["Art", "Hidden"]);
-}

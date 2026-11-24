@@ -183,19 +183,7 @@ fn a_warped_image_keeps_its_bend_in_pdf() {
     opens_bent("warped.pdf", &s.execute("document.export", &json!({"format": "pdf", "preserveEditing": false})).unwrap());
 }
 
-#[test]
-fn a_warped_image_keeps_its_bend_in_ai() {
-    let mut s = session();
-    arc_image(&mut s);
-    opens_bent("warped.ai", &s.execute("file.saveCopy", &json!({"format": "ai"})).unwrap());
-}
 
-#[test]
-fn a_warped_image_keeps_its_bend_in_eps() {
-    let mut s = session();
-    arc_image(&mut s);
-    opens_bent("warped.eps", &s.execute("document.exportEps", &json!({"previewFormat": "none", "useArtboards": false})).unwrap());
-}
 
 #[test]
 fn a_warped_image_keeps_its_bend_in_png() {

@@ -460,9 +460,8 @@ fn open_exts_cover_every_readable_format() {
     assert_eq!(filters[0], ("All readable files", OPEN_EXTS));
     assert_eq!(
         filters.len(),
-        13 + FORMATS.iter().filter(|f| f.read).count(),
-        "and swatch and graphic style libraries, libraries, flattener, PDF, print, perspective grid and export presets, composite \
-         fonts, shortcut sets, scripts, plug-ins"
+        9 + FORMATS.iter().filter(|f| f.read).count(),
+        "and swatch and graphic style libraries, libraries, flattener, PDF, perspective grid and export presets, composite fonts"
     );
     let at = |label: &str| filters.iter().position(|f| f.0 == label).unwrap_or_else(|| panic!("File › Open has no {label} filter"));
     let styles: &[&str] = &[vectorcraft_doc::style_libs::STYLES_EXT];
@@ -503,77 +502,7 @@ fn the_swatch_library_filter_lists_ai_and_eps_files() {
     assert!(!crate::cmd::swatchlib::LIBRARY_EXTS.contains(&"ai") && !opens_as_other("ai"));
 }
 
-/// The extensions usage texts list for export: one per writable format, each picking that format
-/// (`.png` picks PNG; PNG-8 is asked for by `format`).
-#[test]
-fn export_extensions_name_every_writable_format() {
-    let exts = export_extensions();
-    assert_eq!(
-        exts,
-        [
-            "vectorcraft",
-            "svg",
-            "svgz",
-            "pdf",
-            "ai",
-            "png",
-            "jpg",
-            "gif",
-            "webp",
-            "tif",
-            "bmp",
-            "vctemplate",
-            "txt",
-            "dxf",
-            "eps",
-            "emf",
-            "wmf",
-            "plt",
-            "tga",
-            "psd"
-        ]
-    );
-    for e in exts {
-        assert!(format_for_name(&format!("x.{e}")).is_some_and(|f| f.write), "{e}");
-    }
-}
 
-#[test]
-fn formats_query_lists_readers_writers_and_options() {
-    let mut s = Session::new();
-    let r = s.execute("document.formats", &json!({})).unwrap();
-    let ids = |k: &str| r[k].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect::<Vec<_>>();
-    assert_eq!(
-        ids("writable"),
-        [
-            "vectorcraft",
-            "svg",
-            "svgz",
-            "pdf",
-            "ai",
-            "png",
-            "jpg",
-            "gif",
-            "webp",
-            "tiff",
-            "bmp",
-            "template",
-            "png8",
-            "txt",
-            "dxf",
-            "eps",
-            "emf",
-            "wmf",
-            "hpgl",
-            "tga",
-            "psd"
-        ]
-    );
-    assert!(ids("readable").contains(&"tiff".to_string()) && ids("readable").contains(&"ait".to_string()));
-    let png = r["formats"].as_array().unwrap().iter().find(|f| f["id"] == "png").unwrap();
-    assert_eq!(png["options"]["scale"]["default"], Value::Null);
-    assert_eq!(r["openExtensions"].as_array().unwrap().len(), OPEN_EXTS.len());
-}
 
 /// The format ids `command`'s params text lists for `format` (`a|b (default)|c (…)`, up to the
 /// first comma), sorted.
@@ -586,24 +515,6 @@ fn listed_formats(command: &str) -> Vec<String> {
     ids
 }
 
-/// The params texts of the commands that take any writable format list exactly the formats each
-/// command writes (.ai among them).
-#[test]
-fn export_params_list_every_format_the_command_writes() {
-    let mut s = session(100.0, 80.0, 1);
-    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 40})).unwrap();
-    s.execute("select.all", &json!({})).unwrap();
-    for command in ["document.serialize", "document.export", "document.exportSelection"] {
-        let mut refused = vec![];
-        let mut written: Vec<String> = FORMATS
-            .iter()
-            .filter(|f| s.execute(command, &json!({"format": f.id})).map_err(|e| refused.push(format!("{}: {e}", f.id))).is_ok())
-            .map(|f| f.id.to_string())
-            .collect();
-        written.sort();
-        assert_eq!(listed_formats(command), written, "{command}; refused: {refused:?}");
-    }
-}
 
 #[test]
 fn ranges_parse_one_based() {
@@ -828,67 +739,6 @@ fn a_native_save_streams_the_bytes_the_encoder_makes() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
-/// An option given beside the path (an SVG option flat or in `svg`) and in `options` with different
-/// values is refused before anything is written; a native option beside the path of a format that doesn't read it is named
-/// in the warnings.
-#[test]
-fn a_save_refuses_disagreeing_options_and_names_unread_native_ones() {
-    let d = tmp_dir("save-options");
-    let mut s = session(200.0, 100.0, 1);
-    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 20})).unwrap();
-    let path = d.join("both.vectorcraft").to_string_lossy().to_string();
-    for cmd in ["document.save", "file.saveAs", "file.saveCopy", "file.saveAsTemplate"] {
-        let e = s.execute(cmd, &json!({"path": path, "compress": true, "options": {"compress": false}})).unwrap_err().to_string();
-        assert!(e.contains("`compress: true` and `options.compress: false` disagree") && e.contains(&format!("`{cmd}`")), "{cmd}: {e}");
-    }
-    assert!(!std::path::Path::new(&path).exists(), "nothing is written");
-    assert!(!d.join("both.vctemplate").exists(), "nor a template");
-    // An SVG option given in `svg: {…}` or in `options.svg` counts as given there.
-    let svg = d.join("a.svg").to_string_lossy().to_string();
-    for p in [
-        json!({"svg": {"hiddenLayers": false}, "options": {"hiddenLayers": true}}),
-        json!({"hiddenLayers": false, "options": {"svg": {"hiddenLayers": true}}}),
-        json!({"hiddenLayers": true, "svg": {"hiddenLayers": false}, "options": {"hiddenLayers": true}}),
-    ] {
-        let mut p = p;
-        p["path"] = json!(svg);
-        let e = s.execute("file.saveCopy", &p).unwrap_err().to_string();
-        assert!(e.contains("`hiddenLayers: false` and `options.hiddenLayers: true` disagree") && e.contains("`file.saveCopy`"), "{p}: {e}");
-    }
-    assert!(!std::path::Path::new(&svg).exists(), "nothing is written");
-    // Agreeing values, or one of them null, save as asked; `3` and `3.0` agree.
-    for p in [
-        json!({"compress": true, "options": {"compress": true}}),
-        json!({"compress": null, "options": {"compress": true}}),
-        json!({"compress": true, "version": 3, "options": {"compress": true, "version": 3.0}}),
-    ] {
-        let mut p = p;
-        p["path"] = json!(path);
-        let r = s.execute("file.saveCopy", &p).unwrap();
-        assert_eq!(r["warnings"], json!([]), "{p}: {r}");
-        assert_eq!(std::fs::read(&path).unwrap()[..2], [0x1f, 0x8b], "{p}");
-    }
-    // An SVG file reads none of the native options; a .ai file reads `compress` only.
-    let r = s.execute("file.saveCopy", &json!({"path": svg, "compress": true, "version": 3, "preview": null})).unwrap();
-    let w: Vec<&str> = r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
-    assert!(w.contains(&"`compress` was not used: SVG files don't read it"), "{w:?}");
-    assert!(w.contains(&"`version` was not used: SVG files don't read it") && !w.iter().any(|w| w.starts_with("`preview`")), "{w:?}");
-    assert!(std::fs::read(&svg).unwrap().starts_with(b"<"), "plain SVG");
-    let r = s.execute("file.saveCopy", &json!({"path": d.join("a.ai").to_string_lossy(), "compress": false, "version": 3})).unwrap();
-    let w: Vec<&str> = r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
-    assert!(w.iter().any(|w| w.starts_with("`version` was not used")) && !w.iter().any(|w| w.starts_with("`compress`")), "{w:?}");
-    // `precision` is read by native files and templates only.
-    for name in ["p.svg", "p.pdf", "p.ai", "p.eps"] {
-        let r = s.execute("file.saveCopy", &json!({"path": d.join(name).to_string_lossy(), "precision": 2})).unwrap();
-        let w: Vec<&str> = r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
-        assert!(w.iter().any(|w| w.starts_with("`precision` was not used:")), "{name}: {w:?}");
-    }
-    for name in ["p.vectorcraft", "p.vctemplate"] {
-        let r = s.execute("file.saveCopy", &json!({"path": d.join(name).to_string_lossy(), "precision": 2})).unwrap();
-        assert_eq!(r["warnings"], json!([]), "{name}: {r}");
-    }
-    let _ = std::fs::remove_dir_all(&d);
-}
 
 /// A native save whose file write fails partway (a full disk) leaves the file as it was, and no
 /// temporary file behind.
@@ -1010,31 +860,6 @@ fn a_canceled_save_leaves_the_file_as_it_was() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
-/// A save that writes several files (EPS with Use Artboards) and is canceled once its first file is
-/// in place writes the others too and succeeds: the set is never left half written.
-#[test]
-fn a_save_canceled_after_its_first_file_writes_them_all() {
-    let d = tmp_dir("cancel-files");
-    let mut s = session(100.0, 100.0, 2);
-    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 30, "height": 30})).unwrap();
-    let path = d.join("logo.eps").to_string_lossy().to_string();
-    let plan = save_plan(&s, SaveMode::Copy, &json!({"path": path, "options": {"useArtboards": true}})).unwrap();
-    let job = save_job(&mut s, plan).unwrap();
-    let token = crate::cancel::CancelToken::new();
-    let mut written = vec![];
-    let r = crate::cancel::scope(&token, None, || {
-        job.write(|p, b| {
-            super::write_save_file(p, b)?;
-            written.push(p.to_string());
-            token.cancel();
-            Ok(())
-        })
-    });
-    assert!(r.is_ok(), "{r:?}");
-    assert_eq!(written.len(), 3, "{written:?}");
-    assert!(written.iter().all(|p| std::path::Path::new(p).is_file()), "{written:?}");
-    let _ = std::fs::remove_dir_all(&d);
-}
 
 /// A save that fails leaves File Info's dates and the saved state alone; one that works stamps them.
 #[test]

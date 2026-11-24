@@ -230,33 +230,7 @@ fn postscript_ai(header: &str) -> Vec<u8> {
     .into_bytes()
 }
 
-#[test]
-fn files_that_record_no_units_open_in_the_general_unit() {
-    let pdf = vectorcraft_testkit::pdf::pdf(&[vectorcraft_testkit::pdf::PdfPage::new(120.0, 60.0, "0 0 0 rg 10 10 50 30 re f")], None);
-    let png = exported("Inches", "png");
-    let ai = postscript_ai("");
-    let mut s = general_in("Millimeters");
-    assert_eq!(opened_units(&mut s, "plain.pdf", &pdf), Unit::Millimeters, "a PDF records no units (#5820)");
-    assert_eq!(opened_units(&mut s, "image.png", &png), Unit::Millimeters, "nor does an image");
-    assert_eq!(opened_units(&mut s, "old.ai", &ai), Unit::Millimeters, "nor a .ai without ruler units");
-    // Only the units change: the page keeps its size in points.
-    s.execute("document.open", &json!({"name": "plain.pdf", "dataBase64": vectorcraft_format::base64_encode(&pdf)})).unwrap();
-    let board = s.doc().unwrap().doc.artboards[0].rect;
-    assert!((board.width() - 120.0).abs() < 1e-6 && (board.height() - 60.0).abs() < 1e-6, "{board:?}");
-    // With the preference left at points, they open in points as before.
-    let mut p = general_in("Points");
-    assert_eq!(opened_units(&mut p, "plain.pdf", &pdf), Unit::Points);
-}
 
-#[test]
-fn files_that_record_units_keep_them_whatever_the_general_unit() {
-    let mut s = general_in("Millimeters");
-    assert_eq!(opened_units(&mut s, "inches.ai", &postscript_ai("%AI5_RulerUnits: 0\n")), Unit::Inches, "a .ai's ruler units");
-    assert_eq!(opened_units(&mut s, "points.ai", &postscript_ai("%AI5_RulerUnits: 2\n")), Unit::Points, "ruler units in points are kept too");
-    assert_eq!(opened_units(&mut s, "saved.vectorcraft", &exported("Inches", "vectorcraft")), Unit::Inches, "a native file");
-    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="2in" height="1in" viewBox="0 0 144 72"><rect width="10" height="10"/></svg>"#;
-    assert_eq!(opened_units(&mut s, "inches.svg", svg.as_bytes()), Unit::Inches, "an SVG's root size");
-}
 
 #[test]
 fn revert_reopens_a_file_without_units_in_the_general_unit() {

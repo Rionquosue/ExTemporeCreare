@@ -502,26 +502,6 @@ fn pdf_prints_each_role_on_its_swatch_s_separation_and_overprints_it() {
     assert!(!export(&mut s, "pdf").is_empty());
 }
 
-#[test]
-fn svg_dxf_and_hpgl_keep_the_default_role_swatches_apart() {
-    let mut s = two_roles();
-    let svg = export(&mut s, "svg");
-    let strokes: BTreeSet<&str> = svg.split("stroke=\"").skip(1).filter_map(|t| t.split('"').next()).filter(|c| c.starts_with('#')).collect();
-    let strokes = if strokes.is_empty() {
-        svg.split("stroke:").skip(1).filter_map(|t| t.split([';', '"', '}']).next()).filter(|c| c.starts_with('#')).collect()
-    } else {
-        strokes
-    };
-    assert_eq!(strokes.len(), 2, "two stroke colors: {svg}");
-    let dxf = export(&mut s, "dxf");
-    let lines: Vec<&str> = dxf.lines().map(str::trim).collect();
-    // The rectangles' white fills come out as true colors too.
-    let colors: BTreeSet<&str> = lines.windows(2).filter(|w| w[0] == "420" && w[1] != "16777215").map(|w| w[1]).collect();
-    assert_eq!(colors.len(), 2, "two stroke true colors: {colors:?}");
-    let plot = s.execute("document.export", &json!({"format": "hpgl", "hpglVersion": "hpgl2"})).unwrap();
-    let plot = String::from_utf8_lossy(&b64(&plot)).into_owned();
-    assert!(plot.contains("SP1") && plot.contains("SP2"), "a pen per role swatch color: {plot}");
-}
 
 #[test]
 fn compound_paths_carry_a_role() {

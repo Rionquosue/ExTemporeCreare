@@ -133,17 +133,6 @@ fn pdf_and_svg_show_the_color_and_their_editing_data_keeps_it_as_the_artboards()
     assert_eq!(back.layers.len(), doc.layers.len(), "no art made of it");
 }
 
-#[test]
-fn the_ai_editing_copy_for_other_apps_draws_the_color_as_the_pages_do() {
-    let mut s = session();
-    let opts = LoadOptions { native: false, ..Default::default() };
-    for (more, fill) in [(json!({}), true), (json!({"includeArtboardFill": false}), false)] {
-        let l = load::load_with("a.ai", &file(&mut s, with(json!({"format": "ai"}), &more)), &opts).unwrap();
-        assert!(l.editing_data && !l.restored, "{more}: {:?}", l.warnings);
-        let names: Vec<String> = l.doc.layers.iter().filter_map(|l| l.name.clone()).collect();
-        assert_eq!(names.iter().any(|n| n == "Artboard Fill"), fill, "{more}: {names:?}");
-    }
-}
 
 /// Does PostScript `t` paint the only red the document has, the first artboard's color? RGB, or
 /// CMYK PostScript's (its values depend on the color conversion the platform offers, so only its
@@ -161,36 +150,7 @@ fn red(t: &str) -> bool {
     })
 }
 
-#[test]
-fn eps_and_postscript_print_draw_the_color() {
-    let mut s = session();
-    let eps = |s: &mut Session, more: Value| {
-        String::from_utf8_lossy(&file(s, with(json!({"format": "eps", "useArtboards": true, "artboard": 0}), &more))).into_owned()
-    };
-    assert!(red(&eps(&mut s, json!({}))), "EPS");
-    assert!(!red(&eps(&mut s, json!({"includeArtboardFill": false}))), "EPS without it");
-    let ps = |s: &mut Session, more: Value| {
-        String::from_utf8_lossy(&b64(&s.execute("file.print", &with(json!({"format": "postscript"}), &more)).unwrap())).into_owned()
-    };
-    assert!(red(&ps(&mut s, json!({}))), "print");
-    assert!(!red(&ps(&mut s, json!({"includeArtboardFill": false}))), "print without it");
-}
 
-/// EPS Save draws the color on an artboard's page: with Use Artboards, or on the first artboard
-/// when no art shows. The box of the visible art, as Export's, has none.
-#[test]
-fn eps_save_draws_the_color_on_an_artboard_page() {
-    let mut s = session();
-    let save = |s: &mut Session, more: Value| {
-        let options = with(json!({"previewFormat": "none", "thumbnails": false}), &more);
-        String::from_utf8_lossy(&b64(&s.execute("document.save", &json!({"format": "eps", "options": options})).unwrap())).into_owned()
-    };
-    assert!(!red(&save(&mut s, json!({}))), "the art's box");
-    assert!(red(&save(&mut s, json!({"useArtboards": true, "range": "1"}))), "the artboard's page");
-    s.execute("select.all", &json!({})).unwrap();
-    s.execute("edit.clear", &json!({})).unwrap();
-    assert!(red(&save(&mut s, json!({}))), "the first artboard when no art shows");
-}
 
 #[test]
 fn export_for_screens_includes_the_fill_unless_unchecked() {

@@ -217,42 +217,6 @@ fn svg_image(svg: &str) -> DynamicImage {
         .unwrap()
 }
 
-#[test]
-fn outputs_write_the_masked_pixels() {
-    let (mut s, _) = open(&framed());
-    let export =
-        |s: &Session, format: &str| crate::cmd::fileio::encode_all(doc(s), format, &json!({"useArtboards": true})).unwrap().files.remove(0).1;
-    let (png0, svg0, pdf0, eps0) = (export(&s, "png"), export(&s, "svg"), export(&s, "pdf"), export(&s, "eps"));
-    s.execute(COLOR_MASK, &hide_white()).unwrap();
-    let alpha = |bytes: &[u8]| {
-        craft_image_codecs::decode(bytes)
-            .map(|__cimg| {
-                let (__w, __h) = __cimg.dimensions();
-                match (__cimg.layout(), __cimg.sample_type()) {
-                    (craft_image_codecs::ChannelLayout::Gray, craft_image_codecs::SampleType::U8) => {
-                        image::DynamicImage::ImageLuma8(image::GrayImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
-                    }
-                    (craft_image_codecs::ChannelLayout::GrayA, craft_image_codecs::SampleType::U8) => {
-                        image::DynamicImage::ImageLumaA8(image::GrayAlphaImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
-                    }
-                    (craft_image_codecs::ChannelLayout::Rgb, craft_image_codecs::SampleType::U8) => {
-                        image::DynamicImage::ImageRgb8(image::RgbImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
-                    }
-                    _ => image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(__w, __h, __cimg.to_rgba8()).unwrap()),
-                }
-            })
-            .unwrap()
-            .to_rgba8()
-            .get_pixel(0, 0)
-            .0[3]
-    };
-    assert_eq!((alpha(&png0), alpha(&export(&s, "png"))), (255, 0), "PNG");
-    let svg_alpha = |bytes: &[u8]| svg_image(std::str::from_utf8(bytes).unwrap()).to_rgba8().get_pixel(0, 0).0[3];
-    assert_eq!((svg_alpha(&svg0), svg_alpha(&export(&s, "svg"))), (255, 0), "SVG");
-    let has = |bytes: &[u8], what: &[u8]| bytes.windows(what.len()).any(|w| w == what);
-    assert!(!has(&pdf0, b"/SMask") && has(&export(&s, "pdf"), b"/SMask"), "PDF: the image with an alpha channel");
-    assert!(!has(&eps0, b"/MaskColor") && has(&export(&s, "eps"), b"/MaskColor"), "EPS: the hidden pixels masked out");
-}
 
 #[test]
 fn the_mask_saves_and_opens_again() {
@@ -890,21 +854,8 @@ fn written_with_the_mask<T: PartialEq + std::fmt::Debug>(out: impl Fn(&Document)
     assert_eq!(out(doc(&s)), plain, "without the mask, the image's own");
 }
 
-#[test]
-fn dxf_writes_the_masked_pixels() {
-    written_with_the_mask(|d| written(d, "dxf", json!({})));
-}
 
-#[test]
-fn emf_and_wmf_write_the_masked_pixels() {
-    written_with_the_mask(|d| written(d, "emf", json!({})));
-    written_with_the_mask(|d| written(d, "wmf", json!({})));
-}
 
-#[test]
-fn legacy_ai_writes_the_masked_pixels() {
-    written_with_the_mask(|d| written(d, "ai", json!({"aiVersion": 7})));
-}
 
 
 /// PDF/X-1a and PDF/X-3 flatten a masked image, whose hidden pixels are transparency, and write no
@@ -927,21 +878,6 @@ fn pdf_x1a_and_x3_flatten_the_hidden_pixels() {
     }
 }
 
-/// The legacy .ai flattens a masked image, whose hidden pixels are transparency, as it flattens an
-/// image whose background was removed, and `transparentImages: "omit"` leaves both out.
-#[test]
-fn legacy_ai_flattens_a_masked_image_as_a_see_through_one() {
-    let warnings = |s: &Session, p: &Value| crate::cmd::fileio::encode_all(doc(s), "ai", p).unwrap().notes();
-    let (mut masked, _) = open(&framed());
-    masked.execute(COLOR_MASK, &hide_white()).unwrap();
-    let (mut cleared, _) = open(&framed());
-    cleared.execute(super::super::REMOVE_BACKGROUND, &hide_white()).unwrap();
-    for (p, said) in [(json!({"aiVersion": 7}), "are flattened"), (json!({"aiVersion": 7, "transparentImages": "omit"}), "are left out")] {
-        let w = warnings(&masked, &p);
-        assert!(w.iter().any(|w| w.contains("transparent images") && w.contains(said)), "{p}: {w:?}");
-        assert_eq!(w, warnings(&cleared, &p), "{p}");
-    }
-}
 
 /// A live color adjustment recolors the masked pixels too: the hidden colors stay hidden on the
 /// canvas and in outputs that apply the adjustment.

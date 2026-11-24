@@ -60,7 +60,7 @@ pub const PREF_CATEGORIES: &[&str] = &[
     "Smart Guides",
     "Slices",
     "Hyphenation",
-    "Plug-ins & Scratch Disks",
+    "Scratch Disks",
     "User Interface",
     "Performance",
     "File Handling",
@@ -821,7 +821,7 @@ const MAX_PREFS_FILE_BYTES: usize = 1 << 20;
 
 /// Folder preferences, which name folders on one computer: a preferences file leaves them out, and
 /// under automation read roots one outside them is not shown.
-pub const FOLDER_PREFS: [&str; 6] = ["fontsFolder", "pluginsFolder", "scratchPrimary", "scratchSecondary", "recoveryFolder", "templatesFolder"];
+pub const FOLDER_PREFS: [&str; 5] = ["fontsFolder", "scratchPrimary", "scratchSecondary", "recoveryFolder", "templatesFolder"];
 
 /// The scratch disk choices that are not folders.
 pub const SCRATCH_CHOICES: [&str; 2] = ["Startup", "None"];

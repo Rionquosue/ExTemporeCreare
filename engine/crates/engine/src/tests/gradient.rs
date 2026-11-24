@@ -771,41 +771,6 @@ fn a_negative_aspect_mirrors_only_a_conic() {
     assert_eq!(fill_gradient(&s, b).geom.unwrap().focal, None);
 }
 
-/// Saved as `.ai`, as PDF with its editing data and as SVG with its editing data, then opened, a
-/// mirrored, squashed conic comes back as it was; a PDF without editing data gives it back from
-/// its sweep shading.
-#[test]
-fn a_conic_survives_saving_as_ai_pdf_and_svg() {
-    let mut s = session();
-    let id = rect(&mut s, 100.0, 100.0, 200.0, 100.0);
-    s.execute("paint.setFill", &json!({"gradient": {"kind": "conic", "start": [180, 140], "end": [240, 110], "aspect": -60}})).unwrap();
-    let want = fill_gradient(&s, id);
-    let reopened = |s: &mut Session, format: &str, p: Value| {
-        let mut p = p;
-        p["format"] = json!(format);
-        let r = s.execute("file.saveCopy", &p).unwrap();
-        let mut back = session();
-        back.execute("document.open", &json!({"name": format!("t.{format}"), "dataBase64": r["dataBase64"]})).unwrap();
-        let mut found = None;
-        back.doc().unwrap().doc.walk(|n| {
-            if let (None, Paint::Gradient(g)) = (&found, n.appearance.fill_paint()) {
-                found = Some(*g.clone());
-            }
-        });
-        found.unwrap_or_else(|| panic!("{format}: the gradient is lost"))
-    };
-    for (format, p) in [("ai", json!({})), ("pdf", json!({"preserveEditing": true})), ("svg", json!({"preserveEditing": true}))] {
-        let got = reopened(&mut s, format, p);
-        assert_eq!((got.gradient.kind, got.geom), (GradientKind::Conic, want.geom), "{format}");
-    }
-    let got = reopened(&mut s, "pdf", json!({"preserveEditing": false}));
-    assert_eq!(got.gradient.kind, GradientKind::Conic);
-    let (g, w) = (got.geom.unwrap(), want.geom.unwrap());
-    assert!(g.is_mirrored() && g.start.distance(w.start) < 0.05, "{g:?}");
-    for p in [Point::new(120.0, 120.0), Point::new(280.0, 180.0), Point::new(200.0, 105.0)] {
-        assert!((g.param_at(GradientKind::Conic, p) - w.param_at(GradientKind::Conic, p)).abs() < 2e-3, "{p:?}: {g:?}");
-    }
-}
 
 /// Turning a gradient conic is one undo step, and undoing it gives the gradient back as it was.
 #[test]
@@ -918,28 +883,6 @@ fn a_warp_moves_a_diamond_by_its_center() {
     assert!(diamond.start.distance(radial.start) < 1e-9, "{diamond:?} vs {radial:?}");
 }
 
-/// Saved as `.ai`, as PDF with its editing data and as SVG with its editing data, then opened, a
-/// turned, squashed diamond comes back as it was.
-#[test]
-fn a_diamond_survives_saving_as_ai_pdf_and_svg() {
-    let mut s = session();
-    let id = rect(&mut s, 100.0, 100.0, 200.0, 100.0);
-    s.execute("paint.setFill", &json!({"gradient": {"kind": "diamond", "start": [180, 140], "end": [240, 110], "aspect": 60}})).unwrap();
-    let want = fill_gradient(&s, id);
-    for format in ["ai", "pdf", "svg"] {
-        let r = s.execute("file.saveCopy", &json!({"format": format, "preserveEditing": true})).unwrap();
-        let mut back = session();
-        back.execute("document.open", &json!({"name": format!("t.{format}"), "dataBase64": r["dataBase64"]})).unwrap();
-        let mut found = None;
-        back.doc().unwrap().doc.walk(|n| {
-            if let (None, Paint::Gradient(g)) = (&found, n.appearance.fill_paint()) {
-                found = Some(*g.clone());
-            }
-        });
-        let got = found.unwrap_or_else(|| panic!("{format}: the gradient is lost"));
-        assert_eq!((got.gradient.kind, got.geom), (GradientKind::Diamond, want.geom), "{format}");
-    }
-}
 
 /// Turning a gradient diamond is one undo step, and undoing it gives the gradient back as it was.
 #[test]

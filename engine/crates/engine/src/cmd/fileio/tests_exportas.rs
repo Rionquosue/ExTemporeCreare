@@ -169,108 +169,10 @@ fn unused(r: &Value) -> Vec<String> {
     r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).filter(|w| w.contains("was not used")).map(str::to_string).collect()
 }
 
-/// An option that only another format reads is accepted, and the reply's warnings name it in the
-/// words of a save's note; `document.export`, `document.serialize` and `document.exportSelection`
-/// give the same note.
-#[test]
-fn an_option_only_another_format_reads_gets_a_note() {
-    let (mut s, notes) = (with_art(), unused);
-    for cmd in ["document.export", "document.serialize", "document.exportSelection"] {
-        let r = s.execute(cmd, &json!({"format": "pdf", "quality": 80, "outlineText": true})).unwrap();
-        assert_eq!(
-            notes(&r),
-            ["`outlineText` was not used: PDF files don't read it", "`quality` was not used: PDF files don't read it"],
-            "{cmd}: {r}"
-        );
-    }
-    // The format's own options, the keys every export takes and null values get none.
-    for p in [
-        json!({"format": "jpg", "quality": 80, "scale": 2}),
-        json!({"format": "ai", "compress": true, "compatibility": "1.7"}),
-        json!({"format": "pdf", "quality": null, "selectedOnly": false, "includeArtboardFill": false, "useArtboards": true}),
-        json!({"format": "svg", "outlineText": true, "svg": {"decimals": 2}}),
-    ] {
-        let r = s.execute("document.export", &p).unwrap();
-        assert!(notes(&r).is_empty(), "{p}: {r}");
-    }
-    let r = s.execute("document.serialize", &json!({"format": "png", "compress": true, "marks": {"trim": true}, "svg": {"minify": true}})).unwrap();
-    assert_eq!(
-        notes(&r),
-        [
-            "`compress` was not used: PNG files don't read it",
-            "`marks` was not used: PNG files don't read it",
-            "`svg` was not used: PNG files don't read it"
-        ],
-        "{r}"
-    );
-    // The note names the kind of file written, as a save's does.
-    let r = s.execute("document.export", &json!({"format": "ai", "pdfCompatible": false, "quality": 80})).unwrap();
-    assert_eq!(notes(&r), ["`quality` was not used: non-PDF-compatible .ai files don't read it"], "{r}");
-    let r = s.execute("document.export", &json!({"format": "pdf", "preserveEditing": false, "range": "1"})).unwrap();
-    assert!(notes(&r).is_empty(), "{r}");
-    let r = s.execute("document.export", &json!({"format": "vectorcraft", "artboard": 0})).unwrap();
-    assert_eq!(notes(&r), ["`artboard` was not used: VectorCraft files don't read it"], "{r}");
-}
 
-/// A legacy `.ai` file reads its own options and the artboards to write, not the other `.ai`
-/// options or the PDF options.
-#[test]
-fn a_legacy_ai_export_notes_the_options_of_the_other_ai_files() {
-    let (mut s, notes) = (with_art(), unused);
-    let r = s.execute("document.export", &json!({"format": "ai", "aiVersion": "7", "compress": true, "marks": {"trim": true}})).unwrap();
-    assert_eq!(
-        notes(&r),
-        ["`compress` was not used: legacy .ai (version 7) files don't read it", "`marks` was not used: legacy .ai (version 7) files don't read it"],
-        "{r}"
-    );
-    let r =
-        s.execute("document.export", &json!({"format": "ai", "aiVersion": "7", "outlineText": true, "hiddenObjects": "omit", "range": "1"})).unwrap();
-    assert!(notes(&r).is_empty(), "{r}");
-    let r = s.execute("document.export", &json!({"format": "ai", "aiVersion": "7", "useArtboards": false})).unwrap();
-    assert!(notes(&r).is_empty(), "{r}");
-}
 
-/// The `.ai` files other than the legacy one don't read the legacy file's own options.
-#[test]
-fn a_pdf_compatible_ai_export_notes_the_legacy_options() {
-    let (mut s, notes) = (with_art(), unused);
-    let unread = json!({"format": "ai", "aiVersion": "pdf", "outlineText": true, "hiddenObjects": "omit", "transparentImages": "omit"});
-    let r = s.execute("document.export", &unread).unwrap();
-    assert_eq!(
-        notes(&r),
-        [
-            "`hiddenObjects` was not used: PDF-compatible .ai files don't read it",
-            "`outlineText` was not used: PDF-compatible .ai files don't read it",
-            "`transparentImages` was not used: PDF-compatible .ai files don't read it"
-        ],
-        "{r}"
-    );
-}
 
-/// `preserveEditing` is always on for a `.ai` file, so an export that gives it gets a note.
-#[test]
-fn an_ai_export_notes_preserve_editing() {
-    let (mut s, notes) = (with_art(), unused);
-    let r = s.execute("document.export", &json!({"format": "ai", "preserveEditing": false, "range": "1"})).unwrap();
-    assert_eq!(notes(&r), ["`preserveEditing` was not used: PDF-compatible .ai files don't read it"], "{r}");
-}
 
-/// An export writes one file: only a save writes each artboard to a file of its own, so an export
-/// notes `separateArtboards`, and the `range` that names those files for a native file.
-#[test]
-fn an_export_notes_the_options_that_only_a_save_reads() {
-    let (mut s, notes) = (with_art(), unused);
-    let r = s.execute("document.export", &json!({"format": "ai", "separateArtboards": true, "range": "1"})).unwrap();
-    assert_eq!(notes(&r), ["`separateArtboards` was not used: PDF-compatible .ai files don't read it"], "{r}");
-    for (format, label) in [("vectorcraft", "VectorCraft"), ("template", "VectorCraft Template")] {
-        let r = s.execute("document.export", &json!({"format": format, "separateArtboards": true, "range": "1", "compress": true})).unwrap();
-        assert_eq!(
-            notes(&r),
-            [format!("`range` was not used: {label} files don't read it"), format!("`separateArtboards` was not used: {label} files don't read it")],
-            "{r}"
-        );
-    }
-}
 
 
 #[test]
@@ -282,45 +184,6 @@ fn note_texts_give_the_losses_first_each_kind_in_order() {
     assert!(note_texts(&[]).is_empty());
 }
 
-/// A save notes the `.ai` options its file doesn't read as an export does: a PDF-compatible file
-/// doesn't read the legacy file's options or `preserveEditing`, and a legacy file reads its own
-/// options only. The notes cover the options beside the path and in `options`.
-#[test]
-fn a_save_notes_the_ai_options_its_file_does_not_read() {
-    let (mut s, notes) = (with_art(), unused);
-    let r = s
-        .execute("file.saveCopy", &json!({"format": "ai", "outlineText": true, "preserveEditing": false, "options": {"hiddenObjects": "omit"}}))
-        .unwrap();
-    assert_eq!(
-        notes(&r),
-        [
-            "`outlineText` was not used: PDF-compatible .ai files don't read it",
-            "`preserveEditing` was not used: PDF-compatible .ai files don't read it",
-            "`options.hiddenObjects` was not used: PDF-compatible .ai files don't read it"
-        ],
-        "{r}"
-    );
-    let p = json!({"format": "ai", "aiVersion": "7", "compress": true, "marks": {"trim": true}, "options": {"pdfCompatible": false}});
-    let r = s.execute("file.saveCopy", &p).unwrap();
-    assert_eq!(
-        notes(&r),
-        [
-            "`compress` was not used: legacy .ai (version 7) files don't read it",
-            "`marks` was not used: legacy .ai (version 7) files don't read it",
-            "`options.pdfCompatible` was not used: legacy .ai (version 7) files don't read it"
-        ],
-        "{r}"
-    );
-    // The file's own options get none.
-    for p in [
-        json!({"format": "ai", "aiVersion": "7", "outlineText": true, "options": {"hiddenObjects": "omit", "range": "1"}}),
-        json!({"format": "ai", "compress": true, "marks": {"trim": true}, "options": {"editingData": false}}),
-        json!({"format": "pdf", "marks": {"trim": true}, "preserveEditing": false}),
-    ] {
-        let r = s.execute("file.saveCopy", &p).unwrap();
-        assert!(notes(&r).is_empty(), "{p}: {r}");
-    }
-}
 
 /// A save notes an option beside the path that only another save format takes, as it notes one in
 /// `options`.
@@ -331,52 +194,4 @@ fn a_save_notes_an_option_beside_the_path_that_only_another_save_format_takes() 
     assert_eq!(notes(&r), ["`marks` was not used: VectorCraft files don't read it", "`svg` was not used: VectorCraft files don't read it"], "{r}");
 }
 
-/// The `.ai` options a save's file doesn't read keep the values the document's last save in that
-/// format gave them, so a save from Save Options, which sends only the options the file reads,
-/// leaves the other version's choices as they were.
-#[test]
-fn a_save_keeps_the_ai_options_its_file_does_not_read_from_the_last_save() {
-    let mut s = with_art();
-    let dir = tmp_dir("ai-kept");
-    let path = dir.join("kept.ai").to_string_lossy().to_string();
-    let value = |s: &mut Session, key: &str| s.execute("file.formatOptions", &json!({"format": "ai"})).unwrap()["options"][key]["value"].clone();
-    s.execute("file.saveAs", &json!({"path": path, "format": "ai", "options": {"aiVersion": "7", "outlineText": true}})).unwrap();
-    s.execute("file.saveAs", &json!({"path": path, "format": "ai", "options": {"aiVersion": "pdf", "editingData": false}})).unwrap();
-    assert_eq!(value(&mut s, "outlineText"), json!(true));
-    assert_eq!(value(&mut s, "editingData"), json!(false));
-    s.execute("file.saveAs", &json!({"path": path, "format": "ai", "options": {"aiVersion": "7", "hiddenObjects": "omit"}})).unwrap();
-    assert_eq!(value(&mut s, "editingData"), json!(false));
-    // An option the request gives is the one saved.
-    s.execute("file.saveAs", &json!({"path": path, "format": "ai", "options": {"aiVersion": "7", "outlineText": false}})).unwrap();
-    assert_eq!(value(&mut s, "outlineText"), json!(false));
-    // The kept options are neither written nor sent again: a plain save's options (which a retry
-    // in another folder sends to Save As) hold only what the legacy file reads.
-    for p in [json!({}), json!({"options": {"aiVersion": "7"}})] {
-        let plan = save_plan(&s, SaveMode::Save, &p).unwrap();
-        assert!(!plan.options.contains_key("editingData") && !plan.options.contains_key("compress"), "{:?}", plan.options);
-        assert_eq!(plan.kept.get("editingData"), Some(&json!(false)));
-        assert!(plan.notes.is_empty(), "{:?}", plan.notes);
-        let retry = json!({"path": path, "format": "ai", "options": plan.options});
-        let r = s.execute("file.saveAs", &retry).unwrap();
-        assert!(!r["warnings"].to_string().contains("was not used"), "{r}");
-        assert_eq!(value(&mut s, "editingData"), json!(false));
-    }
-    std::fs::remove_dir_all(&dir).unwrap();
-}
 
-/// The first `.ai` save of a document whose own file is another format remembers only the options
-/// it was given: nothing from that format's options is kept.
-#[test]
-fn a_first_ai_save_keeps_only_the_options_it_is_given() {
-    let mut s = with_art();
-    let dir = tmp_dir("ai-first");
-    let native = dir.join("first.vectorcraft").to_string_lossy().to_string();
-    let path = dir.join("first.ai").to_string_lossy().to_string();
-    s.execute("file.saveAs", &json!({"path": native, "options": {"compress": false}})).unwrap();
-    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": path, "format": "ai", "options": {"aiVersion": "7"}})).unwrap();
-    assert!(plan.kept.is_empty(), "{:?}", plan.kept);
-    s.execute("file.saveAs", &json!({"path": path, "format": "ai", "options": {"aiVersion": "7"}})).unwrap();
-    let o = s.execute("file.formatOptions", &json!({"format": "ai"})).unwrap();
-    assert_eq!(o["options"]["compress"]["value"], json!(true), "{o}");
-    std::fs::remove_dir_all(&dir).unwrap();
-}

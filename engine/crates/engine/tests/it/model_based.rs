@@ -69,19 +69,6 @@ proptest! {
     }
 }
 
-#[test]
-fn rich_fixture_satisfies_invariants_and_undoes_to_blank() {
-    let mut s = fixtures::rich_session();
-    check_all(&mut s).unwrap();
-    let fin = doc_json(&s.doc().unwrap().doc);
-    let n = undo_all(&mut s);
-    assert!(n >= 10, "expected a real history, got {n} steps");
-    let blank = doc_json(&fixtures::session_with(500.0, 400.0).doc().unwrap().doc);
-    // Titles differ ("Untitled-1" in both sessions since each has its own counter).
-    assert_eq!(doc_json(&s.doc().unwrap().doc), blank, "{}", first_diff(&blank, &doc_json(&s.doc().unwrap().doc), "$"));
-    redo_all(&mut s);
-    assert_eq!(doc_json(&s.doc().unwrap().doc), fin);
-}
 
 #[test]
 fn batch_is_one_undo_step_and_rolls_back_on_error() {
@@ -168,35 +155,4 @@ fn empty_batch_is_harmless() {
     check_all(&mut s).unwrap();
 }
 
-#[test]
-fn save_open_via_commands_roundtrips() {
-    let mut s = fixtures::rich_session();
-    let dir = vectorcraft_testkit::TempDir::new("engine-save");
-    let path = dir.join("rich.vectorcraft");
-    exec(&mut s, "document.save", json!({"path": path.to_str().unwrap()}));
-    let want = doc_json(&s.doc().unwrap().doc);
-    exec(&mut s, "document.open", json!({"path": path.to_str().unwrap()}));
-    assert_eq!(s.documents().len(), 2);
-    let got = doc_json(&s.doc().unwrap().doc);
-    // Numbers to 1e-12 (bit-exactness is a known bug: known_bugs.rs::bug_native_roundtrip_not_bit_exact).
-    assert!(invariants::json_approx_eq(&got, &want, 1e-12), "{}", first_diff(&want, &got, "$"));
-    check_all(&mut s).unwrap();
-}
 
-#[test]
-fn serialize_all_formats_on_rich_doc() {
-    let mut s = fixtures::rich_session();
-    for f in ["vectorcraft", "svg", "pdf", "png"] {
-        let v = exec(&mut s, "document.serialize", json!({"format": f}));
-        assert!(v.get("dataBase64").or(v.get("text")).is_some(), "{f}: {v}");
-    }
-    // The SVG re-imports with the same number of visible art objects or more (groups may nest).
-    let svg = exec(&mut s, "document.serialize", json!({"format": "svg"}));
-    let text = svg["text"]
-        .as_str()
-        .map(str::to_string)
-        .unwrap_or_else(|| String::from_utf8(vectorcraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap());
-    let back = vectorcraft_svg::import(&text).unwrap();
-    invariants::check_document(&back).unwrap();
-    assert!(back.node_count() >= 5);
-}

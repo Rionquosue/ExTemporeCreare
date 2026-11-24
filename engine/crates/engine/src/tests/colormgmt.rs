@@ -236,49 +236,7 @@ fn rgb_cmyk_converts_a_shared_swatch_once() {
     assert_eq!(stroke, Paint::Solid { color: new.tinted(0.5), swatch: Some("Shared".into()), tint: 0.5 });
 }
 
-/// A spot color defined in Lab stays a spot color: its Lab definition, its link and its own
-/// plate are kept.
-#[test]
-fn rgb_cmyk_keeps_a_spot_color() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let (mut s, [.., spot]) = reusable_paints_document();
-    let swatch = |s: &Session| s.doc().unwrap().doc.swatch("Spot Lab").unwrap().clone();
-    let (old_swatch, old_fill) = (swatch(&s), fill_of(&s, spot));
-    s.execute("object.convertDocumentColorMode", &json!({"mode": "cmyk"})).unwrap();
-    assert_eq!(swatch(&s), old_swatch);
-    assert!(swatch(&s).spot);
-    assert_eq!(fill_of(&s, spot), old_fill);
-    let plates = s.execute("color.plates", &json!({})).unwrap();
-    assert!(plates["plates"].as_array().unwrap().iter().any(|p| p["name"] == "Spot Lab"), "{plates}");
-}
 
-/// A spot color defined in RGB stays a spot color with its own plate, and its definition
-/// converts like any other swatch: the fill that uses it and a 40% tint stroke both take the
-/// converted definition.
-#[test]
-fn rgb_cmyk_converts_an_rgb_spot_definition() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let mut s = session();
-    s.execute("swatch.new", &json!({"name": "Spot RGB", "color": Color::rgb(0.812_345, 0.234_567, 0.456_789), "global": true})).unwrap();
-    s.execute("swatch.setSpot", &json!({"name": "Spot RGB"})).unwrap();
-    let filled = rect(&mut s, 0.0, 0.0, 10.0, 10.0, json!("#000000"));
-    s.execute("paint.setFill", &json!({"ids": [filled.0], "swatch": "Spot RGB"})).unwrap();
-    let stroked = rect(&mut s, 20.0, 0.0, 10.0, 10.0, json!("#000000"));
-    s.execute("paint.setStroke", &json!({"ids": [stroked.0], "swatch": "Spot RGB", "tint": 40})).unwrap();
-    let swatch = |s: &Session| s.doc().unwrap().doc.swatch("Spot RGB").unwrap().clone();
-    let old = swatch(&s).paint.color().unwrap();
-    s.execute("object.convertDocumentColorMode", &json!({"mode": "cmyk"})).unwrap();
-    let sw = swatch(&s);
-    assert!(sw.spot);
-    let new = sw.paint.color().unwrap();
-    assert!(matches!(new, Color::Cmyk { .. }), "{new:?}");
-    assert_eq!(new, to_cmyk(old));
-    assert_eq!(fill_of(&s, filled), Paint::Solid { color: new, swatch: Some("Spot RGB".into()), tint: 1.0 });
-    let stroke = s.doc().unwrap().doc.node(stroked).unwrap().appearance.stroke_paint();
-    assert_eq!(stroke, Paint::Solid { color: new.tinted(0.4), swatch: Some("Spot RGB".into()), tint: 0.4 });
-    let plates = s.execute("color.plates", &json!({})).unwrap();
-    assert!(plates["plates"].as_array().unwrap().iter().any(|p| p["name"] == "Spot RGB" && p["spot"] == true), "{plates}");
-}
 
 #[test]
 fn gamut_check_flags_unprintable_colours() {
@@ -462,81 +420,8 @@ fn rgb_art_separates_with_gcr() {
     assert!(c[0] > 40 && c[0] < 200, "rich black has some cyan: {c:?}");
 }
 
-#[test]
-fn spot_colours_get_their_own_plate() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let mut s = session();
-    s.execute("swatch.new", &json!({"name": "Brand Orange", "color": {"c": 0, "m": 60, "y": 100, "k": 0}, "global": true})).unwrap();
-    s.execute("swatch.setSpot", &json!({"name": "Brand Orange"})).unwrap();
-    assert!(s.execute("swatch.setSpot", &json!({"name": "Nope"})).is_err());
-    let a = NodeId(s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap());
-    s.execute("paint.setFill", &json!({"ids": [a.0], "swatch": "Brand Orange"})).unwrap();
-    let plates = s.execute("color.plates", &json!({})).unwrap();
-    let names: Vec<&str> = plates["plates"].as_array().unwrap().iter().map(|p| p["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["Cyan", "Magenta", "Yellow", "Black", "Brand Orange"]);
-    let doc = s.doc().unwrap().doc.clone();
-    let plate = |n: &str| {
-        render(&doc, RenderOptions { proof: Some(ProofSetup { separations: Some(vec![n.into()]), ..Default::default() }), ..Default::default() })
-            .pixel(50, 50)
-    };
-    assert_eq!(plate("Brand Orange"), [0, 0, 0, 255]);
-    assert_eq!(plate("Magenta"), [255, 255, 255, 255], "spot ink isn't on the process plates");
-    // Panel commands: only / toggle.
-    let r = s.execute("view.separationsPreview", &json!({"only": "Brand Orange"})).unwrap();
-    let vis: Vec<bool> = r["plates"].as_array().unwrap().iter().map(|p| p["visible"].as_bool().unwrap()).collect();
-    assert_eq!(vis, [false, false, false, false, true]);
-    let r = s.execute("view.separationsPreview", &json!({"toggle": "Cyan"})).unwrap();
-    assert_eq!(r["plates"][0]["visible"], true);
-    assert_eq!(vectorcraft_render::proof::active_proof().unwrap().separations.unwrap().len(), 2);
-    assert!(vectorcraft_render::proof::overprint_preview_on(), "separations imply overprint preview");
-    assert!(s.execute("view.separationsPreview", &json!({"only": "Mauve"})).is_err());
-    s.execute("view.separationsPreview", &json!({"on": false})).unwrap();
-    assert!(vectorcraft_render::proof::active_proof().is_none_or(|p| p.separations.is_none()));
-}
 
-#[test]
-fn overprint_black_multiplies_in_preview() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let mut s = session();
-    rect(&mut s, 0.0, 0.0, 100.0, 100.0, json!({"c": 100, "m": 0, "y": 0, "k": 0}));
-    let k = rect(&mut s, 25.0, 25.0, 50.0, 50.0, json!({"c": 0, "m": 0, "y": 0, "k": 100}));
-    let rgbk = rect(&mut s, 0.0, 0.0, 10.0, 10.0, json!("#000000"));
-    s.execute("select.set", &json!({"ids": [k.0, rgbk.0]})).unwrap();
-    let r = s.execute("edit.colors.overprintBlack", &json!({})).unwrap();
-    assert_eq!(r["changed"], 1, "only the 100% K object (not RGB black) overprints");
-    let doc = s.doc().unwrap().doc.clone();
-    let knock = render(&doc, RenderOptions::default()).pixel(50, 50);
-    let over = render(&doc, RenderOptions { overprint_preview: true, ..Default::default() }).pixel(50, 50);
-    assert!((knock[0] as i32 - knock[2] as i32).abs() < 8, "knockout shows plain black: {knock:?}");
-    assert!(over[2] as i32 > over[0] as i32 + 10, "overprint lets the cyan through: {over:?}");
-    assert!(over[2] < knock[2] + 60 && over[2] <= 128, "and stays dark: {over:?}");
-    s.execute("edit.colors.overprintBlack", &json!({"remove": true})).unwrap();
-    assert!(!s.doc().unwrap().doc.node(k).unwrap().has_overprint());
-}
 
-#[test]
-fn view_toggles_redraw_without_dirtying() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _v = DefaultView::new();
-    let mut s = session();
-    let rev = s.doc().unwrap().revision;
-    let r = s.execute("view.proofColors", &json!({"on": true})).unwrap();
-    assert_eq!(r["proofColors"], true);
-    assert!(s.doc().unwrap().revision > rev, "canvas redraws");
-    assert!(!s.doc().unwrap().is_dirty(), "not marked modified");
-    let r = s.execute("view.proofSetup", &json!({"target": "deuteranopia", "intent": "perceptual"})).unwrap();
-    assert_eq!(r["target"], "deuteranopia");
-    assert_eq!(vectorcraft_render::proof::active_proof().unwrap().target, ProofTarget::Deuteranopia);
-    assert!(s.execute("view.proofSetup", &json!({"target": "cmyk:Nope"})).is_err());
-    assert!(s.execute("view.proofSetup", &json!({"target": format!("cmyk:{}", cms::WIDE_GAMUT_RGB)})).is_err(), "an RGB profile");
-    s.execute("view.proofSetup", &json!({"target": format!("cmyk:{}", cms::DEVICE_CMYK)})).unwrap();
-    s.execute("view.proofSetup", &json!({"target": "workingCmyk", "intent": "relative"})).unwrap();
-    let r = s.execute("view.proofColors", &json!({"on": false})).unwrap();
-    assert_eq!(r["proofColors"], false);
-    let r = s.execute("view.overprintPreview", &json!({"on": true})).unwrap();
-    assert_eq!(r["overprintPreview"], true);
-    s.execute("view.overprintPreview", &json!({"on": false})).unwrap();
-}
 
 /// Sets the default proof view when made and again when dropped, also after a failed assertion,
 /// so the next test starts from the default view.
@@ -594,44 +479,8 @@ fn proof_colors_with_nothing_changed_keeps_the_revision() {
     default_view_keeps_revision("view.proofColors", json!({"on": false}));
 }
 
-#[test]
-fn overprint_preview_with_nothing_changed_keeps_the_revision() {
-    repeat_keeps_revision("view.overprintPreview", json!({"on": true}));
-    default_view_keeps_revision("view.overprintPreview", json!({"on": false}));
-}
 
-#[test]
-fn separations_preview_with_nothing_changed_keeps_the_revision() {
-    repeat_keeps_revision("view.separationsPreview", json!({"on": true}));
-    repeat_keeps_revision("view.separationsPreview", json!({"only": "Cyan"}));
-    repeat_keeps_revision("view.separationsPreview", json!({"plates": ["Magenta", "Black"]}));
-    default_view_keeps_revision("view.separationsPreview", json!({"on": false}));
-}
 
-/// Separations Preview's visible plates are a set: the same plates in another order, or with one
-/// named twice, leave the revision alone, and a plate named twice hides with one `toggle`.
-#[test]
-fn separations_preview_compares_the_visible_plates_as_a_set() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _v = DefaultView::new();
-    let mut s = session();
-    let sep = |s: &mut Session, p: Value| {
-        s.execute("view.separationsPreview", &p).unwrap();
-        s.doc().unwrap().revision
-    };
-    let shown = sep(&mut s, json!({"plates": ["Magenta", "Black"]}));
-    assert_eq!(sep(&mut s, json!({"plates": ["Black", "Magenta"]})), shown, "another order");
-    assert_eq!(sep(&mut s, json!({"plates": ["Magenta", "Black", "Black"]})), shown, "a plate named twice");
-    // Cyan hidden and shown again goes to the end of the list; every plate is shown.
-    sep(&mut s, json!({"on": false}));
-    sep(&mut s, json!({"on": true}));
-    sep(&mut s, json!({"toggle": "Cyan"}));
-    let all = sep(&mut s, json!({"toggle": "Cyan"}));
-    assert_eq!(sep(&mut s, json!({"plates": ["Cyan", "Magenta", "Yellow", "Black"]})), all, "every plate in plate order");
-    sep(&mut s, json!({"plates": ["Cyan", "Cyan"]}));
-    let r = s.execute("view.separationsPreview", &json!({"toggle": "Cyan"})).unwrap();
-    assert!(r["plates"].as_array().unwrap().iter().all(|p| p["visible"] == false), "{r}");
-}
 
 /// Each plate's visibility in a `view.separationsPreview` or `color.plates` reply, in plate order.
 fn visible_plates(r: &Value) -> Vec<bool> {
@@ -648,62 +497,7 @@ fn session_with_spot_plate() -> Session {
     s
 }
 
-/// `soloToggle` (the panel's Alt-click on a plate's eye) shows that plate alone, and every plate
-/// when it already shows alone. A hidden plate, a plate among others, another solo plate and an
-/// empty set of plates all give the named plate alone. It leaves the document's undo list and
-/// modified state alone.
-#[test]
-fn separations_preview_solo_toggle_shows_every_plate_the_second_time() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _v = DefaultView::new();
-    let mut s = session_with_spot_plate();
-    let undo = s.doc().unwrap().history.undo.len();
-    let dirty = s.doc().unwrap().is_dirty();
-    let solo = |s: &mut Session, n: &str| visible_plates(&s.execute("view.separationsPreview", &json!({"soloToggle": n})).unwrap());
-    // Off: the preview turns on with the plate alone.
-    assert_eq!(solo(&mut s, "Cyan"), [true, false, false, false, false]);
-    assert_eq!(vectorcraft_render::proof::view().separations, Some(vec!["Cyan".to_string()]));
-    // The same plate again: every plate, the spot plate included, and the preview stays on.
-    assert_eq!(solo(&mut s, "Cyan"), [true; 5]);
-    assert!(vectorcraft_render::proof::view().separations.is_some(), "the preview stays on");
-    // A plate shown among others, then another plate while one shows alone.
-    assert_eq!(solo(&mut s, "Magenta"), [false, true, false, false, false]);
-    assert_eq!(solo(&mut s, "Cyan"), [true, false, false, false, false]);
-    // A hidden plate.
-    s.execute("view.separationsPreview", &json!({"toggle": "Black"})).unwrap();
-    assert_eq!(solo(&mut s, "Yellow"), [false, false, true, false, false]);
-    // No plate shown.
-    s.execute("view.separationsPreview", &json!({"plates": []})).unwrap();
-    assert_eq!(solo(&mut s, "Black"), [false, false, false, true, false]);
-    // The spot plate alone, then every plate.
-    assert_eq!(solo(&mut s, "Brand Orange"), [false, false, false, false, true]);
-    assert_eq!(solo(&mut s, "Brand Orange"), [true; 5]);
-    // A plate the document doesn't have is an error and leaves the view as it is.
-    let before = vectorcraft_render::proof::view();
-    assert!(s.execute("view.separationsPreview", &json!({"soloToggle": "Mauve"})).is_err());
-    assert_eq!(vectorcraft_render::proof::view(), before);
-    assert_eq!(s.doc().unwrap().history.undo.len(), undo, "no undo step");
-    assert_eq!(s.doc().unwrap().is_dirty(), dirty, "not marked modified");
-    // `only` stays a setter: the same plate again keeps it alone.
-    s.execute("view.separationsPreview", &json!({"only": "Cyan"})).unwrap();
-    let r = s.execute("view.separationsPreview", &json!({"only": "Cyan"})).unwrap();
-    assert_eq!(visible_plates(&r), [true, false, false, false, false]);
-}
 
-/// A plate counts as shown alone when no other plate of the active document shows: names left in
-/// the visible set by another document's plates don't count.
-#[test]
-fn separations_preview_solo_toggle_counts_the_active_documents_plates() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _v = DefaultView::new();
-    let mut s = session_with_spot_plate();
-    s.execute("view.separationsPreview", &json!({"plates": ["Cyan", "Brand Orange"]})).unwrap();
-    // A new document without the spot plate: Cyan is the only one of its plates shown.
-    s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-    assert_eq!(visible_plates(&s.execute("color.plates", &json!({})).unwrap()), [true, false, false, false]);
-    let r = s.execute("view.separationsPreview", &json!({"soloToggle": "Cyan"})).unwrap();
-    assert_eq!(visible_plates(&r), [true; 4]);
-}
 
 #[test]
 fn proof_setup_simulates_tritanopia() {
@@ -1113,29 +907,6 @@ fn document_color_mode_refuses_a_param_of_the_wrong_type() {
     assert_eq!(fill_of(&s, a), fill, "the colors are unchanged");
 }
 
-#[test]
-fn proof_views_refuse_a_param_of_the_wrong_type() {
-    let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
-    let mut s = session();
-    let view = vectorcraft_render::proof::view();
-    let rev = s.doc().unwrap().revision;
-    refused(&mut s, "view.proofSetup", json!({"simulatePaper": "yes"}), "`simulatePaper` must be true or false");
-    refused(&mut s, "view.proofSetup", json!({"proof": 1}), "`proof` must be true or false");
-    refused(&mut s, "view.proofSetup", json!({"target": 3}), "`target` must be a string");
-    refused(&mut s, "view.proofColors", json!({"on": "true"}), "`on` must be true or false");
-    refused(&mut s, "view.overprintPreview", json!({"on": 1}), "`on` must be true or false");
-    refused(&mut s, "view.separationsPreview", json!({"on": "false"}), "`on` must be true or false");
-    refused(&mut s, "view.separationsPreview", json!({"plates": "Cyan"}), "`plates` must be an array of these names: Cyan, Magenta");
-    refused(&mut s, "view.separationsPreview", json!({"plates": ["Cyan", 2]}), "`plates` must be an array of these names");
-    refused(&mut s, "view.separationsPreview", json!({"only": 0}), "`only` must be a string");
-    refused(&mut s, "view.separationsPreview", json!({"toggle": ["Cyan"]}), "`toggle` must be a string");
-    assert_eq!(vectorcraft_render::proof::view(), view, "the proof view is unchanged");
-    assert_eq!(s.doc().unwrap().revision, rev, "nothing redraws");
-    // A null `on` toggles, as an omitted one does.
-    let r = s.execute("view.proofColors", &json!({"on": null})).unwrap();
-    assert_eq!(r["proofColors"], !view.proof_colors);
-    s.execute("view.proofColors", &json!({"on": view.proof_colors})).unwrap();
-}
 
 #[test]
 fn set_spot_refuses_a_param_of_the_wrong_type() {

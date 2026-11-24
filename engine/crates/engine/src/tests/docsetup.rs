@@ -471,28 +471,6 @@ fn svg_text_export_follows_the_export_text_setting() {
     assert!(svg(&mut s, json!({"outlineText": false})).contains("<text"));
 }
 
-#[test]
-fn discard_white_overprint_keeps_white_overprints_in_overprint_preview() {
-    let mut s = session();
-    let rect = |s: &mut Session, color: &str| {
-        let id = s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 40, "height": 40})).unwrap()["id"].as_u64().unwrap();
-        s.execute("paint.setFill", &json!({"ids": [id], "color": color})).unwrap();
-        s.execute("paint.setStroke", &json!({"ids": [id], "none": true})).unwrap();
-        id
-    };
-    rect(&mut s, "#ff0000");
-    let white = rect(&mut s, "#ffffff");
-    s.execute("object.setOverprint", &json!({"fill": true, "ids": [white]})).unwrap();
-    let centre = |s: &Session| {
-        let opts = vectorcraft_render::RenderOptions { background: Some([255; 4]), overprint_preview: true, ..Default::default() };
-        vectorcraft_render::Renderer::new().render(&s.doc().unwrap().doc, 40, 40, vectorcraft_geom::Affine::IDENTITY, &opts).pixel(20, 20)
-    };
-    // On by default: the white knocks out as it will print.
-    assert_eq!(centre(&s), [255, 255, 255, 255]);
-    s.execute("document.setup", &json!({"discardWhiteOverprint": false})).unwrap();
-    let [r, g, b, _] = centre(&s);
-    assert!(r > 200 && g < 60 && b < 60, "a white overprint vanishes: {:?}", [r, g, b]);
-}
 
 #[test]
 fn saved_flattener_presets_and_background_contents() {

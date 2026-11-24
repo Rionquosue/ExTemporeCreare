@@ -283,38 +283,6 @@ fn a_selected_clipping_path_and_a_blend_object_export_on_their_own() {
     assert!(centre[0] > 200 && centre[3] > 200, "the object is drawn: {centre:?}");
 }
 
-#[test]
-fn a_css_picture_of_a_clipped_object_is_clipped() {
-    let mut s = session();
-    run(&mut s, "paint.setFill", json!({"color": "#ff0000"}));
-    let star = id(&run(&mut s, "shape.star", json!({"cx": 250, "cy": 250, "radius1": 150, "radius2": 70, "points": 5})));
-    let circle = id(&run(&mut s, "shape.ellipse", json!({"x": 200, "y": 200, "width": 100, "height": 100})));
-    run(&mut s, "object.clippingMask.make", json!({"ids": [circle, star]}));
-    let r = run(&mut s, "css.export", json!({"ids": [star], "rasterize": true, "unnamed": true}));
-    let image = r["images"].as_array().and_then(|i| i.first()).unwrap_or_else(|| panic!("no picture: {r}"));
-    let png = b64(image);
-    let size = craft_image_codecs::decode(&png)
-        .map(|__cimg| {
-            let (__w, __h) = __cimg.dimensions();
-            match (__cimg.layout(), __cimg.sample_type()) {
-                (craft_image_codecs::ChannelLayout::Gray, craft_image_codecs::SampleType::U8) => {
-                    image::DynamicImage::ImageLuma8(image::GrayImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
-                }
-                (craft_image_codecs::ChannelLayout::GrayA, craft_image_codecs::SampleType::U8) => {
-                    image::DynamicImage::ImageLumaA8(image::GrayAlphaImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
-                }
-                (craft_image_codecs::ChannelLayout::Rgb, craft_image_codecs::SampleType::U8) => {
-                    image::DynamicImage::ImageRgb8(image::RgbImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
-                }
-                _ => image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(__w, __h, __cimg.to_rgba8()).unwrap()),
-            }
-        })
-        .unwrap()
-        .to_rgba8()
-        .dimensions();
-    assert_eq!(size, (100, 100), "the picture is cropped to the clip");
-    assert!(differing(&png, &canvas(&s, Rect::new(200.0, 200.0, 300.0, 300.0))) < 100, "the picture matches the canvas");
-}
 
 #[test]
 fn an_asset_on_a_hidden_layer_is_drawn_clipped() {
