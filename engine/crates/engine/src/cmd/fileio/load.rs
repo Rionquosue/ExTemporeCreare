@@ -106,21 +106,9 @@ pub fn detect(name: &str, bytes: &[u8]) -> Option<&'static Format> {
     if vectorcraft_svg::is_svgz(bytes) {
         return format("svgz");
     }
-    if vectorcraft_pdf::is_postscript(bytes) {
-        // PostScript (.eps, .ps, and .ai saved without PDF compatibility) by any name; .ai, .ait
-        // and .ps keep their meaning (a template, a PostScript file), read as PostScript all the
-        // same.
-        return by_name.filter(|f| matches!(f.id, "ai" | "ait" | "ps")).or_else(|| format("eps"));
-    }
     if bytes.starts_with(b"%PDF") {
         // .ai and .ait files are PDF inside; the extension keeps the template meaning.
         return by_name.filter(|f| matches!(f.id, "ai" | "ait")).or_else(|| format("pdf"));
-    }
-    if vectorcraft_cad::is_dxf(bytes) {
-        return format("dxf");
-    }
-    if let Some(kind) = vectorcraft_metafile::sniff(bytes) {
-        return format(kind.id());
     }
     if psdread::is_psd(bytes) {
         return format(if psdread::is_psb(bytes) { "psb" } else { "psd" });
@@ -140,25 +128,8 @@ pub fn detect(name: &str, bytes: &[u8]) -> Option<&'static Format> {
     if let Some(f) = craft_image_codecs::detect(bytes).and_then(image_format) {
         return Some(f);
     }
-    // A version 2 PICT is known by its version opcodes after the picture's frame, at byte 522 of a
-    // file or byte 10 of a bare picture (version 1 by its file's name), so a format whose
-    // signature starts the file is checked first.
-    if vectorcraft_metafile::is_pict(bytes) {
-        return format("pict");
-    }
     if clipboard::looks_like_svg(&String::from_utf8_lossy(&bytes[..bytes.len().min(4096)])) {
         return format("svg");
-    }
-    // HP-GL has no signature: a file that starts with plotter instructions, named as one or with an
-    // extension no other format (text, the formats VectorCraft names as unsupported, and the files
-    // File › Open takes in other ways included) reads.
-    let ext = super::extension(name);
-    let other = by_name.is_some_and(|f| f.id != "hpgl")
-        || super::TEXT_EXTS.contains(&ext.as_str())
-        || super::unsupported(&ext).is_some()
-        || super::opens_as_other(&ext);
-    if !other && vectorcraft_cad::hpgl::is_hpgl(bytes) {
-        return format("hpgl");
     }
     by_name
 }
@@ -227,7 +198,7 @@ pub fn load(name: &str, bytes: &[u8]) -> Result<Loaded> {
 /// first page's `UserUnit`) → (document, warnings, whether its layers were read). `layers`: the
 /// editor's copy ([`editing_copy`]), as far as it was decoded and read.
 fn through_editing_data(
-    layers: Option<vectorcraft_eps::AiLayers>,
+    layers: Option<vectorcraft_ai::AiLayers>,
     opts: &LoadOptions,
     doc: Document,
     warnings: Vec<String>,
@@ -236,7 +207,7 @@ fn through_editing_data(
     let Some(layers) = layers else { return (doc, warnings, false) };
     let outlined = opts.text_as == vectorcraft_pdf::TextAs::Outlines;
     let (doc, mut warnings, read) =
-        vectorcraft_eps::layered_ai_from(layers, doc, warnings, outlined, opts.trust_editing_data, unit, opts.legacy_names);
+        vectorcraft_ai::layered_ai_from(layers, doc, warnings, outlined, opts.trust_editing_data, unit, opts.legacy_names);
     // The layers weren't read (or couldn't be): the notes of reading the PDF part still hold.
     if !read {
         return (doc, warnings, false);
@@ -266,7 +237,7 @@ fn from_editing_data_alone(opened: &vectorcraft_pdf::Opened, opts: &LoadOptions)
 
 /// [`from_editing_data_alone`] of `private`, the editor's copy already read.
 fn editing_copy_alone(private: &[u8], opts: &LoadOptions) -> Result<(Document, Vec<String>)> {
-    vectorcraft_eps::ai_alone_with(private, opts.legacy_names)
+    vectorcraft_ai::ai_alone_with(private, opts.legacy_names)
         .map_err(|why| err(format!("this file was saved without PDF compatibility, and its editing data can't be read ({why})")))
 }
 
@@ -277,7 +248,7 @@ fn reads_editing_copy(opts: &LoadOptions) -> bool {
 }
 
 /// May a file opened with `opts` open from the editor's own copy of its art without its PDF part
-/// being imported ([`vectorcraft_eps::ai_layers_alone`]): it reads the editor's copy, on the pages'
+/// being imported ([`vectorcraft_ai::ai_layers_alone`]): it reads the editor's copy, on the pages'
 /// trim boxes (the crop box asked for, as a file with the editor's copy opens on them), with its
 /// type as text?
 fn reads_layers_alone(opts: &LoadOptions) -> bool {
@@ -300,7 +271,7 @@ fn without_pdf_part(bytes: &[u8], opts: &LoadOptions, e: EngineError) -> Result<
         return Err(e);
     }
     let read = vectorcraft_pdf::read_illustrator_data_without_pdf_part(bytes, opts.password.as_deref())
-        .and_then(|private| private.map(|p| vectorcraft_eps::ai_alone_on_page(&p.data, p.trim, p.user_unit, opts.legacy_names)).transpose());
+        .and_then(|private| private.map(|p| vectorcraft_ai::ai_alone_on_page(&p.data, p.trim, p.user_unit, opts.legacy_names)).transpose());
     match read {
         Ok(Some((doc, warnings))) => {
             let notes =
@@ -408,21 +379,6 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
     let mut editing_data = false;
     let mut native_pdf_compatible = None;
     let (mut doc, mut warnings, restored) = match format.id {
-        // EPS, .ps and PostScript .ai: the document our EPS files carry, else the PostScript read.
-        _ if matches!(format.id, "eps" | "ps") || vectorcraft_pdf::is_postscript(bytes) => {
-            // A DCS file's plates print from its file: it is only placed linked.
-            if crate::cmd::place::dcs::is_dcs(bytes) {
-                return Err(err(format!("can't open `{}`: {}", file_name(name), crate::cmd::place::dcs::LINK_ONLY)));
-            }
-            let editing = vectorcraft_eps::has_native(bytes).then_some((true, || vectorcraft_eps::native(bytes)));
-            // A `.ai` keeps the artboard its header gives; an EPS comes in on its page.
-            let import = if matches!(format.id, "ai" | "ait") { vectorcraft_eps::import_ai } else { vectorcraft_eps::import_names };
-            restore_or_import(editing, || {
-                let r = import(bytes, opts.editing_data, opts.trust_editing_data, opts.legacy_names)
-                    .map_err(|e| err(format!("can't open `{}`: {e}", file_name(name))))?;
-                Ok((r.document, r.warnings))
-            })?
-        }
         "vectorcraft" | "template" => {
             let (d, info, warnings) = native_file(bytes)?;
             native_pdf_compatible = Some(info.pdf_compatible);
@@ -457,7 +413,7 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
                 if let Some((o, private)) = opened.as_ref().ok().filter(|_| reads_layers_alone(opts)).and_then(|o| Some((o, editing_copy(o, opts)?)))
                 {
                     let pages = o.trim_pages();
-                    match vectorcraft_eps::ai_layers_alone(&private, &pages.sizes, pages.user_unit, opts.legacy_names) {
+                    match vectorcraft_ai::ai_layers_alone(&private, &pages.sizes, pages.user_unit, opts.legacy_names) {
                         Ok((mut doc, warnings)) => {
                             doc.setup.bleed = pages.bleed;
                             editing_data = true;
@@ -493,7 +449,7 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
                         let (doc, warnings, read) = match alone {
                             Some((doc, warnings)) => (doc, warnings, true),
                             None => {
-                                let layers = layers.or_else(|| private.as_deref().map(vectorcraft_eps::AiLayers::decode));
+                                let layers = layers.or_else(|| private.as_deref().map(vectorcraft_ai::AiLayers::decode));
                                 through_editing_data(layers, opts, r.document, r.warnings, r.user_unit)
                             }
                         };
@@ -523,25 +479,9 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
             if read.2
                 && let Some(private) = opened.as_ref().ok().and_then(|o| o.illustrator_data())
             {
-                read.0.opened_artboard = vectorcraft_eps::ai_opened_artboard(&private, &read.0);
+                read.0.opened_artboard = vectorcraft_ai::ai_opened_artboard(&private, &read.0);
             }
             read
-        }
-        "dxf" => {
-            let (doc, warnings) = super::dxfimport::import(bytes, &opts.dxf)?;
-            (doc, warnings, false)
-        }
-        "emf" | "wmf" => {
-            let (doc, warnings) = super::metafile::import(bytes)?;
-            (doc, warnings, false)
-        }
-        "pict" => {
-            let (doc, warnings) = super::metafile::import_pict(bytes)?;
-            (doc, warnings, false)
-        }
-        "hpgl" => {
-            let i = vectorcraft_cad::hpgl::import(bytes).map_err(err)?;
-            (i.document, i.warnings, false)
         }
         "affinity" => {
             let i = super::affinity::import(&title, bytes)?;
@@ -933,10 +873,6 @@ fn open_loaded(
         .filter(|w| {
             is_loss(w)
                 || matches!(format.id, "cdr" | "cdt" | "cmx")
-                || (format.id == "eps"
-                    && (matches!(w.as_str(), EDITING_DAMAGED | EDITING_STALE)
-                        || w.starts_with("this file's PostScript couldn't be read")
-                        || w.starts_with("the file was read up to an error")))
         })
         .cloned()
         .collect();
@@ -1398,7 +1334,7 @@ pub(crate) fn file_clipped(d: &mut Document, image: Node, clip: Option<vectorcra
 
 /// Does this import note say that the file has something the document doesn't?
 fn is_loss(note: &str) -> bool {
-    note == vectorcraft_pdf::OFF_ARTBOARD_NOTE || vectorcraft_eps::is_loss(note)
+    note == vectorcraft_pdf::OFF_ARTBOARD_NOTE || vectorcraft_ai::is_loss(note)
 }
 
 /// Writing the file `target` for document `st`: not over the file `st` was read from when reading

@@ -236,7 +236,7 @@ pub fn settings(cmd: &str, p: &Value) -> Result<PdfSettings> {
 }
 
 /// `p` with the saved presets it names (a PDF preset, a flattener preset: see
-/// [`super::eps::with_flattener`]) written out as options, for the encoders, which know only the
+/// [`with_flattener`]) written out as options, for the encoders, which know only the
 /// built-in presets. Params naming none come back as they are.
 pub fn expand_preset<'a>(s: &Session, cmd: &str, p: &'a Value) -> Result<Cow<'a, Value>> {
     let expanded = match str_param(p, "preset") {
@@ -251,7 +251,7 @@ pub fn expand_preset<'a>(s: &Session, cmd: &str, p: &'a Value) -> Result<Cow<'a,
         }
         _ => Cow::Borrowed(p),
     };
-    super::eps::with_flattener(s, cmd, expanded)
+    with_flattener(s, cmd, expanded)
 }
 
 /// The full export options for `doc`: settings plus the artboards `p` picks (default all), created
@@ -770,4 +770,29 @@ fn pdf_settings(s: &mut Session, p: &Value) -> Result<Value> {
 pub fn is_setting(key: &str) -> bool {
     static DEFAULTS: std::sync::LazyLock<Value> = std::sync::LazyLock::new(|| serde_json::to_value(PdfSettings::default()).unwrap_or_default());
     DEFAULTS.get(key).is_some()
+}
+
+/// `p` with a saved flattener preset of the session's written out (see [`expanded_flattener`]).
+fn with_flattener<'a>(s: &Session, cmd: &str, p: Cow<'a, Value>) -> Result<Cow<'a, Value>> {
+    Ok(match expanded_flattener(cmd, &p, &s.prefs.flattener_presets)? {
+        Some(q) => Cow::Owned(q),
+        None => p,
+    })
+}
+
+/// `p` with a saved flattener preset it names written out as `flattener` options, for the
+/// encoder, which knows only the built-in presets; `None` when `p` names none.
+fn expanded_flattener(cmd: &str, p: &Value, saved: &[super::super::FlattenerPreset]) -> Result<Option<Value>> {
+    match str_param(p, "flattenerPreset") {
+        Some(name) if !name.trim().is_empty() && FlattenOptions::preset(name).is_none() => {
+            let o = FlattenOptions::for_export(Some(name), p.get("flattener"), saved).map_err(|e| bad(cmd, format!("flattener: {e}")))?;
+            let mut q = p.clone();
+            q["flattener"] = serde_json::to_value(o).map_err(|e| EngineError::Other(e.to_string()))?;
+            if let Some(m) = q.as_object_mut() {
+                m.remove("flattenerPreset");
+            }
+            Ok(Some(q))
+        }
+        _ => Ok(None),
+    }
 }

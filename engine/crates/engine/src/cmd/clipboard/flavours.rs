@@ -205,15 +205,6 @@ pub fn specs() -> Vec<CommandSpec> {
             import_pdf
         ),
         cmd!(
-            query "clipboard.importEmf",
-            "Load Metafile into Clipboard",
-            [],
-            None,
-            "{dataBase64 (EMF or WMF bytes), center?: [x, y]} replace the clipboard with the picture's objects (paths, clipping groups, images, point type; the images they use), centred on `center` (default: the first artboard) → {count, warnings}; records VectorCraft doesn't read are skipped with one warning; a picture cut short by a reader limit, images and pattern brushes that can't be read, clips that can't be applied and raster operations other than a plain copy each add a warning; then run edit.paste",
-            has_doc,
-            import_emf
-        ),
-        cmd!(
             query "clipboard.importEps",
             "Load EPS into Clipboard",
             [],
@@ -521,14 +512,6 @@ fn import_text(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({ "count": count }))
 }
 
-fn import_emf(s: &mut Session, p: &Value) -> Result<Value> {
-    const C: &str = "clipboard.importEmf";
-    let bytes = data_param(p, C)?;
-    if vectorcraft_metafile::sniff(&bytes).is_none() {
-        return Err(bad(C, "the data isn't an EMF or WMF picture"));
-    }
-    import_picture(s, p, C, "Clipboard.emf", &bytes)
-}
 
 fn import_eps(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "clipboard.importEps";

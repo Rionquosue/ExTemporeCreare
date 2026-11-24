@@ -8,10 +8,7 @@
 //!   ([`fileio::psd_layers`]); otherwise it is an image like any other, its merged image. An
 //!   embedded one brings its slices in as user slices, placed with its art (`importSlices`,
 //!   [`fileio::psd_slices`]).
-//! - An SVG becomes one group of its art; so does a DXF drawing, read with the DXF options
-//!   (`dxf`, [`fileio::dxfimport`]), and an HP-GL plot file (`vectorcraft_cad::hpgl`).
-//! - An EMF, WMF or PICT picture becomes one group, clipped to its frame (`crop: "crop"`) or
-//!   bounded by its art (`crop: "bounding"`).
+//! - An SVG becomes one group of its art.
 //! - An EPS file (or a PostScript .ai) becomes one group, clipped to its bounding box or bounded by
 //!   its art: the document an EPS file of ours carries, else what its PostScript draws, else its
 //!   preview ([`fileio::load`]). With Link, one placed from a file becomes a placed document
@@ -82,7 +79,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Place…",
             ["File"],
             Some("Cmd+Shift+P"),
-            "{path | name | dataBase64 (a file's path, or its name with its bytes), link?: true (a raster image keeps its file's path; a VectorCraft document at path becomes one locked placed document showing artboard `page`, linked to the file and read again when it changes (links.update; saving it in this app updates it at once), drawn as vectors in every output; so does a PDF/.ai page at path, showing its `crop` box, unless password or textAs: \"outlines\" is given, and an EPS file, a PostScript file or a PostScript .ai at path, showing the art false gives; false: an editable copy of its art, as from dataBase64; other files are embedded), text?: {characterSet?: \"unicode\" (UTF-8, or UTF-16 with a byte-order mark, or without one by dataset.import's rule: an even length, at least half of its two-byte units holding a NUL byte, the byte order that reads a line break, valid UTF-16 with no NUL character; other bytes as the platform's 8-bit set) | \"ansi\" (the platform's 8-bit set) | \"shiftJis\" | \"gb2312\" (read as GBK) | \"chineseBig5\" | \"cyrillic\" (windows-1251, x-mac-cyrillic on mac) | \"gb18030\" | \"greek\" (windows-1253) | \"turkish\" (windows-1254) | \"baltic\" (windows-1257) | \"centralEuropean\" (windows-1250) (the WHATWG Encoding Standard's decoders: a byte-order mark is read as ordinary bytes, a malformed sequence as U+FFFD), platform?: \"windows\" (ANSI is Windows-1252) | \"mac\" (ANSI is Mac Roman), removeLineReturns?: false (each block of lines becomes one paragraph; blank lines end paragraphs), removeParagraphReturns?: false (drop blank lines), replaceSpaces?: n (runs of n ≥ 2 spaces become a tab)} (a .txt file, placed as area type filling rect, the replaced object's bounds, or else the artboard less a 36 pt margin), template?: false (onto a new locked template layer below the current layer), replace?: false (swap the one selected object, keeping its stacking place and transform; no at/rect; refused while an object of a symbol instance's art is selected), at?: [x, y] centre (default: the first artboard's centre), rect?: [x, y, width, height] fit inside; aspect kept (wins over at), page?: 1 (PDF/.ai page, or a native document's artboard), crop?: \"crop\" (clipped to that page or artboard, default; an SVG, only when given: framed and clipped by its viewBox, else by its art's bounds) | \"bounding\" (the bounds of the art that shows, with its strokes and effects, as an export measures them: hidden objects and guides left out) | \"art\" | \"trim\" | \"bleed\" | \"media\" (a PDF page's boxes), password? (an encrypted PDF), layers?: false (a PSD or PSB file: true embeds its layers as one group named after the file, read as document.open reads them: an image for each layer and a group for each layer group, with the layer's name, visibility, opacity, blend mode and opacity mask, at the place its merged image would take and clipped to the canvas when layers, hidden ones included, reach past it; never linked: link is then false unless given, and link: true is refused; a file without layers is embedded as its merged image, and so are one whose layers are all left out and one whose layers can't be read, with a warning), hiddenLayers?: false (with layers: true, the hidden layers come in hidden instead of being left out; refused without it), importSlices?: bool (a PSD or PSB file: its slices become user slices, moved and scaled with the placed art, in the same undo step; default true when the file is embedded, false when it is linked, and true with link is refused; slices the file generated automatically are left out), dxf?: {…the DXF options of document.open} (a .dxf drawing: fit fills the artboard under at, else the first; fitted or uncentred art lands with its drawing's artboard on that artboard, else it is centred on at), showImportOptions?: true (in the app, a text file without text, a DXF drawing without dxf, a PSD or PSB file embedded without layers (with two layers or more, or with slices) and a PDF with several pages or a password and no page ask for those options first, and an encrypted PDF given page and no password asks for its password; false places them with the options last confirmed, a PDF on page 1 (or page), and asks only an encrypted PDF's password)} → {ids, name, format, linked, width, height, warnings, image?: the id of the image of a DCS file or PSD/PSB file placed in a clip group, which the Links commands take, slices?: [the ids of the user slices a PSD file brought in]}. A PSD or PSB file that names a clipping path places in a clip group of that path (even-odd), as does its merged image in document.open. Raster images come in at 100% of their physical size (the file's ppi, else 72); SVG, DXF, HP-GL (.plt, .hpgl, .hgl, .hpg), PDF/.ai, EMF/WMF and PICT (.pct, .pic, .pict; clipped to the picture's frame), EPS (clipped to its bounding box; as document.open reads it), a .ai saved without PDF compatibility (from its editing data, as document.open reads it: the art of the layers that show on artboard `page`, clipped to that artboard unless crop is \"bounding\") and native documents as one group, with the images, symbols, patterns, swatches and brushes they use. A DCS file (an EPS file with one program per printing plate, DCS 1.0 or 2.0) is placed only from its path with link (else an error, as are document.open and links.embed): one linked image of its plates mixed into CMYK, clipped by the clipping path its composite is drawn through, its spot plates added as spot swatches in the process equivalents the file gives (a swatch of the same name is kept, with a warning); print separations and Separations Preview show each plate on its own ink, and plate files of their own are read from its folder. One undo step; selects what it placed (unless on a template layer); never touches the clipboard. A PNG, JPEG, GIF or WebP image whose pixels can't be read (a file cut short) is an error, and nothing is placed",
+            "{path | name | dataBase64 (a file's path, or its name with its bytes), link?: true (a raster image keeps its file's path; a VectorCraft document at path becomes one locked placed document showing artboard `page`, linked to the file and read again when it changes (links.update; saving it in this app updates it at once), drawn as vectors in every output; so does a PDF/.ai page at path, showing its `crop` box, unless password or textAs: \"outlines\" is given, and an EPS file, a PostScript file or a PostScript .ai at path, showing the art false gives; false: an editable copy of its art, as from dataBase64; other files are embedded), text?: {characterSet?: \"unicode\" (UTF-8, or UTF-16 with a byte-order mark, or without one by dataset.import's rule: an even length, at least half of its two-byte units holding a NUL byte, the byte order that reads a line break, valid UTF-16 with no NUL character; other bytes as the platform's 8-bit set) | \"ansi\" (the platform's 8-bit set) | \"shiftJis\" | \"gb2312\" (read as GBK) | \"chineseBig5\" | \"cyrillic\" (windows-1251, x-mac-cyrillic on mac) | \"gb18030\" | \"greek\" (windows-1253) | \"turkish\" (windows-1254) | \"baltic\" (windows-1257) | \"centralEuropean\" (windows-1250) (the WHATWG Encoding Standard's decoders: a byte-order mark is read as ordinary bytes, a malformed sequence as U+FFFD), platform?: \"windows\" (ANSI is Windows-1252) | \"mac\" (ANSI is Mac Roman), removeLineReturns?: false (each block of lines becomes one paragraph; blank lines end paragraphs), removeParagraphReturns?: false (drop blank lines), replaceSpaces?: n (runs of n ≥ 2 spaces become a tab)} (a .txt file, placed as area type filling rect, the replaced object's bounds, or else the artboard less a 36 pt margin), template?: false (onto a new locked template layer below the current layer), replace?: false (swap the one selected object, keeping its stacking place and transform; no at/rect; refused while an object of a symbol instance's art is selected), at?: [x, y] centre (default: the first artboard's centre), rect?: [x, y, width, height] fit inside; aspect kept (wins over at), page?: 1 (PDF/.ai page, or a native document's artboard), crop?: \"crop\" (clipped to that page or artboard, default; an SVG, only when given: framed and clipped by its viewBox, else by its art's bounds) | \"bounding\" (the bounds of the art that shows, with its strokes and effects, as an export measures them: hidden objects and guides left out) | \"art\" | \"trim\" | \"bleed\" | \"media\" (a PDF page's boxes), password? (an encrypted PDF), layers?: false (a PSD or PSB file: true embeds its layers as one group named after the file, read as document.open reads them: an image for each layer and a group for each layer group, with the layer's name, visibility, opacity, blend mode and opacity mask, at the place its merged image would take and clipped to the canvas when layers, hidden ones included, reach past it; never linked: link is then false unless given, and link: true is refused; a file without layers is embedded as its merged image, and so are one whose layers are all left out and one whose layers can't be read, with a warning), hiddenLayers?: false (with layers: true, the hidden layers come in hidden instead of being left out; refused without it), importSlices?: bool (a PSD or PSB file: its slices become user slices, moved and scaled with the placed art, in the same undo step; default true when the file is embedded, false when it is linked, and true with link is refused; slices the file generated automatically are left out), showImportOptions?: true (in the app, a text file without text, a PSD or PSB file embedded without layers (with two layers or more, or with slices) and a PDF with several pages or a password and no page ask for those options first, and an encrypted PDF given page and no password asks for its password; false places them with the options last confirmed, a PDF on page 1 (or page), and asks only an encrypted PDF's password)} → {ids, name, format, linked, width, height, warnings, image?: the id of the image of a DCS file or PSD/PSB file placed in a clip group, which the Links commands take, slices?: [the ids of the user slices a PSD file brought in]}. A PSD or PSB file that names a clipping path places in a clip group of that path (even-odd), as does its merged image in document.open. Raster images come in at 100% of their physical size (the file's ppi, else 72); SVG, PDF/.ai, EPS (clipped to its bounding box; as document.open reads it), a .ai saved without PDF compatibility (from its editing data, as document.open reads it: the art of the layers that show on artboard `page`, clipped to that artboard unless crop is \"bounding\") and native documents as one group, with the images, symbols, patterns, swatches and brushes they use. A DCS file (an EPS file with one program per printing plate, DCS 1.0 or 2.0) is placed only from its path with link (else an error, as are document.open and links.embed): one linked image of its plates mixed into CMYK, clipped by the clipping path its composite is drawn through, its spot plates added as spot swatches in the process equivalents the file gives (a swatch of the same name is kept, with a warning); print separations and Separations Preview show each plate on its own ink, and plate files of their own are read from its folder. One undo step; selects what it placed (unless on a template layer); never touches the clipboard. A PNG, JPEG, GIF or WebP image whose pixels can't be read (a file cut short) is an error, and nothing is placed",
             has_doc,
             place
         ),
@@ -91,7 +88,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Placed File Info",
             [],
             None,
-            "{path | name | dataBase64 (a file's path, or its name with its bytes), page?, crop?, password?, thumbnail?: px, link?: bool, dxf?: {…}, layers?, hiddenLayers?, importSlices? (all as file.place)} what file.place would place, without placing it → {name, format, width, height (pt at 100%), pixelWidth?, pixelHeight?, ppi?: [x, y], colorMode?: RGB|Grayscale|CMYK (raster images; opaque CMYK PSD/PSB merged images keep 8- or 16-bit inks within VectorCraft's 67,108,864-pixel native CMYK limit and allocation allowance; other CMYK composites use the RGB decoder's allocation limit), plates?: [ink names] (a DCS file), slices?: the user slices a PSD or PSB file would bring in, warnings, thumbnailBase64?: PNG of at most `thumbnail` (≤ 512) px on its longer side}",
+            "{path | name | dataBase64 (a file's path, or its name with its bytes), page?, crop?, password?, thumbnail?: px, link?: bool, layers?, hiddenLayers?, importSlices? (all as file.place)} what file.place would place, without placing it → {name, format, width, height (pt at 100%), pixelWidth?, pixelHeight?, ppi?: [x, y], colorMode?: RGB|Grayscale|CMYK (raster images; opaque CMYK PSD/PSB merged images keep 8- or 16-bit inks within VectorCraft's 67,108,864-pixel native CMYK limit and allocation allowance; other CMYK composites use the RGB decoder's allocation limit), plates?: [ink names] (a DCS file), slices?: the user slices a PSD or PSB file would bring in, warnings, thumbnailBase64?: PNG of at most `thumbnail` (≤ 512) px on its longer side}",
             always,
             info
         ),
@@ -109,7 +106,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Load Place Cursor",
             [],
             None,
-            "{paths?: [path…], files?: [{name, dataBase64}…], link?, template?, page?, crop?, text?, dxf?, layers?, hiddenLayers?, importSlices?, thumbnail?: px} load the place cursor (the `place` tool) with up to 100 files (as file.place reads them): a click places the current file at 100% with its top-left corner there, a drag places it at the dragged size (aspect kept), ←/→ and ↑/↓ cycle the files, Esc discards the current one; each placement is a file.place, and the previous tool returns after the last; an encrypted PDF, .ai or .ait file stays in the cursor at 612 × 792 pt (VectorCraft's own size) with needsPassword: true and no thumbnail, and a click on it in the app asks for its password (headless, its file.place fails for want of the password) → {count, files: [{name, format, width, height, thumbnailBase64?, needsPassword?}], skipped: [{name, error}]}",
+            "{paths?: [path…], files?: [{name, dataBase64}…], link?, template?, page?, crop?, text?, layers?, hiddenLayers?, importSlices?, thumbnail?: px} load the place cursor (the `place` tool) with up to 100 files (as file.place reads them): a click places the current file at 100% with its top-left corner there, a drag places it at the dragged size (aspect kept), ←/→ and ↑/↓ cycle the files, Esc discards the current one; each placement is a file.place, and the previous tool returns after the last; an encrypted PDF, .ai or .ait file stays in the cursor at 612 × 792 pt (VectorCraft's own size) with needsPassword: true and no thumbnail, and a click on it in the app asks for its password (headless, its file.place fails for want of the password) → {count, files: [{name, format, width, height, thumbnailBase64?, needsPassword?}], skipped: [{name, error}]}",
             has_doc,
             queue
         ),
@@ -150,9 +147,6 @@ struct Loaded {
     warnings: Vec<String>,
     /// The link to a raster image's file or a placed document's (for Link), when read from a path.
     link: Option<LinkInfo>,
-    /// The artboard a DXF drawing fitted to an artboard, or not centred, was laid out on: it lands
-    /// on the target artboard the same way.
-    board: Option<Rect>,
 }
 
 /// A PSD or PSB file's slices, embedded with `importSlices`: their rectangles over the natural box
@@ -176,22 +170,21 @@ pub(crate) fn pt_per_px(ppi: Option<(f64, f64)>) -> (f64, f64) {
 }
 
 /// [`load_sliced`] without the slices.
-fn load(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool) -> Result<Loaded> {
-    load_into(p, cmd, board, link_pdf, &mut vec![])
+fn load(p: &Value, cmd: &str, link_pdf: bool) -> Result<Loaded> {
+    load_into(p, cmd, link_pdf, &mut vec![])
 }
 
 /// [`load_into`], with the slices of a PSD or PSB file that `importSlices` brings in.
-fn load_sliced(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool) -> Result<(Loaded, Slices)> {
+fn load_sliced(p: &Value, cmd: &str, link_pdf: bool) -> Result<(Loaded, Slices)> {
     let mut slices = vec![];
-    let l = load_into(p, cmd, board, link_pdf, &mut slices)?;
+    let l = load_into(p, cmd, link_pdf, &mut slices)?;
     Ok((l, slices))
 }
 
-/// The file `p` names, read into placeable art; a DXF drawing's Fit to Artboard fills `board`
-/// (unless the params name their own box). A PDF/.ai page or an EPS file read from a path is placed
+/// The file `p` names, read into placeable art. A PDF/.ai page or an EPS file read from a path is placed
 /// linked with Link when `link_pdf` (false for the queries, which read it embedded). A PSD or PSB
 /// file's slices go to `slices`.
-fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_out: &mut Slices) -> Result<Loaded> {
+fn load_into(p: &Value, cmd: &str, link_pdf: bool, slices_out: &mut Slices) -> Result<Loaded> {
     let src = fileio::source(p, cmd)?;
     let name = fileio::file_name(src.name);
     // An Affinity file is recognised by its signature, whatever its name says.
@@ -201,7 +194,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
             return Err(bad(cmd, format!("`{name}` has no text to place")));
         }
         let art = Art::Text(text::Story::plain(text));
-        return Ok(Loaded { name, format: &text::FORMAT, art, natural: TEXT_FRAME, warnings: vec![], link: None, board: None });
+        return Ok(Loaded { name, format: &text::FORMAT, art, natural: TEXT_FRAME, warnings: vec![], link: None });
     }
     // An RTF file is recognized by its content, whatever its name says (a .txt file is plain text).
     if rtf::is_rtf(&src.bytes) {
@@ -209,7 +202,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         if story.plain_text().trim().is_empty() {
             return Err(bad(cmd, format!("`{name}` has no text to place")));
         }
-        return Ok(Loaded { name, format: &rtf::FORMAT, art: Art::Text(story), natural: TEXT_FRAME, warnings: vec![], link: None, board: None });
+        return Ok(Loaded { name, format: &rtf::FORMAT, art: Art::Text(story), natural: TEXT_FRAME, warnings: vec![], link: None });
     }
     // A Word document is recognized by its name or by its package's `word/document.xml`.
     if docx::is_docx(src.name, &src.bytes) {
@@ -217,7 +210,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         if story.plain_text().trim().is_empty() {
             return Err(bad(cmd, format!("`{name}` has no text to place")));
         }
-        return Ok(Loaded { name, format: &docx::FORMAT, art: Art::Text(story), natural: TEXT_FRAME, warnings: vec![], link: None, board: None });
+        return Ok(Loaded { name, format: &docx::FORMAT, art: Art::Text(story), natural: TEXT_FRAME, warnings: vec![], link: None });
     }
     // A Word 97-2003 document is recognized by its name or by its compound file's WordDocument
     // stream.
@@ -226,7 +219,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         if story.plain_text().trim().is_empty() {
             return Err(bad(cmd, format!("`{name}` has no text to place")));
         }
-        return Ok(Loaded { name, format: &doc::FORMAT, art: Art::Text(story), natural: TEXT_FRAME, warnings, link: None, board: None });
+        return Ok(Loaded { name, format: &doc::FORMAT, art: Art::Text(story), natural: TEXT_FRAME, warnings, link: None });
     }
     let format = fileio::detect(src.name, &src.bytes)
         .ok_or_else(|| bad(cmd, format!("can't place `{name}`: not a format VectorCraft reads (see document.formats)")))?;
@@ -234,12 +227,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         None => 1,
         Some(v) => v.as_u64().filter(|n| (1..=100_000).contains(n)).ok_or_else(|| bad(cmd, "page must be a whole number from 1"))? as usize,
     };
-    let mut opts = fileio::LoadOptions::from_params(cmd, p)?;
-    if let Some(b) = board
-        && p.get("dxf").and_then(|d| d.get("fitTo")).is_none()
-    {
-        opts.dxf.fit_to = (b.width(), b.height());
-    }
+    let opts = fileio::LoadOptions::from_params(cmd, p)?;
     // PostScript .ai files are read like EPS.
     let pdf = matches!(format.id, "pdf" | "ai" | "ait") && !vectorcraft_pdf::is_postscript(&src.bytes);
     if !pdf && !matches!(opts.crop, CropTo::Crop | CropTo::Bounding) {
@@ -256,7 +244,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         let a = dcs::read(&src.bytes, Some(&path)).map_err(|e| bad(cmd, format!("{name}: {e}")))?;
         let link = super::links::link_info(&path, &src.bytes);
         let (natural, warnings) = (a.page, a.warnings.clone());
-        return Ok(Loaded { name, format, art: Art::Dcs(Box::new(a)), natural, warnings, link: Some(link), board: None });
+        return Ok(Loaded { name, format, art: Art::Dcs(Box::new(a)), natural, warnings, link: Some(link) });
     }
     // A VectorCraft document: placed linked from its file, else as an editable copy.
     if matches!(format.id, "vectorcraft" | "template") {
@@ -265,11 +253,11 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
             let s = document::source(src.name, &src.bytes, Some(path), page, !crop, PageBox::Crop, cmd)?;
             let link = LinkInfo { page: Some(page), ..super::links::link_info(path, &src.bytes) };
             let (natural, warnings) = (s.frame, s.warnings.clone());
-            return Ok(Loaded { name, format, art: Art::Document(s, link.clone(), !crop), natural, warnings, link: Some(link), board: None });
+            return Ok(Loaded { name, format, art: Art::Document(s, link.clone(), !crop), natural, warnings, link: Some(link) });
         }
         let a = document::document_art(src.name, &src.bytes, src.path, page, !crop, PageBox::Crop, cmd)?;
         let art = Art::Vector { src: Box::new(a.doc), nodes: a.nodes, clip: a.clip };
-        return Ok(Loaded { name, format, art, natural: a.frame, warnings: a.warnings, link: None, board: None });
+        return Ok(Loaded { name, format, art, natural: a.frame, warnings: a.warnings, link: None });
     }
     // A PSD or PSB file placed with `layers`: its layers as objects, never linked. One without
     // layers, or whose layers can't be read, is embedded as its merged image.
@@ -299,7 +287,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
                 Ok(Some((doc, mut warnings))) => match psd_groups(doc) {
                     Some((art, natural)) => {
                         *slices_out = psd_slices(slices_from, natural, &mut warnings);
-                        return Ok(Loaded { name, format, art, natural, warnings, link: None, board: None });
+                        return Ok(Loaded { name, format, art, natural, warnings, link: None });
                     }
                     // No layer has art: the merged image, embedded.
                     None => unread = warnings,
@@ -318,7 +306,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         let mut warnings: Vec<String> = unread.into_iter().chain(fileio::size_note(&img.blob.bytes)).collect();
         *slices_out = psd_slices(slices_from, natural, &mut warnings);
         let clip = img.clip.clone().map(|(path, _)| path);
-        return Ok(Loaded { name, format, art: Art::Image(img, clip), natural, warnings, link, board: None });
+        return Ok(Loaded { name, format, art: Art::Image(img, clip), natural, warnings, link });
     }
     if pdf {
         // Linked: placed like a VectorCraft document, read again with the page's box only. A page
@@ -329,11 +317,11 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
             let s = document::source(src.name, &src.bytes, Some(path), page, !crop, document::page_box(opts.crop), cmd)?;
             let link = LinkInfo { page: Some(page), ..super::links::link_info(path, &src.bytes) };
             let (natural, warnings) = (s.frame, s.warnings.clone());
-            return Ok(Loaded { name, format, art: Art::Document(s, link.clone(), !crop), natural, warnings, link: Some(link), board: None });
+            return Ok(Loaded { name, format, art: Art::Document(s, link.clone(), !crop), natural, warnings, link: Some(link) });
         }
         let a = pdf_art(src.name, (&src.bytes, None), src.path, page, opts, !crop, cmd)?;
         let art = Art::Vector { src: Box::new(a.doc), nodes: a.nodes, clip: a.clip };
-        return Ok(Loaded { name, format, art, natural: a.frame, warnings: a.warnings, link: None, board: None });
+        return Ok(Loaded { name, format, art, natural: a.frame, warnings: a.warnings, link: None });
     }
     // An EPS file (or a PostScript .ai) with Link: placed like a PDF page, its art read as below.
     if let Some(path) = src.path.filter(|_| link_pdf && bool_or(p, "link", true) && document::is_postscript(&src.bytes)) {
@@ -341,13 +329,11 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         let s = document::source(src.name, &src.bytes, Some(path), page, !crop, PageBox::Crop, cmd)?;
         let link = LinkInfo { page: Some(page), ..super::links::link_info(path, &src.bytes) };
         let (natural, warnings) = (s.frame, s.warnings.clone());
-        return Ok(Loaded { name, format, art: Art::Document(s, link.clone(), !crop), natural, warnings, link: Some(link), board: None });
+        return Ok(Loaded { name, format, art: Art::Document(s, link.clone(), !crop), natural, warnings, link: Some(link) });
     }
-    let anchored = format.id == "dxf" && (opts.dxf.fit || !opts.dxf.center);
     let (mut doc, warnings) = {
-        // Of the open options, only a DXF drawing's apply (the colour mode stays the file's).
-        let o = fileio::LoadOptions { dxf: opts.dxf, ..Default::default() };
-        let mut l = fileio::load_with(src.name, &src.bytes, &o)?;
+        // None of the open options apply (the colour mode stays the file's).
+        let mut l = fileio::load_with(src.name, &src.bytes, &fileio::LoadOptions::default())?;
         // An Affinity file whose native document couldn't be read is only its preview: it
         // must never silently stand in for the art.
         if l.preview_only {
@@ -363,10 +349,9 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
         (l.doc, l.warnings)
     };
     doc.drop_edit_modes();
-    let board = doc.artboards.first().map(|a| a.rect).filter(|_| anchored);
     let layers = std::mem::take(&mut doc.layers);
     let symbols = doc.symbol_boxes();
-    let (nodes, clip) = if matches!(format.id, "svg" | "svgz" | "dxf" | "hpgl") {
+    let (nodes, clip) = if matches!(format.id, "svg" | "svgz") {
         // An SVG with `crop: "crop"` asked for is framed and clipped by its viewBox (its artboard),
         // as a PDF by its page: art drawn on a shared canvas keeps its place and scale (#788). By
         // default, as Illustrator places one, it is its art's bounds.
@@ -382,7 +367,7 @@ fn load_into(p: &Value, cmd: &str, board: Option<Rect>, link_pdf: bool, slices_o
     };
     let natural = clip.or_else(|| shown_bounds(&symbols, &nodes));
     let natural = natural.filter(|r| r.width() > 0.0 || r.height() > 0.0).ok_or_else(|| bad(cmd, format!("`{name}` has no art to place")))?;
-    Ok(Loaded { name, format, art: Art::Vector { src: Box::new(doc), nodes, clip }, natural, warnings, link: None, board })
+    Ok(Loaded { name, format, art: Art::Vector { src: Box::new(doc), nodes, clip }, natural, warnings, link: None })
 }
 
 /// A PSD or PSB file's layers, read as `document.open` reads them into `doc`, as art to place: an
@@ -667,8 +652,7 @@ fn fit(natural: Rect, r: Rect) -> Affine {
 }
 
 /// What `file.place` takes from the session before it reads the file: the document it places into,
-/// the params, the object Replace swaps and the artboard under `at`, which a DXF drawing is laid
-/// out on ([`Session::prepare_place`]). [`PlaceJob::read`] reads and decodes the file without the
+/// the params and the object Replace swaps ([`Session::prepare_place`]). [`PlaceJob::read`] reads and decodes the file without the
 /// session, on any thread.
 pub struct PlaceJob {
     /// The document it was prepared in (`DocState::uid`).
@@ -677,7 +661,6 @@ pub struct PlaceJob {
     old: Option<NodeId>,
     /// The object Replace swaps as it was when Place started.
     replaced: Option<Node>,
-    target: Option<Rect>,
 }
 
 /// A file [`PlaceJob::read`] read, which [`Session::place_read`] places.
@@ -700,7 +683,7 @@ impl PlaceJob {
     /// ([`super::links::readable_and_kept`]).
     pub fn read(self) -> Result<PlaceRead> {
         crate::cancel::check()?;
-        let (mut loaded, slices) = load_sliced(&self.params, PLACE, self.target, true)?;
+        let (mut loaded, slices) = load_sliced(&self.params, PLACE, true)?;
         let linked = loaded.link.is_some() && bool_or(&self.params, "link", true);
         match &mut loaded.art {
             Art::Image(img, _) => {
@@ -786,12 +769,12 @@ fn prepare(s: &Session, p: &Value) -> Result<PlaceJob> {
         (true, _) => return Err(bad(PLACE, "replace: select the one object to replace")),
     };
     let replaced = old.and_then(|id| st.doc.node(id)).cloned();
-    Ok(PlaceJob { doc: st.uid, params: p.clone(), old, replaced, target: board_at(&st.doc, at) })
+    Ok(PlaceJob { doc: st.uid, params: p.clone(), old, replaced })
 }
 
 /// Place the file `read` holds in the active document.
 fn apply(s: &mut Session, read: PlaceRead) -> Result<Value> {
-    let PlaceRead { job: PlaceJob { params, old, target: read_for, .. }, mut loaded, slices: read_slices } = read;
+    let PlaceRead { job: PlaceJob { params, old, .. }, mut loaded, slices: read_slices } = read;
     let p = &params;
     let template = bool_or(p, "template", false);
     let at = at_param(p)?;
@@ -801,12 +784,8 @@ fn apply(s: &mut Session, read: PlaceRead) -> Result<Value> {
         Some(id) => Some(st.doc.node(id).ok_or_else(|| bad(PLACE, "replace: the object to replace was changed or deleted"))?),
         None => None,
     };
-    // The artboard under `at` as it is now, as a replay of the journal finds it: a DXF drawing laid
-    // out on the artboard it was read for is read again when that artboard changed meanwhile.
+    // The artboard under `at` as it is now, as a replay of the journal finds it.
     let target = board_at(&st.doc, at);
-    if loaded.board.is_some() && target != read_for {
-        loaded = load(p, PLACE, target, true)?;
-    }
     // Type reflows rather than scales: its frame takes the size it is placed at.
     let is_text = matches!(loaded.art, Art::Text(_));
     if is_text {
@@ -833,7 +812,6 @@ fn apply(s: &mut Session, read: PlaceRead) -> Result<Value> {
         (Some(o), _) => replace_xf(&st.doc, o, natural, !is_text, matches!(loaded.art, Art::Image(..))),
         (None, Some(r)) => fit(natural, r),
         // Its artboard's bottom-left corner on the target's.
-        (None, None) if let (Some(src), Some(to)) = (loaded.board, target) => Affine::translate((to.x0 - src.x0, to.y1 - src.y1)),
         (None, None) => {
             let c = at.or_else(|| st.doc.artboards.first().map(|a| a.rect.center())).unwrap_or_default();
             Affine::translate(c - natural.center())
@@ -979,7 +957,7 @@ fn read_queue(doc: u64, p: Value, queued: Vec<Value>) -> Result<QueueRead> {
     let thumbnail = p.get("thumbnail").and_then(Value::as_f64);
     let (mut entries, mut files, mut skipped) = (vec![], vec![], vec![]);
     for mut q in queued {
-        for k in ["link", "template", "page", "crop", "text", "dxf", "layers", "hiddenLayers", "importSlices"] {
+        for k in ["link", "template", "page", "crop", "text", "layers", "hiddenLayers", "importSlices"] {
             if let Some(v) = p.get(k) {
                 q[k] = v.clone();
             }
@@ -987,7 +965,7 @@ fn read_queue(doc: u64, p: Value, queued: Vec<Value>) -> Result<QueueRead> {
         // Read for its size and thumbnail: each click places it with file.place, so a file whose
         // pixels file.place can't read is skipped. With a thumbnail, the decoded pixels are kept
         // so that drawing it does not decode the file again.
-        let checked = load(&q, QUEUE, None, false).and_then(|mut l| {
+        let checked = load(&q, QUEUE, false).and_then(|mut l| {
             let linked = l.link.is_some() && bool_or(&q, "link", true);
             match &mut l.art {
                 Art::Image(img, _) => {
@@ -1121,7 +1099,7 @@ pub fn read_info(p: &Value) -> Result<Value> {
     check_switches(p, &["link"], "file.place.info")?;
     check_numbers(p, &["thumbnail"], "file.place.info")?;
     // A PDF/.ai page linked or not has the same size and art.
-    let (mut l, slices) = load_sliced(p, "file.place.info", None, false)?;
+    let (mut l, slices) = load_sliced(p, "file.place.info", false)?;
     let natural = l.natural;
     let mut out = json!({
         "name": l.name,

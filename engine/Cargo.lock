@@ -389,11 +389,6 @@ version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=068e079c7be4b100a8a6b305b31ac881e069727e#068e079c7be4b100a8a6b305b31ac881e069727e"
 
 [[package]]
-name = "craft-eps"
-version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=cfcc86242d56fe68117cd5dc2e5dd3b7a0e5b0ec#cfcc86242d56fe68117cd5dc2e5dd3b7a0e5b0ec"
-
-[[package]]
 name = "craft-font-catalog"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=50b0ee7bf811e363b5f238382b5c77318cf33e46#50b0ee7bf811e363b5f238382b5c77318cf33e46"
@@ -578,20 +573,6 @@ dependencies = [
  "miniz_oxide 0.9.1",
  "toml",
  "unicode-normalization",
-]
-
-[[package]]
-name = "craft-ps"
-version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=cfcc86242d56fe68117cd5dc2e5dd3b7a0e5b0ec#cfcc86242d56fe68117cd5dc2e5dd3b7a0e5b0ec"
-dependencies = [
- "craft-eps 0.1.0 (git+https://github.com/storytold/craft-libs?rev=cfcc86242d56fe68117cd5dc2e5dd3b7a0e5b0ec)",
- "flate2",
- "kurbo",
- "miniz_oxide 0.8.9",
- "pdf-writer",
- "skrifa 0.47.0",
- "weezl 0.1.12",
 ]
 
 [[package]]
@@ -2676,6 +2657,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "vectorcraft-ai"
+version = "0.24.1"
+dependencies = [
+ "craft-eps",
+ "craft-image-codecs 0.1.0 (git+https://github.com/storytold/craft-libs?rev=ba25ccd233934d1b2f74e3c0f235168bf5f13ef3)",
+ "craft-pdf",
+ "encoding_rs",
+ "fax",
+ "flate2",
+ "image",
+ "kurbo",
+ "memchr",
+ "ruzstd",
+ "serde_json",
+ "vectorcraft-brush",
+ "vectorcraft-color",
+ "vectorcraft-doc",
+ "vectorcraft-effects",
+ "vectorcraft-geom 0.24.1",
+ "vectorcraft-pathops 0.24.1",
+ "vectorcraft-pdf",
+ "vectorcraft-render",
+ "vectorcraft-testkit",
+ "vectorcraft-text",
+]
+
+[[package]]
 name = "vectorcraft-apischema"
 version = "0.24.1"
 dependencies = [
@@ -2802,15 +2810,13 @@ dependencies = [
  "thiserror",
  "tiff",
  "vectorcraft-affinity",
+ "vectorcraft-ai",
  "vectorcraft-apischema",
  "vectorcraft-brush",
- "vectorcraft-cad",
  "vectorcraft-color",
  "vectorcraft-doc",
- "vectorcraft-eps",
  "vectorcraft-format",
  "vectorcraft-geom 0.24.1",
- "vectorcraft-metafile",
  "vectorcraft-pathops 0.24.1",
  "vectorcraft-pdf",
  "vectorcraft-render",
@@ -2823,37 +2829,6 @@ dependencies = [
  "wat",
  "zune-core",
  "zune-jpegxl",
-]
-
-[[package]]
-name = "vectorcraft-eps"
-version = "0.24.1"
-dependencies = [
- "craft-eps 0.1.0 (git+https://github.com/storytold/craft-libs?rev=068e079c7be4b100a8a6b305b31ac881e069727e)",
- "craft-image-codecs 0.1.0 (git+https://github.com/storytold/craft-libs?rev=ba25ccd233934d1b2f74e3c0f235168bf5f13ef3)",
- "craft-pdf",
- "craft-ps",
- "craft-stream-codecs",
- "encoding_rs",
- "fax",
- "flate2",
- "image",
- "kurbo",
- "memchr",
- "ruzstd",
- "serde_json",
- "skrifa 0.47.0",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom 0.24.1",
- "vectorcraft-metafile",
- "vectorcraft-pathops 0.24.1",
- "vectorcraft-pdf",
- "vectorcraft-render",
- "vectorcraft-testkit",
- "vectorcraft-text",
 ]
 
 [[package]]

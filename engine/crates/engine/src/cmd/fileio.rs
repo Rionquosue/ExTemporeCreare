@@ -12,13 +12,9 @@
 //!   per-format options (`file.formatOptions`); [`save_with`] is the one save path of every frontend.
 //! - `pdf`: PDF settings and presets for every PDF export, `document.exportPdf`.
 //! - `pdfimport`: the PDF pages, box and password `document.open` and Place read, `document.pdfInfo`.
-//! - `dxf`: DXF export options, `document.exportDxf`, and the formats that can't be written (DWG, PageMaker).
 //! - `eps`: EPS export options (flattened transparency, previews, the embedded document), `document.exportEps`.
-//! - `dxfimport`: the DXF options `document.open` and Place read, `document.dxfInfo`.
-//! - `metafile`: EMF and WMF export, open and place; PICT open and place.
 //! - `cdr`: `.cdr` drawings of versions 1 to 27 and `.cdt` templates, and `.cmx` files with
 //!   32-bit coordinates, open and place.
-//! - `hpgl`: HP-GL export options and plots.
 //! - `importer`: files that importer plug-ins open (`document.open {importer}`, and extensions no
 //!   built-in format reads).
 //! - `mesh3d`: 3D assets as OBJ, glTF, USDA and USDZ mesh files (`assets.export3D`).
@@ -29,21 +25,15 @@
 mod affinity;
 mod batch;
 mod cdr;
-pub mod dxf;
-pub mod dxfimport;
 mod encode;
-pub mod eps;
 mod export;
 pub(crate) mod imagemap;
 pub mod jxlread;
-mod legacy_ai;
 mod load;
 mod mesh3d;
 pub(crate) use load::{MAX_RASTER_ALLOC, file_clipped, image_clip, preview_with_clip, size_note};
 mod heifread;
-pub mod hpgl;
 mod jp2read;
-mod metafile;
 mod naming;
 mod native;
 mod pcxread;
@@ -65,7 +55,7 @@ pub mod zip;
 
 use serde_json::{Value, json};
 
-pub use dxf::{UNSUPPORTED, Unsupported, unsupported};
+pub use formats::{UNSUPPORTED, Unsupported, unsupported};
 pub use encode::{
     ARTBOARD_PARAMS, ArtboardPick, Encoded, Note, NoteKind, encode, encode_all, encode_with_notes, encode_with_warnings, export_art_bounds,
     note_texts,
@@ -212,26 +202,12 @@ mod tests_selexport;
 mod tests_text;
 
 #[cfg(test)]
-mod tests_dxf;
-
-#[cfg(test)]
 mod tests_pdfsecurity;
 #[cfg(test)]
 mod tests_svgenc;
 #[cfg(test)]
 mod tests_svgimport;
 
-#[cfg(test)]
-mod tests_eps;
-
-#[cfg(test)]
-mod tests_dxfimport;
-#[cfg(test)]
-mod tests_hpgl;
-#[cfg(test)]
-mod tests_metafile;
-#[cfg(test)]
-mod tests_pict;
 
 #[cfg(test)]
 mod tests_pdfoutput;
@@ -260,8 +236,6 @@ mod tests_pcxread;
 #[cfg(test)]
 mod tests_pxrread;
 
-#[cfg(test)]
-mod tests_epsimport;
 
 #[cfg(test)]
 mod tests_aiimport;

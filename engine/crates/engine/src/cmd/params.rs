@@ -960,7 +960,7 @@ fn check_screen_rows(id: &str, within: &str, p: &serde_json::Map<String, Value>)
 /// EPS or SVG, only the object's own keys pass ([`option_trees`]). Saved presets are not checked:
 /// one with a key that is no longer read keeps loading.
 fn check_export_options(id: &str, params: &Value) -> Result<()> {
-    use super::fileio::{FORMATS, SAVE_FORMATS, SCREEN_PARAM_KEYS, TEMPLATE_FORMATS, dxf, eps, pdf};
+    use super::fileio::{FORMATS, SAVE_FORMATS, SCREEN_PARAM_KEYS, TEMPLATE_FORMATS, eps, pdf};
     let Value::Object(given) = params else { return Ok(()) };
     match (id, given.get("settings")) {
         ("document.exportForScreens", _) => {
@@ -1011,10 +1011,6 @@ fn check_export_options(id: &str, params: &Value) -> Result<()> {
             keys.push("includeArtboardFill");
             keys.extend(eps::OPTIONS.iter().map(|o| o.name));
             "EPS doesn't take it (see document.formats)"
-        }
-        "document.exportDxf" => {
-            keys.extend(dxf::OPTIONS.iter().map(|o| o.name));
-            "DXF doesn't take it (see document.formats)"
         }
         _ => return Ok(()),
     };

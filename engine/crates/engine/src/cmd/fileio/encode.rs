@@ -457,13 +457,12 @@ pub(super) fn art_page(cmd: &str, doc: &Document, p: &Value, left_out: impl Fn(&
 }
 
 /// The bounds of the visible art of `doc` that a `format` file of the art's bounds draws, as
-/// [`art_page`] measures it with that format's default options: for HP-GL without what a plot
-/// leaves out ([`vectorcraft_cad::hpgl::write::plots_nothing`]), for other formats all of it (the
-/// non-printing layers a PDF leaves out depend on options chosen after the save panel). `None`
+/// [`art_page`] measures it with that format's default options: all of it (the non-printing layers
+/// a PDF leaves out depend on options chosen after the save panel). `None`
 /// when there is none, which such an export refuses.
-pub fn export_art_bounds(doc: &Document, format: &str) -> Option<Rect> {
+pub fn export_art_bounds(doc: &Document, _format: &str) -> Option<Rect> {
     let doc = &*doc.without_edit_modes();
-    bounds_without(doc, &|n| format == "hpgl" && vectorcraft_cad::hpgl::write::plots_nothing(doc, n))
+    bounds_without(doc, &|_| false)
 }
 
 /// The bounds of the visible art of `doc` with the objects that `left_out` picks hidden
@@ -1078,7 +1077,7 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
     {
         return Ok(enc);
     }
-    let left_out = |n: &Node| f.id == "hpgl" && vectorcraft_cad::hpgl::write::plots_nothing(doc, n);
+    let left_out = |_: &Node| false;
     if use_artboards == Some(false)
         && let Some((art, q)) = art_page(C, doc, p, left_out)?
     {
@@ -1094,12 +1093,8 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
         }
         "txt" => super::text::encode(doc, p)?,
         "svg" | "svgz" => return super::svg::encode(doc, p, f.id == "svgz").map_err(|e| bad(C, e)),
-        "dxf" => return super::dxf::encode(doc, p, use_artboards),
         // EPS reads its own `useArtboards` (the art's bounds unless asked).
         "eps" => return super::eps::encode(doc, p),
-        "emf" => return super::metafile::encode(doc, p, use_artboards, vectorcraft_metafile::Kind::Emf),
-        "wmf" => return super::metafile::encode(doc, p, use_artboards, vectorcraft_metafile::Kind::Wmf),
-        "hpgl" => return super::hpgl::encode(doc, p, use_artboards),
         "ai" => return super::save::encode_ai(C, f, doc, p),
         "pdf" => {
             let (bytes, notes) = super::pdf::encode(C, doc, p)?;

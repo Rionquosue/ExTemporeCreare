@@ -38,8 +38,6 @@ pub struct LoadOptions {
     pub hidden_layers: bool,
     /// A PSD or PSB file's slices become user slices (`importSlices`; else they are left out).
     pub import_slices: bool,
-    /// How a DXF drawing comes in (the `dxf` param, see [`super::dxfimport`]).
-    pub dxf: vectorcraft_cad::ImportOptions,
     /// An Illustrator EPS or `.ai` that carries the editing copy of its art opens from it (its
     /// layers, hidden objects and the art outside its artboards); else only what its page or PDF
     /// part prints comes in.
@@ -70,7 +68,6 @@ impl Default for LoadOptions {
             layers: true,
             hidden_layers: false,
             import_slices: true,
-            dxf: Default::default(),
             editing_data: true,
             trust_editing_data: false,
             legacy_names: vectorcraft_eps::NameEncoding::default(),
@@ -85,8 +82,8 @@ impl LoadOptions {
     /// `pages` isn't given), `cropTo` (or `crop`), `password`, `colorMode` (`rgb` | `cmyk`) with `grays`,
     /// `textAs` (`text` | `outlines`), `layers` (true | false), `hiddenLayers` (true | false),
     /// `importSlices` (true | false), `editingData` (true | false | `always`),
-    /// `legacyNameEncoding` (one of [`vectorcraft_eps::NameEncoding::LABELS`]), `linkPages` (true |
-    /// false) and `dxf` (the DXF import options).
+    /// `legacyNameEncoding` (one of [`vectorcraft_eps::NameEncoding::LABELS`]) and `linkPages` (true |
+    /// false).
     pub fn from_params(cmd: &str, p: &Value) -> Result<Self> {
         let pages = match p.get("pages").filter(|v| !v.is_null()).or_else(|| p.get("page").filter(|v| !v.is_null())) {
             None => None,
@@ -134,7 +131,6 @@ impl LoadOptions {
             None => false,
             Some(v) => v.as_bool().ok_or_else(|| bad(cmd, "linkPages must be true or false"))?,
         };
-        let dxf = super::dxfimport::options(cmd, p.get("dxf"))?;
         Ok(Self {
             pages,
             crop,
@@ -145,7 +141,6 @@ impl LoadOptions {
             layers,
             hidden_layers,
             import_slices,
-            dxf,
             editing_data,
             trust_editing_data,
             legacy_names,

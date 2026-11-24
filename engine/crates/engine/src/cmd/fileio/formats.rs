@@ -1,7 +1,6 @@
 use super::super::unique_name;
 use super::{
-    Result, Session, TEMPLATE_FORMATS, UNSUPPORTED, Unsupported, Value, bad, dxf, eps, hpgl, json, metafile, native, pdf, screens, svg, text,
-    unsupported,
+    Result, Session, TEMPLATE_FORMATS, Value, bad, json, native, pdf, screens, svg, text,
 };
 
 /// One option a format's encoder reads from the export params.
@@ -479,30 +478,6 @@ pub const FORMATS: &[Format] = &[
     },
     Format { id: "png8", label: "PNG-8", extensions: &["png"], mime: "image/png", read: false, write: true, raster: true, options: PALETTE_OPTIONS },
     Format { id: "txt", label: "Text", extensions: TEXT_EXTS, mime: "text/plain", read: false, write: true, raster: false, options: text::OPTIONS },
-    Format { id: "dxf", label: "DXF", extensions: &["dxf"], mime: "image/vnd.dxf", read: true, write: true, raster: false, options: dxf::OPTIONS },
-    Format {
-        id: "eps",
-        label: "EPS",
-        extensions: &["eps", "epsf"],
-        mime: "application/postscript",
-        read: true,
-        write: true,
-        raster: false,
-        options: eps::OPTIONS,
-    },
-    Format { id: "emf", label: "EMF", extensions: &["emf"], mime: "image/emf", read: true, write: true, raster: false, options: metafile::OPTIONS },
-    Format { id: "wmf", label: "WMF", extensions: &["wmf"], mime: "image/wmf", read: true, write: true, raster: false, options: metafile::OPTIONS },
-    // HP-GL/2 plot files, read by `vectorcraft_cad::hpgl` into paths and written as pen moves.
-    Format {
-        id: "hpgl",
-        label: "HP-GL",
-        extensions: &["plt", "hpgl", "hgl", "hpg"],
-        mime: "application/vnd.hp-hpgl",
-        read: true,
-        write: true,
-        raster: false,
-        options: hpgl::OPTIONS,
-    },
     Format {
         id: "tga",
         label: "Targa",
@@ -520,8 +495,6 @@ pub const FORMATS: &[Format] = &[
     // The large document form of PSD: read like a PSD (its layers, or its merged image), never
     // written.
     reader("psb", "PSB", &["psb"], "image/x-psb", true),
-    // PostScript programs, read as EPS files are; Print to PostScript writes them, exports don't.
-    reader("ps", "PostScript", &["ps"], "application/postscript", false),
     // ZSoft PCX images, read by `pcxread` and stored as PNG; exports don't write them.
     reader("pcx", "PCX", &["pcx"], "image/x-pcx", true),
     // Pixar picture files, read by `pxrread` and stored as PNG; exports don't write them.
@@ -540,8 +513,6 @@ pub const FORMATS: &[Format] = &[
     // `.cmx` exchange files with 32-bit coordinates, read by `craft-cdr`; exports don't write
     // them.
     reader("cmx", "CMX", &["cmx"], "image/x-cmx", false),
-    // QuickDraw pictures, read by `vectorcraft_metafile::import_pict` into paths, type and images.
-    reader("pict", "PICT", &["pct", "pic", "pict"], "image/x-pict", false),
 ];
 
 /// Every extension `document.open` reads (the "All readable files" filter of open dialogs).
@@ -583,19 +554,6 @@ pub const OPEN_EXTS: &[&str] = &[
     "psb",
     "jxl",
     "vctemplate",
-    "dxf",
-    "emf",
-    "wmf",
-    "pct",
-    "pic",
-    "pict",
-    "plt",
-    "hpgl",
-    "hgl",
-    "hpg",
-    "eps",
-    "epsf",
-    "ps",
     "af",
     "afdesign",
     "afpub",
@@ -606,13 +564,11 @@ pub const OPEN_EXTS: &[&str] = &[
 
 /// Extensions in [`OPEN_EXTS`] the packaging declares no type for: Photoshop documents belong to
 /// raster editors, so Finder and file managers don't offer a vector app for them, and there is no
-/// `.epsf`, `.ps`, Targa, PCX, Pixar, JPEG 2000, HEIC/HEIF, JPEG XL, `.cdr` or `.cmx` type, nor one for the `.pns`, `.dib` and `.rle` names of
-/// PNG and BMP files (File › Open and Place still read them all). On Linux the desktop entry's EPS
-/// type (shared-mime-info's) also covers `.epsf`, so file managers offer VectorCraft for it.
-/// The packaging declares no type for HP-GL plot files or PICT pictures either.
+/// Targa, PCX, Pixar, JPEG 2000, HEIC/HEIF, JPEG XL, `.cdr` or `.cmx` type, nor one for the `.pns`,
+/// `.dib` and `.rle` names of PNG and BMP files (File › Open and Place still read them all).
 pub const UNASSOCIATED_EXTS: &[&str] = &[
-    "psd", "pdd", "psb", "epsf", "ps", "pns", "dib", "rle", "tga", "vda", "icb", "vst", "pcx", "pxr", "jpf", "jpx", "jp2", "j2k", "j2c", "jpc",
-    "heic", "heif", "jxl", "cdr", "cdt", "cmx", "plt", "hpgl", "hgl", "hpg", "pct", "pic", "pict",
+    "psd", "pdd", "psb", "pns", "dib", "rle", "tga", "vda", "icb", "vst", "pcx", "pxr", "jpf", "jpx", "jp2", "j2k", "j2c", "jpc",
+    "heic", "heif", "jxl", "cdr", "cdt", "cmx",
 ];
 
 /// The extension that picks each writable format when exporting (the format's first; PNG-8 shares
@@ -682,19 +638,6 @@ pub const PLACE_EXTS: &[&str] = &[
     "psb",
     "jxl",
     "vctemplate",
-    "dxf",
-    "emf",
-    "wmf",
-    "pct",
-    "pic",
-    "pict",
-    "plt",
-    "hpgl",
-    "hgl",
-    "hpg",
-    "eps",
-    "epsf",
-    "ps",
     "af",
     "afdesign",
     "afpub",
@@ -910,4 +853,42 @@ pub(super) fn formats(_: &mut Session, _: &Value) -> Result<Value> {
         "openExtensions": open_extensions(),
         "unsupported": UNSUPPORTED.iter().map(Unsupported::to_json).collect::<Vec<_>>(),
     }))
+}
+
+/// A format that can be neither opened nor written, and what to use instead.
+#[derive(Clone, Copy, Debug)]
+pub struct Unsupported {
+    pub id: &'static str,
+    pub label: &'static str,
+    /// Lower-case extensions without the dot.
+    pub extensions: &'static [&'static str],
+    pub hint: &'static str,
+}
+
+/// Formats people ask for that VectorCraft doesn't read or write. Append-only.
+pub const UNSUPPORTED: &[Unsupported] = &[
+    Unsupported {
+        id: "dwg",
+        label: "DWG",
+        extensions: &["dwg"],
+        hint: "DWG is not supported: export PDF or SVG instead",
+    },
+    Unsupported {
+        id: "pmd",
+        label: "PageMaker",
+        extensions: &["pmd"],
+        hint: "PageMaker (.pmd) is not supported: open the layout in PageMaker and export PDF, or place a PDF export here",
+    },
+];
+
+/// The unsupported format an id or extension (any case, leading dot allowed) names.
+pub fn unsupported(id_or_ext: &str) -> Option<&'static Unsupported> {
+    let k = id_or_ext.trim_start_matches('.').to_ascii_lowercase();
+    UNSUPPORTED.iter().find(|u| u.id == k || u.extensions.contains(&k.as_str()))
+}
+
+impl Unsupported {
+    pub fn to_json(&self) -> Value {
+        json!({ "id": self.id, "label": self.label, "extensions": self.extensions, "hint": self.hint })
+    }
 }
