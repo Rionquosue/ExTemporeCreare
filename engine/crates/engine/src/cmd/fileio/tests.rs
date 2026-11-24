@@ -468,7 +468,7 @@ fn open_exts_cover_every_readable_format() {
     assert_eq!(filters[at("Graphic Style Libraries")].1, styles, "File › Open opens graphic style libraries");
     assert_eq!(at("Graphic Style Libraries"), at("Swatch libraries") + 1, "next to the swatch libraries");
     assert_eq!(filters[at("Perspective grid presets")].1, crate::cmd::perspgrid::PRESET_EXTS, "File › Open imports perspective grid presets");
-    assert_eq!(at("Perspective grid presets"), at("Print presets") + 1, "among the presets");
+    assert_eq!(at("Perspective grid presets"), at("PDF presets") + 1, "among the presets");
     assert_eq!(at("Export presets"), at("Perspective grid presets") + 1, "among the presets");
     for e in [vectorcraft_doc::style_libs::STYLES_EXT].iter().chain(crate::cmd::perspgrid::PRESET_EXTS) {
         assert!(!filters[0].1.contains(e), "All readable files lists documents only, not .{e}");

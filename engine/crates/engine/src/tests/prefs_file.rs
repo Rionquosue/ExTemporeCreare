@@ -12,7 +12,7 @@ fn is_bad_params(r: Result<Value>) -> bool {
 }
 
 /// Folder preferences, which a preferences file leaves out.
-const FOLDERS: [&str; 6] = ["fontsFolder", "pluginsFolder", "scratchPrimary", "scratchSecondary", "recoveryFolder", "templatesFolder"];
+const FOLDERS: [&str; 5] = ["fontsFolder", "scratchPrimary", "scratchSecondary", "recoveryFolder", "templatesFolder"];
 
 /// A preferences file holding `prefs`, as `prefs.export` writes one.
 fn file(prefs: Value) -> String {

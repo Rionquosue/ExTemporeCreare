@@ -220,7 +220,7 @@ impl Row {
         }
         let format = writable(C, Some(str_param(row, "format").unwrap_or("png")), None)?;
         if UNWRITTEN_FORMATS.contains(&format.id) {
-            return Err(bad(C, "Export for Screens writes png, png8, jpg, webp, gif, tiff, bmp, tga, psd, svg, svgz, pdf, eps, ai or vectorcraft"));
+            return Err(bad(C, "Export for Screens writes png, png8, jpg, webp, gif, tiff, bmp, tga, psd, svg, svgz, pdf or vectorcraft"));
         }
         // Vector formats have no pixel size: it doesn't apply and adds no @2x suffix (not even one
         // left over from a raster row switched to SVG or PDF).
