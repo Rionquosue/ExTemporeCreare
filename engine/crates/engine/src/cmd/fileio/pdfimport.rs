@@ -47,7 +47,7 @@ pub struct LoadOptions {
     pub trust_editing_data: bool,
     /// The encoding names in a `.ai` or EPS's editing data are read in when they aren't UTF-8
     /// (`legacyNameEncoding`).
-    pub legacy_names: vectorcraft_eps::NameEncoding,
+    pub legacy_names: vectorcraft_ai::NameEncoding,
     /// A PDF or `.ai` saved with Preserve Editing opens from the VectorCraft document it carries;
     /// off, it opens as another app would open it, from the editing copy of its art or its pages.
     pub native: bool,
@@ -70,7 +70,7 @@ impl Default for LoadOptions {
             import_slices: true,
             editing_data: true,
             trust_editing_data: false,
-            legacy_names: vectorcraft_eps::NameEncoding::default(),
+            legacy_names: vectorcraft_ai::NameEncoding::default(),
             native: true,
             link_pages: false,
         }
@@ -82,7 +82,7 @@ impl LoadOptions {
     /// `pages` isn't given), `cropTo` (or `crop`), `password`, `colorMode` (`rgb` | `cmyk`) with `grays`,
     /// `textAs` (`text` | `outlines`), `layers` (true | false), `hiddenLayers` (true | false),
     /// `importSlices` (true | false), `editingData` (true | false | `always`),
-    /// `legacyNameEncoding` (one of [`vectorcraft_eps::NameEncoding::LABELS`]) and `linkPages` (true |
+    /// `legacyNameEncoding` (one of [`vectorcraft_ai::NameEncoding::LABELS`]) and `linkPages` (true |
     /// false).
     pub fn from_params(cmd: &str, p: &Value) -> Result<Self> {
         let pages = match p.get("pages").filter(|v| !v.is_null()).or_else(|| p.get("page").filter(|v| !v.is_null())) {
@@ -121,11 +121,11 @@ impl LoadOptions {
             Some(v) => (v.as_bool().ok_or_else(|| bad(cmd, "editingData must be true, false or \"always\""))?, false),
         };
         let legacy_names = match p.get("legacyNameEncoding").filter(|v| !v.is_null()) {
-            None => vectorcraft_eps::NameEncoding::default(),
+            None => vectorcraft_ai::NameEncoding::default(),
             Some(v) => v
                 .as_str()
-                .and_then(vectorcraft_eps::NameEncoding::from_label)
-                .ok_or_else(|| bad(cmd, format!("legacyNameEncoding must be one of {}", vectorcraft_eps::NameEncoding::LABELS.join(", "))))?,
+                .and_then(vectorcraft_ai::NameEncoding::from_label)
+                .ok_or_else(|| bad(cmd, format!("legacyNameEncoding must be one of {}", vectorcraft_ai::NameEncoding::LABELS.join(", "))))?,
         };
         let link_pages = match p.get("linkPages").filter(|v| !v.is_null()) {
             None => false,
@@ -350,10 +350,6 @@ pub(super) fn pdf_info(_: &mut Session, p: &Value) -> Result<Value> {
     let bytes = source(p, INFO)?.bytes;
     let o = LoadOptions::from_params(INFO, p)?;
     check_numbers(p, &["thumbnailSize"], INFO)?;
-    // Programs whose header is only `%!` are PostScript too, as `clipboard.importEps` reads them.
-    if bytes.starts_with(b"%!") || vectorcraft_pdf::is_postscript(&bytes) {
-        return postscript_info(&bytes, p);
-    }
     // The file is read once, for its pages and the thumbnail.
     let opened = match vectorcraft_pdf::open_pdf(&bytes, o.password.as_deref()) {
         Ok(opened) => opened,
@@ -389,20 +385,6 @@ fn thumbnail_page(p: &Value, count: usize, what: &str) -> Result<Option<usize>> 
     page.map(Some).ok_or_else(|| bad(INFO, format!("thumbnail: no page {v} (the {what} has {count})")))
 }
 
-/// `document.pdfInfo` of a PostScript file (an EPS, a `.ps` file, a `.ai` in PostScript form): one
-/// page, the page [`vectorcraft_eps::page`] reads, with no PDF boxes. Its thumbnail is the file as
-/// the EPS reader reads it without any editing data it carries: what the page prints, or the
-/// file's preview when its PostScript can't be read.
-fn postscript_info(bytes: &[u8], p: &Value) -> Result<Value> {
-    let page = vectorcraft_eps::page(bytes).map_err(err)?;
-    let info = json!({"width": page.width(), "height": page.height(), "rotation": 0, "boxes": {}});
-    let mut out = json!({"pages": 1, "needsPassword": false, "pageInfo": [info]});
-    if thumbnail_page(p, 1, "file")?.is_some() {
-        let doc = vectorcraft_eps::import_with(bytes, false).map_err(err)?.document;
-        out["thumbnail"] = json!(thumbnail(&doc, p)?);
-    }
-    Ok(out)
-}
 
 /// A PNG of `doc`'s first artboard, `thumbnailSize` px (default 160, from 16 to 1024) on its longer
 /// side, base64.

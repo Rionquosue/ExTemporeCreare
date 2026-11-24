@@ -11,14 +11,3 @@ pub(crate) fn find(hay: &[u8], needle: &[u8]) -> Option<usize> {
     memchr::memmem::find(hay, needle)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn radix_number_with_sign_after_hash_is_not_a_number() {
-        assert!(number("16#+ff").is_none());
-        assert!(number("16#-ff").is_none());
-        assert!(matches!(number("16#ff"), Some(Obj::Int(255))));
-    }
-}

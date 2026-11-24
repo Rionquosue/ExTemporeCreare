@@ -6,7 +6,7 @@ use vectorcraft_doc::{NodeKind, TextObject};
 use vectorcraft_geom::Point;
 use vectorcraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
 
-use crate::cmd::clipboard::{AI, BITMAP, EPS, FILE_HEAD, PASTE_ORDER, PDF, PNG, SVG, TEXT, file_flavour};
+use crate::cmd::clipboard::{BITMAP, FILE_HEAD, PASTE_ORDER, PDF, PNG, SVG, TEXT, file_flavour};
 use crate::*;
 
 fn session() -> Session {
@@ -413,27 +413,6 @@ fn copied_files_paste_by_their_content() {
     assert_eq!(file_flavour("art.svg", svg, &[BITMAP]), None);
 }
 
-#[test]
-fn copied_ai_files_paste_as_the_pdf_or_postscript_inside() {
-    let mut s = session();
-    copy_red_square(&mut s);
-    let pdf = decode(&run(&mut s, "clipboard.exportPdf", json!({})));
-    let ps = b"%!PS-Adobe-3.0\n%%BoundingBox: 0 0 40 40\n%%EndComments\n1 0 0 setrgbcolor\nnewpath 0 0 moveto 40 0 lineto 40 40 lineto closepath fill\nshowpage\n";
-    let of = |name: &str, bytes: &[u8]| file_flavour(name, &bytes[..bytes.len().min(FILE_HEAD)], &PASTE_ORDER);
-    for name in ["art.ai", "art.ait", "ART.AI"] {
-        // Asked for as PDF; Paste reads it from its editing data (tests_aiimport).
-        assert_eq!(of(name, &pdf), Some(AI), "{name}");
-        assert_eq!(of(name, ps), Some(EPS), "{name}");
-    }
-    // Neither PDF nor PostScript: nothing to paste, whatever the name says.
-    assert_eq!(of("art.ai", b"hello"), None);
-    // Only what was asked for.
-    assert_eq!(file_flavour("art.ai", &pdf, &[EPS]), None);
-    assert_eq!(file_flavour("art.ait", ps, &[PDF]), None);
-    // clipboard.importEps, the EPS flavor's command, reads the PostScript.
-    let r = run(&mut s, "clipboard.importEps", json!({"dataBase64": vectorcraft_format::base64_encode(ps)}));
-    assert_eq!(r["count"], 1, "{r}");
-}
 
 #[test]
 fn import_text_then_paste_gives_point_text() {

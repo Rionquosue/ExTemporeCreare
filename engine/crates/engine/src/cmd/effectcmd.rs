@@ -1100,14 +1100,6 @@ fn fresh_ids_listed(d: &mut Document, c: &mut Node, seen: &mut std::collections:
     }
 }
 
-/// Expand Appearance of `id` (and, recursively, of a group's or layer's members): every fill and
-/// stroke becomes an object of its own (a stroke a path stroked by it alone, brushes as their art),
-/// geometry effects are baked, raster effects become an embedded image, and the object keeps its
-/// transparency. An object whose raster effects' image would take `raster` past its limits stays
-/// as it is, with what is inside it.
-pub(crate) fn expand_node(d: &mut Document, id: NodeId, brushes: &[vectorcraft_brush::Brush], out: &mut Vec<NodeId>, raster: &mut RasterBudget) {
-    expand_node_except(d, id, brushes, &[], out, raster);
-}
 
 /// [`expand_node`], leaving the objects `skip` lists, and what they hold, as they are. A geometry
 /// effect of a group or layer around one still reshapes it with the rest of its members, and the

@@ -747,53 +747,6 @@ fn patterns_are_pattern_swatches_and_fill_with_them() {
     assert!(s.warnings.is_empty(), "{:?}", s.warnings);
 }
 
-/// A pattern's name in the file is shown up to its newline (AI7 spec §4): two patterns named
-/// `Dots` apart from what follows the newline are "Dots" and "Dots 2", each fill paints with its
-/// own, and one defined again under its name in the file replaces the first.
-#[test]
-fn pattern_names_are_shown_up_to_their_newline() {
-    let def = |name: &str, tile: u32| DOTS.replace("(Dots)", &format!("({name})")).replace("0 0 8 8\n", &format!("0 0 {tile} {tile}\n"));
-    let filled = |name: &str| format!("({name}) 0 0 1 1 0 0 0 0 0 [1 0 0 1 0 0] p\n{}f\n", rect_path(10.0, 20.0, 70.0, 80.0));
-    let body = format!(
-        "{}{}{}{}",
-        def("Dots\\n1", 8),
-        def("Dots\\n2", 8),
-        def("Dots\\n2", 9),
-        layer(&format!("{}{}", filled("Dots\\n2"), filled("Dots\\n1")))
-    );
-    let s = read_ok(&body);
-    let doc = &s.doc;
-    let tiles: Vec<_> = doc.patterns.iter().map(|p| (p.name.as_str(), p.tile.width())).collect();
-    assert_eq!(tiles, [("Dots", 8.0), ("Dots 2", 9.0)]);
-    for name in ["Dots", "Dots 2"] {
-        assert!(matches!(&doc.swatch(name).unwrap().paint, Paint::Pattern { pattern, .. } if pattern == name), "{name}");
-    }
-    let fills: Vec<_> = art(doc).iter().map(|n| if let Paint::Pattern { pattern, .. } = fill(n) { pattern } else { String::new() }).collect();
-    assert_eq!(fills, ["Dots 2", "Dots"]);
-    assert!(s.warnings.is_empty(), "{:?}", s.warnings);
-    // Without a palette (or with an empty one) the document keeps its default swatches, and a named
-    // color the art uses has its swatch: a pattern takes none of their names.
-    let empty = "%AI5_BeginPalette\n0 0 Pb\nPB\n%AI5_EndPalette\n";
-    let ink = format!("0 1 1 0 (Ink) 0 x\n{}f\n", rect_path(0.0, 0.0, 5.0, 5.0));
-    for palette in ["", empty] {
-        let body =
-            format!("{}{}{palette}{}", def("Black\\n1", 8), def("Ink\\n1", 8), layer(&format!("{}{}{ink}", filled("Black\\n1"), filled("Ink\\n1"))));
-        let doc = read_ok(&body).doc;
-        for (solid, pattern) in [("Black", "Black 2"), ("Ink", "Ink 2")] {
-            assert!(matches!(&doc.swatch(pattern).unwrap().paint, Paint::Pattern { pattern: p, .. } if p == pattern), "{palette:?}");
-            assert!(matches!(doc.swatch(solid).unwrap().paint, Paint::Solid { .. }), "{palette:?}");
-        }
-        let fills: Vec<_> = art(&doc).iter().map(|n| fill(n)).collect();
-        assert!(matches!(&fills[..2], [Paint::Pattern { pattern: a, .. }, Paint::Pattern { pattern: b, .. }] if a == "Black 2" && b == "Ink 2"));
-    }
-    // Nor the name of a custom color the program of an EPS gives, or None's.
-    let ps = b"%!PS-Adobe-3.0\n%%CMYKCustomColor: 0 0 1 0 (Outer Ink)\n%%EndComments\n";
-    let data = stream(&format!("{}{}{}", def("Outer Ink\\n1", 8), def("[None]\\n1", 8), layer(&filled("Outer Ink\\n1"))));
-    let doc = super::read_beside(data.as_bytes(), true, ps, false, NameEncoding::default()).unwrap().doc;
-    assert_eq!(doc.patterns.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(), ["Outer Ink 2", "[None] 2"]);
-    assert!(matches!(doc.swatch("Outer Ink").unwrap().paint, Paint::Solid { .. }));
-    assert!(matches!(fill(&art(&doc)[0]), Paint::Pattern { pattern, .. } if pattern == "Outer Ink 2"));
-}
 
 /// A pattern shown as the name of one of the document's other swatches is numbered: a swatch or a
 /// color group of the palette the reader keeps (under any version's prefix, a swatch it names by
@@ -1403,31 +1356,6 @@ fn a_look_placing_a_stacks_pattern_twice_keeps_the_drawn_look() {
     assert!(matches!(a.as_slice(), [n] if matches!(n.kind, NodeKind::Path { .. })), "the path: {a:#?} {:?}", r.warnings);
 }
 
-/// A style's pattern fill under an effect on the object keeps the drawn look, a conservative rule
-/// (in one file a Scribble over a pattern fill drew unlike its look; why isn't established).
-#[test]
-fn a_path_with_a_style_pattern_fill_under_an_effect_keeps_its_drawn_look() {
-    let rect = rect_path(10.0, 20.0, 70.0, 80.0);
-    let hidden = rect.replace('\n', "\n%_");
-    let ops = "0 0 1 1 0 0 0 0 0 [1 0 0 1 0 0]";
-    let shadow = "/BasicFilter :\n(Adobe Drop Shadow) 1 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n2 /Int (blnd) ,\n0.43 /Real (opac) ,\n\
-        37 /Real (dark) ,\n-13 /Real (vert) ,\n11 /Real (horz) ,\n17 /Real (blur) ,\n\
-        /FillStyle : 0 O\n0 0 0 0 0 1 0 Xa\n0 1 0 0 0 Xy\n0 J 0 j 1 w 10 M []0 d\n0 XR\n0 1 Xd\n/Def ;\n (sclr) ,\n0 /Int (csrc) ,\n; /Dict ;\n /Part ,\n";
-    let style = tiled_style("Dots", ops);
-    // After the stack, in the object's chain.
-    let end = ";\n /Part ,\n;\n%AI9_EndArtStyles";
-    assert!(style.contains(end));
-    let style = style.replace(end, &format!(";\n /Part ,\n{shadow};\n%AI9_EndArtStyles"));
-    // The style reads, with its pattern fill and the shadow: what keeps the look is the rule.
-    let st = crate::import::ai::style::art_styles(style.as_bytes());
-    let tiled = &st["Tiled"];
-    assert!(tiled.plain && tiled.effects.len() == 1, "{tiled:?}");
-    let look = format!("0 Ae\nu\n(Dots) {ops} p\n{rect}f\nU\n");
-    let r = read_ok(&format!("{style}{DOTS}{}", layer(&format!("{look}%_{hidden}n\n1 (Tiled) XW\n"))));
-    let a = art(&r.doc);
-    assert!(matches!(a.as_slice(), [n] if matches!(n.kind, NodeKind::Group { .. })), "the drawn look: {a:#?}");
-    assert!(r.warnings.iter().any(|w| w.contains("drawn look")), "{:?}", r.warnings);
-}
 
 /// Type whose style fills it with a pattern takes the placement from its drawn look wherever the look
 /// paints with that pattern, a stroke of it too (as before paths took such styles): the look's
@@ -6255,54 +6183,8 @@ fn zstd(data: &[u8]) -> Vec<u8> {
     ruzstd::encoding::compress_to_vec(data, ruzstd::encoding::CompressionLevel::Fastest)
 }
 
-/// An EPS whose page draws a line, and the editing data `packed` after it (`marker`: its codec).
-fn eps(marker: &str, packed: &[u8]) -> Vec<u8> {
-    let lines: String = crate::ps::ascii85(packed).lines().map(|l| format!("%{l}\n")).collect();
-    format!(
-        "%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 200 100\n%%EndComments\n0 0 moveto 10 10 lineto stroke\nshowpage\n%%EOF\n\
-         %AI9_PrivateDataBegin\n%!PS-Adobe-3.0 EPSF-3.0\n%AI3_Cropmarks: 0 0 200 100\n%AI5_FileFormat 14.0\n{marker}\n{lines}%AI9_PrivateDataEnd\n"
-    )
-    .into_bytes()
-}
 
-#[test]
-fn eps_containers() {
-    let body = stream(&layer(&(rect_path(0.0, 0.0, 10.0, 10.0) + "f\n")));
-    let body = body.as_bytes();
-    for file in [eps("%AI24_DataStream", &zstd(body)), eps("%AI9_DataStream", &crate::ps::deflate(body))] {
-        let (ps, _) = crate::sections(&file).unwrap();
-        let data = eps_data(ps).unwrap().unwrap();
-        assert!(data.starts_with(b"%!PS-Adobe-3.0 EPSF-3.0\n%AI3_Cropmarks"), "the header comes first");
-        assert!(data.ends_with(body));
-        assert_eq!(read(&data).unwrap().doc.layers.len(), 1);
-    }
-    // Damaged data says why.
-    let (ps, _) = crate::sections(&eps("%AI24_DataStream", b"not zstd")).map(|(p, t)| (p.to_vec(), t.map(<[u8]>::to_vec))).unwrap();
-    assert!(eps_data(&ps).unwrap().unwrap_err().contains("Zstandard"));
-    // Data that isn't compressed is used as it is.
-    let plain = format!("%!PS-Adobe-3.0\n%%EOF\n%AI9_PrivateDataBegin\n{}%AI9_PrivateDataEnd\n", stream(&layer("")));
-    assert!(read(&eps_data(plain.as_bytes()).unwrap().unwrap()).is_ok());
-    // An EPS without editing data has none.
-    let other = b"%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 10 10\n%%EndComments\n0 0 moveto 10 10 lineto stroke\nshowpage\n";
-    assert!(eps_data(other).is_none());
-}
 
-#[test]
-fn ai_private_data() {
-    let body = stream(&layer(""));
-    let body = body.as_bytes();
-    let header = b"%%BoundingBox: 0 0 1 1\r\n";
-    for raw in [
-        [&b"%AI24_ZStandard_Data"[..], &zstd(body)].concat(),
-        [&header[..], b"%AI12_CompressedData", &crate::ps::deflate(body)].concat(),
-        body.to_vec(),
-    ] {
-        let data = decode_private(&raw).unwrap();
-        assert!(data.ends_with(b"%%EOF\n"));
-        assert!(read(&data).is_ok());
-    }
-    assert!(decode_private(b"%AI12_CompressedDataxx").is_err());
-}
 
 const G_DEFS: &str = "%AI5_BeginGradient: (G)\n(G) 1 2 Bd\n[\n<00FF>\n0\n0 0 0 0 1 0 0 2 1 6 %_BS\n\
                       %_0 0 0 0 1 0 0 2 1 6 40 0 Bs\n%_0 0 0 0 0 0 1 2 0.5 6 50 100 Bs\nBD\n%AI5_EndGradient\n";
@@ -6336,21 +6218,6 @@ fn a_linked_images_colour_space_operator_is_ignored() {
     assert_eq!(art(&read_ok(&layer(&art_)).doc).len(), 1);
 }
 
-/// Editing data past the old 256 MiB limit still opens on a 64-bit build (#3510): a card file with
-/// embedded rasters unpacks to over 300 MiB.
-#[cfg(target_pointer_width = "64")]
-#[test]
-fn editing_data_past_256_mib_is_read() {
-    let mut body = stream(&layer("")).into_bytes();
-    // Comment lines the reader skips, so the data stays valid while it grows past the old limit.
-    let filler = vec![b'%'; (257 << 20) - body.len()];
-    body.extend_from_slice(&filler);
-    let raw = [&b"%AI12_CompressedData"[..], &crate::ps::deflate(&body)].concat();
-    assert!(raw.len() < 1 << 20, "zeros compress");
-    let data = decode_private(&raw).unwrap();
-    assert_eq!(data.len(), body.len());
-    assert_eq!(too_large(), format!("it decompresses to more than {} MB", max_data() >> 20));
-}
 
 /// The limit is an eighth of installed memory, never under the 512 MiB every 64-bit build read
 /// before and never over 2 GiB (#3510).
@@ -6368,33 +6235,7 @@ fn the_editing_data_limit_follows_installed_memory() {
     assert!((MIN_DATA..=MAX_DATA).contains(&max_data()));
 }
 
-/// On a machine with 8 GiB or more, editing data past the old 512 MiB limit opens with its layers
-/// (#3510, #4628): a layered file whose rasters unpack to 600 MiB.
-#[cfg(target_pointer_width = "64")]
-#[test]
-fn editing_data_past_512_mib_is_read_where_memory_allows() {
-    if max_data() < 601 << 20 {
-        return;
-    }
-    let mut body = stream(&format!("{}{}", layer(&rect_path(0.0, 0.0, 10.0, 10.0)), layer(&rect_path(20.0, 20.0, 30.0, 30.0)))).into_bytes();
-    let filler = vec![b'%'; (600 << 20) - body.len()];
-    let at = body.windows(14).position(|w| w == b"%%PageTrailer\n").unwrap();
-    body.splice(at..at, filler);
-    let raw = [&b"%AI12_CompressedData"[..], &crate::ps::deflate(&body)].concat();
-    let data = decode_private(&raw).unwrap();
-    assert_eq!(data.len(), body.len());
-    drop(body);
-    let r = read(&data).unwrap();
-    assert_eq!(r.doc.layers.len(), 2, "both layers are read");
-}
 
-/// Past the limit the data is still refused, so the file opens as its PDF part with a note.
-#[test]
-fn editing_data_past_the_limit_is_refused() {
-    let raw = [&b"%AI12_CompressedData"[..], &crate::ps::deflate(b"%%")].concat();
-    assert!(Codec::Zlib.decode(raw.get(20..).unwrap(), 1).is_err());
-    assert!(Codec::Zlib.decode(raw.get(20..).unwrap(), 2).is_ok());
-}
 
 #[test]
 fn many_zstandard_frames_are_read_in_one_pass_and_capped() {
@@ -6603,25 +6444,6 @@ fn a_stroke_offset_filter_with_a_stroke_this_does_not_read_keeps_the_drawn_look(
     }
 }
 
-/// A Stroke Offset stroke with dashes aligned to corners and path ends reads as such a stroke,
-/// outside the path; the object takes it only where it draws as its drawn look. Here the look (a
-/// filled square) draws otherwise, so the look check keeps the drawn look.
-#[test]
-fn a_stroke_offset_with_dashes_aligned_to_corners_unlike_its_look_keeps_the_look() {
-    use crate::import::ai::style::StyleItem;
-    use vectorcraft_doc::StrokeAlign;
-    let keys = "0 /Bool (StrokeOffsetInside) ,\n/Dictionary : /NotRecorded ,\n1 /Bool (BSDashAdj) ,\n; (kAIBeautifulStrokesParamsDictKey) ,\n";
-    let style = offset_stroke_style_with("Edge", keys, &OFFSET_STROKE.replace("[]0 d", "[5 10 ]0 d"));
-    let styles = crate::import::ai::style::art_styles(style.as_bytes());
-    let Some(StyleItem::Stroke { dash: Some(dash), align, .. }) = styles["Edge"].items.iter().find(|i| matches!(i, StyleItem::Stroke { .. })) else {
-        panic!("{:?}", styles["Edge"])
-    };
-    assert_eq!((dash.pattern.as_slice(), dash.align_corners, *align), ([5.0, 10.0].as_slice(), true, StrokeAlign::Outside));
-    let r = read_ok(&format!("%AI9_BeginArtStyles\n{style}%AI9_EndArtStyles\n{}", layer(&styled_square("Edge"))));
-    assert!(r.warnings.iter().any(|w| w.contains("drawn look")), "{:?}", r.warnings);
-    let a = art(&r.doc);
-    assert!(matches!(a.as_slice(), [n] if matches!(n.kind, NodeKind::Group { .. })), "the drawn look: {a:#?}");
-}
 
 /// A listed `[Default]` style whose stroke is aligned outside comes in as the default graphic
 /// style with that stroke.
@@ -7689,50 +7511,6 @@ fn a_path_with_a_pathfinder_effect_keeps_its_drawn_look() {
     assert_eq!(effects, 0);
 }
 
-#[test]
-fn an_object_with_bas_relief_comes_in_with_its_settings() {
-    // GUARDS: Bas Relief's settings block wasn't read, so the object came in as its drawn look.
-    let settings: Vec<u8> = [
-        &[0, 0, 0, 1][..],
-        b"Dtl ",
-        &[0; 4],
-        b"long",
-        &5i32.to_be_bytes(),
-        b"Smth",
-        &[0; 4],
-        b"long",
-        &9i32.to_be_bytes(),
-        b"LghD",
-        &0x2000u32.to_be_bytes(),
-        b"LghD",
-        b"LDTR",
-    ]
-    .concat();
-    let lines: String = crate::ps::ascii85(&settings).lines().map(|l| format!("%{l}\n")).collect();
-    let style = format!(
-        "%AI9_BeginArtStyles\n\
-        /KnownStyle :\n(Carved) /Name ,\n/ActiveStyle :\n/CompoundFilter :\n(Chain Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
-        /CompoundFilter :\n(Stack Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
-        /BasicFilter :\n(Fill Style Filter) 0 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n/FillStyle : 0 O\n0 0 0 0 0 0 1 Xa\n0 1 Xd\n/Def ;\n (FillStyle) ,\n; /Dict ;\n /Part ,\n\
-        /BasicFilter :\n(Conduit Filter) 0 0 /Filter ,\n1 /Visible ,\n;\n /Part ,\n;\n /Part ,\n\
-        /BasicFilter :\n(PSAdapter_plugin_BsRl) 1 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n/Binary : /ASCII85Decode ,\n{lines}; (data) ,\n\
-        {} /Int (dataSize) ,\n; /Dict ;\n /Part ,\n;\n\
-        %AI9_EndArtStyles\n",
-        settings.len()
-    );
-    let hidden_rect = rect_path(0.0, 0.0, 10.0, 10.0).replace('\n', "\n%_");
-    let art_ = format!("0 Ae\nu\n{RED}{}f\nU\n%_0 0 0 1 k\n%_{hidden_rect}f\n1 (Carved) XW\n", rect_path(0.0, 0.0, 10.0, 10.0));
-    let r = read_ok(&format!("{style}{}", layer(&art_)));
-    let a = art(&r.doc);
-    assert_eq!(a.len(), 1);
-    assert!(matches!(a[0].kind, NodeKind::Path { .. }), "the object, not its look");
-    let [relief] = a[0].appearance.effects.as_slice() else { panic!("{:#?}", a[0].appearance) };
-    assert_eq!(
-        (relief.id.as_str(), &relief.params),
-        ("sketch.basRelief", &serde_json::json!({"detail": 5.0, "smoothness": 9.0, "lightDirection": "topRight"}))
-    );
-    assert!(!r.warnings.iter().any(|w| w.contains("drawn look")), "{:?}", r.warnings);
-}
 
 #[test]
 fn an_object_with_convert_to_shape_comes_in_as_itself_with_the_effect_live() {

@@ -1482,7 +1482,7 @@ fn restore_one(s: &mut Session, store: &Arc<dyn RecoveryStore>, file: &str) -> R
     // Linked files are looked for from the document's own folder, else from the file it was read from.
     let links_from = meta.path.clone().or_else(|| meta.links_from.clone());
     let base = super::links::LinkBase::file(links_from.as_deref());
-    let links = super::links::resolve(&mut doc, base, s.prefs.update_links == "automatically", s.prefs.low_res_proxy_eps);
+    let links = super::links::resolve(&mut doc, base, s.prefs.update_links == "automatically");
     let index = s.add_document(doc, meta.path.clone());
     let st = s.doc_mut()?;
     st.recovered = true;

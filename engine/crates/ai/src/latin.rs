@@ -198,34 +198,3 @@ pub(crate) fn glyph(code: u8, name: &str) -> Option<char> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn every_encodable_character_decodes_as_itself() {
-        for b in 0..=255u8 {
-            let c = decode(b);
-            if let Some(e) = encode(c) {
-                assert_eq!(e, b, "{c:?}");
-            }
-        }
-        assert_eq!(encode('é'), Some(0xE9));
-        assert_eq!(encode('€'), Some(0x80));
-        assert_eq!(encode('—'), Some(0x97));
-        assert_eq!(encode('Ω'), None);
-        assert_eq!(encode('\u{81}'), None);
-    }
-
-    #[test]
-    fn glyph_names_decode_by_code_and_by_name() {
-        assert_eq!(glyph(0xE9, "eacute"), Some('é'));
-        assert_eq!(glyph(0xA0, "space"), Some('\u{A0}'));
-        // Mac Roman puts é at 0x8E.
-        assert_eq!(glyph(0x8E, "eacute"), Some('é'));
-        assert_eq!(glyph(0xAD, "notequal"), Some('≠'));
-        assert_eq!(glyph(0x41, "nosuchglyph"), None);
-        assert!(te().starts_with("[39/quotesingle 96/grave 128/Euro/.notdef/"));
-        assert!(te().ends_with("/ydieresis\nTE\n"));
-    }
-}

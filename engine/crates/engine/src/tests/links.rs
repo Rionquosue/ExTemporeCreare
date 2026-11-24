@@ -1880,121 +1880,7 @@ fn export_reads_a_changed_svg_link_into_its_own_images_only() {
     assert_eq!(full.images[&a.key].bytes, preview, "a.png keeps its preview");
 }
 
-/// The half of opening that the desktop app runs on a thread of its own (`read_for_open`) reads
-/// the linked files and lays out the type. The half left for the UI thread (`open_read`) reads no
-/// file: with a linked file moved away in between, it opens the document that `document.open` opens.
-#[test]
-fn a_file_read_for_opening_has_its_links_read_and_its_type_laid_out() {
-    let dir = Folder::new("read-for-open");
-    let tif = dir.file("art/photo.tif");
-    let mut tiff = vec![];
-    {
-        let __dyn: image::DynamicImage = (image::RgbImage::from_pixel(600, 300, image::Rgb(RED))).into();
-        let (__w, __h) = (__dyn.width(), __dyn.height());
-        let (__layout, __sample, __raw) = match __dyn {
-            image::DynamicImage::ImageLuma8(b) => (craft_image_codecs::ChannelLayout::Gray, craft_image_codecs::SampleType::U8, b.into_raw()),
-            image::DynamicImage::ImageLumaA8(b) => (craft_image_codecs::ChannelLayout::GrayA, craft_image_codecs::SampleType::U8, b.into_raw()),
-            image::DynamicImage::ImageRgb8(b) => (craft_image_codecs::ChannelLayout::Rgb, craft_image_codecs::SampleType::U8, b.into_raw()),
-            image::DynamicImage::ImageRgba8(b) => (craft_image_codecs::ChannelLayout::Rgba, craft_image_codecs::SampleType::U8, b.into_raw()),
-            image::DynamicImage::ImageLuma16(b) => (
-                craft_image_codecs::ChannelLayout::Gray,
-                craft_image_codecs::SampleType::U16,
-                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
-            ),
-            image::DynamicImage::ImageLumaA16(b) => (
-                craft_image_codecs::ChannelLayout::GrayA,
-                craft_image_codecs::SampleType::U16,
-                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
-            ),
-            image::DynamicImage::ImageRgb16(b) => (
-                craft_image_codecs::ChannelLayout::Rgb,
-                craft_image_codecs::SampleType::U16,
-                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
-            ),
-            image::DynamicImage::ImageRgba16(b) => (
-                craft_image_codecs::ChannelLayout::Rgba,
-                craft_image_codecs::SampleType::U16,
-                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
-            ),
-            other => (craft_image_codecs::ChannelLayout::Rgba, craft_image_codecs::SampleType::U8, other.into_rgba8().into_raw()),
-        };
-        let __cimg = craft_image_codecs::Image::from_raw(__w, __h, __layout, __sample, __raw).unwrap();
-        craft_image_codecs::encode(&__cimg, craft_image_codecs::Format::Tiff, &craft_image_codecs::EncodeOptions::default())
-            .map(|__b| tiff.extend_from_slice(&__b))
-    }
-    .unwrap();
-    write(&tif, &tiff);
-    let (gone, changed) = (dir.file("gone.png"), dir.file("changed.png"));
-    write(&gone, &png(300, 100, BLUE));
-    write(&changed, &png(300, 100, BLUE));
-    let mut s = session();
-    let photo = place(&mut s, &tif);
-    place(&mut s, &gone);
-    place(&mut s, &changed);
-    let area = json!({"width": 150, "height": 20, "fit": "autoHeight"});
-    let r = s.execute("text.create", &json!({"x": 20, "y": 40, "text": "Linked files and type. ".repeat(12), "area": area})).unwrap();
-    let text = NodeId(r["id"].as_u64().unwrap());
-    s.execute("text.areaOptions", &json!({"ids": [text.0], "columns": 2})).unwrap();
-    let doc_path = dir.file("poster.vectorcraft");
-    save(&mut s, &doc_path);
-    std::fs::remove_file(&gone).unwrap();
-    write(&changed, &png(200, 200, RED));
-    let bytes = std::fs::read(&doc_path).unwrap();
-    let away = dir.file("away.tif");
-    for update in ["askWhenModified", "automatically"] {
-        let mut at_once = session();
-        at_once.execute("prefs.set", &json!({"key": "updateLinks", "value": update})).unwrap();
-        let expected = open(&mut at_once, &doc_path);
-        let rows = if update == "automatically" { &expected["updatedLinks"] } else { &expected["modifiedLinks"] };
-        assert!(expected["missingLinks"][0]["name"] == "gone.png" && rows[0]["name"] == "changed.png", "{update}: {expected}");
-        let file = cmd::fileio::read_for_open(&doc_path, &bytes, Some(doc_path.clone()), &Value::Null, update == "automatically", false).unwrap();
-        let doc = file.document();
-        let NodeKind::Image(im) = &doc.node(photo).unwrap().kind else { panic!("not an image") };
-        assert!(!doc.images[&im.key].is_proxy(), "{update}: the TIFF is read, not the preview saved for it");
-        let NodeKind::Text(t) = &doc.node(text).unwrap().kind else { panic!("not type") };
-        assert!(t.cached_bounds.is_some(), "{update}: the type is laid out");
-        std::fs::rename(&tif, &away).unwrap();
-        let mut opened = session();
-        let r = cmd::fileio::open_read(&mut opened, file).unwrap();
-        std::fs::rename(&away, &tif).unwrap();
-        assert_eq!(r, expected, "{update}");
-        let (a, b) = (at_once.doc().unwrap(), opened.doc().unwrap());
-        assert!(*b.doc == *a.doc, "{update}: the same document");
-        assert!(b.history.undo.is_empty() && !b.is_dirty(), "{update}");
-    }
-}
 
-/// Opening lays out each type object with the plans the objects before it left on the font's
-/// face: its bounds and baselines are those of a layout in a font database of its own, which holds
-/// no plans. The objects share a script and direction and differ in features and language. Only
-/// bundled Latin glyphs are set, which every font database holds.
-#[test]
-fn type_read_for_opening_has_the_layout_of_a_font_database_with_no_plans() {
-    let dir = Folder::new("read-for-open-plans");
-    let style = vectorcraft_doc::CharStyle { size: 100.0, ..Default::default() };
-    let manual = vectorcraft_doc::CharStyle { kerning: Some(0.0), ..style.clone() };
-    let turkish = vectorcraft_doc::CharStyle { language: Some("tr".into()), ..style.clone() };
-    let mut doc = Document::new(800.0, 600.0);
-    let layer = doc.layers[0].id;
-    for (text, style) in [("AVAV", &style), ("AVAV", &manual), ("office", &turkish), ("To Wa", &style), ("To Wa", &manual)] {
-        let t = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(20.0, 120.0), text, style.clone());
-        let id = doc.alloc_id();
-        doc.insert(Some(layer), usize::MAX, vectorcraft_doc::Node::new(id, NodeKind::Text(Box::new(t)))).unwrap();
-    }
-    let doc_path = dir.file("type.vectorcraft");
-    let bytes = vectorcraft_format::save_file(&doc);
-    let file = cmd::fileio::read_for_open(&doc_path, &bytes, Some(doc_path.clone()), &Value::Null, false, false).unwrap();
-    let mut seen = 0;
-    file.document().walk(|node| {
-        if let NodeKind::Text(t) = &node.kind {
-            let fresh = vectorcraft_text::layout(&vectorcraft_text::FontDb::with_font_dirs(vec![]), t);
-            assert_eq!(t.cached_bounds, Some(fresh.bounds), "{:?}", t.plain_text());
-            assert_eq!(t.cached_baselines, fresh.baselines(), "{:?}", t.plain_text());
-            seen += 1;
-        }
-    });
-    assert_eq!(seen, 5);
-}
 
 #[test]
 fn links_from_older_files_load_and_keep_their_pixels() {
@@ -2659,18 +2545,6 @@ fn confined_preserve_editing_svg_leaves_out_an_export_folder_outside_the_read_ro
     every(&mut s, true, Some(&inside));
 }
 
-/// The native document a file of `format` carries: the file itself, a PDF's or `.ai` file's
-/// editing data, or an EPS file's.
-fn carried_document(format: &str, bytes: &[u8]) -> Document {
-    let native = if bytes.starts_with(b"%PDF") {
-        vectorcraft_pdf::editing(bytes).expect("editing data").data
-    } else if format == "eps" {
-        vectorcraft_eps::native(bytes).expect("native document")
-    } else {
-        bytes.to_vec()
-    };
-    vectorcraft_format::load(&native).unwrap()
-}
 
 /// A confined caller: every output that carries the native document (a native file or template, a
 /// `.ai` or EPS file, a PDF with Preserve Editing) of a document that links an image
@@ -2737,67 +2611,6 @@ fn confined_native_output_refuses_a_linked_image_file_outside_the_read_roots() {
     assert_eq!(image(&s, a).link.map(|l| l.path), Some(photo));
 }
 
-/// A confined caller's native outputs are refused when the document they carry names a file
-/// outside the read roots only as a data set's image, or holds stored brushes that cannot be read.
-/// Outputs that carry no native document (a PDF without Preserve Editing, a PDF or `.ai` file of
-/// some artboards or of the art's bounds, a legacy `.ai` file, an image, an SVG without Preserve
-/// Editing) are written, and so is a native file whose data set image is inside the read roots, or
-/// any data set image without roots.
-#[test]
-fn confined_native_output_refuses_a_data_set_image_outside_the_read_roots() {
-    use crate::file_access::{AutomationRoots, confine};
-
-    let away = Folder::new("native-dataset-away");
-    let home = Folder::new("native-dataset-home");
-    let outside = away.file("photo.png");
-    let mut s = session();
-    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 20})).unwrap();
-    s.execute("artboard.new", &json!({"x": 500, "y": 0, "width": 100, "height": 100})).unwrap();
-    let set_image = |s: &mut Session, path: &str| {
-        let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
-        let values = [("Photo".to_string(), vectorcraft_doc::DataValue::Image(path.into()))].into_iter().collect();
-        doc.variables.datasets = vec![vectorcraft_doc::DataSet { name: "Row 1".into(), values }];
-    };
-    set_image(&mut s, &outside);
-    let roots = AutomationRoots::new(&[home.0.as_path()], &[home.0.as_path()]).unwrap();
-    let refused = |s: &mut Session, cmd: &str, p: Value| {
-        let e = confine(roots.as_ref(), || s.execute(cmd, &p)).expect_err(cmd).to_string();
-        assert!(e.contains("a linked image file is outside the read roots"), "{cmd} {p}: {e}");
-        assert!(!e.contains(&away.0.to_string_lossy().into_owned()) && !e.contains("photo.png"), "{cmd} {p}: {e}");
-    };
-    let written = |s: &mut Session, p: Value| {
-        confine(roots.as_ref(), || s.execute("document.serialize", &p)).unwrap_or_else(|e| panic!("{p}: {e}"));
-    };
-    for format in ["vectorcraft", "template", "pdf", "ai", "eps"] {
-        refused(&mut s, "document.serialize", json!({"format": format}));
-    }
-    refused(&mut s, "document.serialize", json!({"format": "svg", "preserveEditing": true}));
-    refused(&mut s, "document.exportPdf", json!({}));
-    for p in [
-        json!({"format": "pdf", "preserveEditing": false}),
-        json!({"format": "pdf", "useArtboards": false}),
-        json!({"format": "pdf", "range": "2"}),
-        json!({"format": "ai", "artboards": [1]}),
-        json!({"format": "ai", "useArtboards": false}),
-        json!({"format": "ai", "aiVersion": "7"}),
-        json!({"format": "png"}),
-        json!({"format": "svg"}),
-    ] {
-        written(&mut s, p);
-    }
-    // Without roots, the native document keeps the data set's image as stored.
-    let r = s.execute("document.serialize", &json!({})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
-    let carried = carried_document("vectorcraft", &bytes);
-    assert_eq!(carried.variables.datasets[0].values["Photo"], vectorcraft_doc::DataValue::Image(outside.clone()));
-    // An image inside the read roots.
-    set_image(&mut s, &home.file("photo.png"));
-    written(&mut s, json!({"format": "vectorcraft"}));
-    // Stored brushes that cannot be read: their links cannot be checked.
-    std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc).unknown.insert(vectorcraft_brush::DOC_KEY.into(), json!(["not a brush"]));
-    refused(&mut s, "document.serialize", json!({"format": "vectorcraft"}));
-    written(&mut s, json!({"format": "png"}));
-}
 
 /// A confined caller's Export for Screens rows that write an artboard alone (native, `.ai` and EPS
 /// files) are checked against that artboard's document: an image linked outside the read roots
@@ -2855,61 +2668,6 @@ fn confined_single_file_pdf_checks_every_artboard_it_carries() {
     assert!(!Path::new(&home.file("assets")).exists(), "the refused export writes no folder");
 }
 
-/// A confined caller's native outputs (a native file or template, an EPS or `.ai` file, a PDF with
-/// Preserve Editing, a package's document) carry the document without the Export for Screens
-/// folder when it is outside the read roots, with the other export settings and the art; the open
-/// document keeps the folder. A folder inside the roots, and any folder without roots, stays.
-#[test]
-fn confined_native_output_leaves_out_an_export_folder_outside_the_read_roots() {
-    use crate::file_access::{AutomationRoots, confine};
-
-    let away = Folder::new("native-export-folder-away");
-    let home = Folder::new("native-export-folder-home");
-    let outside = away.0.to_string_lossy().into_owned();
-    let inside = home.file("screens");
-    let mut s = session();
-    let r = s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 20})).unwrap();
-    let rect: vectorcraft_doc::NodeId = serde_json::from_value(r["id"].clone()).unwrap();
-    s.execute("file.saveAs", &json!({"path": home.file("own.vectorcraft")})).unwrap();
-    let set_folder = |s: &mut Session, folder: &str| {
-        let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
-        doc.export_settings = serde_json::from_value(json!({"folder": folder, "prefix": "web-"})).unwrap();
-    };
-    let roots = AutomationRoots::new(&[home.0.as_path()], &[home.0.as_path()]).unwrap();
-    let check = |d: &Document, folder: Option<&str>, what: &str| {
-        assert_eq!(d.export_settings.get("folder").and_then(Value::as_str), folder, "{what}");
-        assert_eq!(d.export_settings.get("prefix").and_then(Value::as_str), Some("web-"), "{what}");
-        assert!(d.node(rect).is_some(), "{what}: no art");
-    };
-    let package = home.file("package");
-    let every = |s: &mut Session, confined: bool, folder: Option<&str>| {
-        let run = |s: &mut Session, cmd: &str, p: Value| {
-            let r = if confined { confine(roots.as_ref(), || s.execute(cmd, &p)) } else { s.execute(cmd, &p) };
-            r.unwrap_or_else(|e| panic!("{cmd} {p}: {e}"))
-        };
-        for format in ["vectorcraft", "template", "pdf", "ai", "eps"] {
-            let r = run(s, "document.serialize", json!({"format": format}));
-            let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
-            check(&carried_document(format, &bytes), folder, &format!("{format} serialize"));
-        }
-        let pdf = home.file("direct.pdf");
-        run(s, "document.exportPdf", json!({"path": pdf}));
-        check(&carried_document("pdf", &std::fs::read(&pdf).unwrap()), folder, "exportPdf");
-        let eps = home.file("copy.eps");
-        run(s, "file.saveCopy", json!({"path": eps}));
-        check(&carried_document("eps", &std::fs::read(&eps).unwrap()), folder, "eps copy");
-        let _ = std::fs::remove_dir_all(&package);
-        run(s, "file.package", json!({"folder": package, "report": false, "copyFonts": false}));
-        let packaged = std::fs::read(Path::new(&package).join("own Folder").join("own.vectorcraft")).unwrap();
-        check(&vectorcraft_format::load_file(&packaged).unwrap().doc, folder, "package");
-    };
-    set_folder(&mut s, &outside);
-    every(&mut s, true, None);
-    assert_eq!(s.doc().unwrap().doc.export_settings.get("folder").and_then(Value::as_str), Some(outside.as_str()));
-    every(&mut s, false, Some(&outside));
-    set_folder(&mut s, &inside);
-    every(&mut s, true, Some(&inside));
-}
 
 /// A confined caller's SVG of a placed document whose art links an image: the file draws that art
 /// and names the image's file, so a file outside the read roots refuses it and one inside them is

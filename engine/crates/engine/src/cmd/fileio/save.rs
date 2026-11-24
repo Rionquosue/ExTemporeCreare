@@ -21,11 +21,10 @@ use crate::{DocState, Prefs};
 
 /// The formats Save As offers, in menu order (append-only). The other writable formats are exports:
 /// they never become the document's own file.
-pub const SAVE_FORMATS: &[&str] = &["vectorcraft", "template", "pdf", "svg", "svgz", "ai", "eps"];
+pub const SAVE_FORMATS: &[&str] = &["vectorcraft", "template", "pdf", "svg", "svgz"];
 
-/// The formats Save as Template writes, the default first: a native template, or a
-/// PDF-compatible `.ait` (written as a `.ai` file is).
-pub const TEMPLATE_FORMATS: &[&str] = &["template", "ait"];
+/// The formats Save as Template writes: a native template.
+pub const TEMPLATE_FORMATS: &[&str] = &["template"];
 
 /// Save-panel filters `(label, [extension])` for `first` (a format id, or a file name whose
 /// extension names one): when Save writes that format, one per [`SAVE_FORMATS`] entry with it
@@ -318,35 +317,15 @@ pub fn save_plan(s: &Session, mode: SaveMode, p: &Value) -> Result<SavePlan> {
     }
     let chosen = Value::Object(options.clone());
     let written = written_as(cmd, format, &chosen);
-    let legacy = legacy_file(cmd, format, &chosen);
     // Beside the path, a key some save format takes; in `options`, any key.
     let top = p.as_object().into_iter().flatten().filter(|(k, v)| !v.is_null() && save_listed(k)).map(|(k, _)| k.to_string());
     let nested = p.get("options").and_then(Value::as_object).into_iter().flatten().filter(|(_, v)| !v.is_null()).map(|(k, _)| k);
     let notes = top
-        .filter(|k| !file_reads(format, legacy, k))
-        .chain(nested.filter(|k| !file_reads(format, legacy, k)).map(|k| format!("options.{k}")))
+        .filter(|k| !file_reads(format, k))
+        .chain(nested.filter(|k| !file_reads(format, k)).map(|k| format!("options.{k}")))
         .map(|k| unused_option_note(&k, &written))
         .collect();
-    // When the document's own file is a `.ai`, the `.ai` options this file doesn't read and the
-    // request doesn't give keep their remembered values ([`SavePlan::kept`]), so that Save Options
-    // still shows them (it sends only the ones the file reads). They are neither written nor sent
-    // again.
-    let mut kept = Map::new();
-    if format.id == "ai" && format.id == st.format {
-        let last = remembered_save_options(st);
-        for o in format.options.iter().filter(|o| !file_reads(format, legacy, o.name)) {
-            let value = if from_memory {
-                options.remove(o.name)
-            } else if options.contains_key(o.name) {
-                None
-            } else {
-                last.get(o.name).cloned()
-            };
-            if let Some(v) = value {
-                kept.insert(o.name.to_string(), v);
-            }
-        }
-    }
+    let kept = Map::new();
     let lossy_source = super::lossy_source(st, p);
     Ok(SavePlan { mode, path, format, options, name, folder, modified, notes, lossy_source, kept })
 }
@@ -505,24 +484,9 @@ pub fn reads_option(f: &Format, key: &str) -> bool {
     f.options.iter().any(|o| o.name == key) || (is_pdf(f) && (super::pdf::OPTIONS.iter().any(|o| o.name == key) || super::pdf::is_setting(key)))
 }
 
-/// Does the file a save or an export writes in `f` read option `key`, `legacy` when it is a legacy
-/// `.ai` file ([`super::legacy_ai::wanted`])? As [`reads_option`], except for `.ai` and `.ait`
-/// files: a legacy file reads its own options only ([`super::legacy_ai::reads`]), and the others
-/// don't read the legacy file's options or `preserveEditing`, which is on for them whatever is
-/// given.
-pub fn file_reads(f: &Format, legacy: bool, key: &str) -> bool {
-    match (f.id, key) {
-        ("ai", _) if legacy => super::legacy_ai::reads(key),
-        ("ai" | "ait", "preserveEditing") => false,
-        ("ai" | "ait", _) if super::legacy_ai::LEGACY_ONLY.contains(&key) => false,
-        _ => reads_option(f, key),
-    }
-}
-
-/// Is a save or an export of `cmd` in `f` with options `p` to write a legacy `.ai` file? An
-/// unknown version is not one (the save or export refuses it).
-pub(super) fn legacy_file(cmd: &str, f: &Format, p: &Value) -> bool {
-    f.id == "ai" && super::legacy_ai::wanted(cmd, f, p).unwrap_or(false)
+/// Does the file a save or an export writes in `f` read option `key`? As [`reads_option`].
+pub fn file_reads(f: &Format, key: &str) -> bool {
+    reads_option(f, key)
 }
 
 /// The note a save or an export gives for option `key`, as the request names it, which the file it
@@ -532,13 +496,13 @@ pub(super) fn unused_option_note(key: &str, written: &Format) -> String {
 }
 
 /// Formats that carry the whole native document: they lose nothing, and record links relative to
-/// where they are written. A `.ai` or `.ait` file is a PDF carrying it; EPS carries it in comments.
+/// where they are written.
 fn is_native(f: &Format) -> bool {
-    matches!(f.id, "vectorcraft" | "template" | "ai" | "ait" | "eps")
+    matches!(f.id, "vectorcraft" | "template")
 }
 
 fn is_pdf(f: &Format) -> bool {
-    matches!(f.id, "pdf" | "ai" | "ait")
+    f.id == "pdf"
 }
 
 fn is_svg(f: &Format) -> bool {
@@ -546,33 +510,22 @@ fn is_svg(f: &Format) -> bool {
 }
 
 /// The document as written: native files carry the view to reopen at and the Layers panel's open
-/// rows and transparency grid visibility; a `.ai` file names the view's active artboard
-/// ([`DocState::active_artboard`]) as its active one.
+/// rows and transparency grid visibility.
 fn doc_to_save(st: &DocState, f: &Format) -> Arc<Document> {
     if !is_native(f) {
         return st.doc.clone();
     }
     let open = st.layers_open.saved(&st.doc);
-    let active = moved_active_artboard(st, &st.doc, f);
-    if st.doc.last_view == st.view && st.doc.layers_open == open && st.doc.transparency_grid == st.transparency_grid && active.is_none() {
+    if st.doc.last_view == st.view && st.doc.layers_open == open && st.doc.transparency_grid == st.transparency_grid {
         return st.doc.clone();
     }
     let mut d = (*st.doc).clone();
-    if active.is_some() {
-        d.opened_artboard = active;
-    }
     d.last_view = st.view.clone();
     d.transparency_grid = st.transparency_grid;
     d.layers_open = open;
     Arc::new(d)
 }
 
-/// The artboard a `.ai` or `.ait` file written from `st` (`doc`, the document it writes) names as
-/// its active one, when that is not already the one `doc` opened on: the view's active artboard
-/// ([`DocState::active_artboard`]), if `doc` has it.
-pub(super) fn moved_active_artboard(st: &DocState, doc: &Document, f: &Format) -> Option<u32> {
-    st.active_artboard.filter(|id| matches!(f.id, "ai" | "ait") && doc.artboards.iter().any(|a| a.id == *id) && doc.opened_artboard != Some(*id))
-}
 
 /// What a format loses against a native file (reported whenever a save writes it).
 fn fidelity_warning(f: &Format) -> Option<String> {
@@ -650,8 +603,7 @@ impl<W: std::io::Write> std::io::Write for StopsWhenCancelled<W> {
 /// The artboards a native or `.ai` save also writes to files of their own: with
 /// `separateArtboards`, those `range` names (default all).
 fn separate_boards(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<Vec<usize>> {
-    // A legacy .ai file is a file per artboard already.
-    if !is_native(f) || f.id == "eps" || !bool_or(p, "separateArtboards", false) || super::legacy_ai::wanted(cmd, f, p)? {
+    if !is_native(f) || !bool_or(p, "separateArtboards", false) {
         return Ok(vec![]);
     }
     let range = str_param(p, "range").filter(|r| !r.trim().is_empty()).map(str::to_string);
@@ -692,40 +644,9 @@ fn keep_on(n: &mut Arc<vectorcraft_doc::Node>, r: vectorcraft_geom::Rect) {
     }
 }
 
-/// `doc` with empty layers: the pages of a `.ai` file saved without PDF content.
-fn blank_pages(doc: &Document) -> Document {
-    let mut d = doc.clone();
-    for layer in &mut d.layers {
-        if let Some(children) = Arc::make_mut(layer).children_mut() {
-            children.clear();
-        }
-    }
-    d
-}
-
-/// Why a `.ai` file saved without PDF content looks empty elsewhere.
-const NOT_PDF_COMPATIBLE: &str = "saved without PDF content: VectorCraft opens it as before, other apps show empty pages";
-/// The same, for a file that carries the editing copy of its art.
-const NOT_PDF_COMPATIBLE_EDITING: &str =
-    "saved without PDF content: VectorCraft and apps that read its editing data open it, other apps show empty pages";
-
-/// `f` (`.ai` or `.ait`) named, in its option errors, as a file saved without PDF content.
-fn without_pdf(f: &Format) -> Format {
-    let label = if f.id == "ait" { "non-PDF-compatible .ait template" } else { "non-PDF-compatible .ai" };
-    Format { label, ..*f }
-}
-
-/// `f` named, in its errors and notes, as the file a save with options `p` writes: a version 7
-/// `.ai` as the legacy `.ai`, and a `.ai` or `.ait` with `pdfCompatible: false` as one saved
-/// without PDF content.
-pub(super) fn written_as(cmd: &str, f: &Format, p: &Value) -> Format {
-    if f.id == "ai" && super::legacy_ai::wanted(cmd, f, p).unwrap_or(false) {
-        super::legacy_ai::named(f)
-    } else if matches!(f.id, "ai" | "ait") && !bool_or(p, "pdfCompatible", true) {
-        without_pdf(f)
-    } else {
-        *f
-    }
+/// `f` named, in its errors and notes, as the file a save with options `p` writes.
+pub(super) fn written_as(_cmd: &str, f: &Format, _p: &Value) -> Format {
+    *f
 }
 
 /// `e`, an error of the export encoders, under the save command `cmd` instead of
@@ -735,157 +656,6 @@ fn named_for_save(cmd: &str, e: crate::EngineError) -> crate::EngineError {
         crate::EngineError::BadParams { cmd: c, msg } if c == "document.export" => bad(cmd, msg),
         e => e,
     }
-}
-
-/// Refuse the artboards a `.ai` or `.ait` save is given (`artboard`, `artboards`, or a `range`
-/// that isn't empty) when one of them is not in `doc`, with the error an export gives. The save
-/// then writes every artboard, or a legacy `.ai` file's `range`, whatever `artboard` and
-/// `artboards` name. An empty `artboards` list is not refused: the save writes every artboard.
-fn named_artboards_exist(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<()> {
-    let n = doc.artboards.len();
-    // The encoders refuse a document without artboards themselves.
-    if n == 0 {
-        return Ok(());
-    }
-    // The encoders refuse a value of the wrong type themselves, each with its own label.
-    let Ok(mut picked) = super::encode::options::<ArtboardPick>(&written_as(cmd, f, p), p) else {
-        return Ok(());
-    };
-    picked.range = picked.range.filter(|r| !r.trim().is_empty());
-    if picked.range.is_none() && picked.artboards.as_ref().is_some_and(Vec::is_empty) {
-        return Ok(());
-    }
-    picked.resolve(n).map_err(|e| bad(cmd, e))?;
-    Ok(())
-}
-
-/// The `.ai` option `editingData`: whether the file also carries the editing copy of the art that
-/// other apps read (default on).
-#[derive(Default, serde::Deserialize)]
-#[serde(default, rename_all = "camelCase")]
-struct AiEditingData {
-    editing_data: Option<bool>,
-}
-
-/// Why a `.ai` file of the art's bounds (`useArtboards: false`) carries no editing data.
-pub const AI_EDITING_NEEDS_THE_ARTBOARDS: &str =
-    "Preserve editing was left out: an .ai file of the art's bounds would replace the document's artboards when reopened";
-
-/// The error for a `.ai` file of the art's bounds without PDF content.
-pub const ART_PAGE_NEEDS_PDF: &str = "pdfCompatible: false needs the artboards to keep the editable artwork when useArtboards is false";
-
-/// With `useArtboards: false` in `p`: the PDF-compatible `.ai` file of one page, the bounds of
-/// `doc`'s visible art on the layers its pages draw ([`super::pdf::art_page`]). It carries neither
-/// the native document nor the editing copy for other apps, and its notes end with
-/// [`AI_EDITING_NEEDS_THE_ARTBOARDS`].
-/// `pdfCompatible: false` is refused. `None` when `p` asks for the artboards or for a legacy
-/// version 7 `.ai` file.
-pub(super) fn encode_ai_art_page(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<Option<Encoded>> {
-    if super::encode::use_artboards(cmd, p)? != Some(false) || super::legacy_ai::wanted(cmd, f, p)? {
-        return Ok(None);
-    }
-    if !bool_or(p, "pdfCompatible", true) {
-        return Err(bad(cmd, ART_PAGE_NEEDS_PDF));
-    }
-    let Some((art, q)) = super::pdf::art_page(cmd, doc, &ai_pdf_params(p, false))? else { return Ok(None) };
-    let mut enc = encode_ai_pages(cmd, f, &art, &q, false)?;
-    enc.setting_notes.push(AI_EDITING_NEEDS_THE_ARTBOARDS.to_string());
-    Ok(Some(enc))
-}
-
-/// The shared Save and Export encoder for `.ai` files (and `.ait` templates, the same file):
-/// PDF-compatible by default, without PDF content (`pdfCompatible: false`), or legacy version 7
-/// `.ai` files (`aiVersion: "7"`).
-pub(super) fn encode_ai(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<Encoded> {
-    if super::legacy_ai::wanted(cmd, f, p)? {
-        return super::legacy_ai::encode(cmd, f, doc, p);
-    }
-    encode_ai_pages(cmd, f, doc, p, true)
-}
-
-/// `p` with the PDF options a `.ai` file is written with: Preserve Editing when `editing` is true,
-/// layers unless a standard decides, long pages with a `UserUnit`, and `compress` as
-/// `compression.compressText`.
-fn ai_pdf_params(p: &Value, editing: bool) -> Value {
-    let mut params = if p.is_object() { p.clone() } else { json!({}) };
-    if let Some(o) = params.as_object_mut() {
-        o.insert("preserveEditing".into(), json!(editing));
-        // Keep upstream AI PDF layers, including hidden layers, unless a standard decides.
-        if o.get("standard").is_none_or(Value::is_null) {
-            o.entry("createLayers").or_insert(json!(true));
-        }
-        // A page longer than 14,400 pt keeps its `UserUnit` (PDF export writes it in points).
-        if o.get("longPagesInPoints").is_none_or(Value::is_null) {
-            o.insert("longPagesInPoints".into(), json!(false));
-        }
-        if let Some(c) = o.get("compress").and_then(Value::as_bool) {
-            let compression = o.entry("compression").or_insert_with(|| json!({}));
-            if let Some(m) = compression.as_object_mut() {
-                m.insert("compressText".into(), json!(c));
-            }
-        }
-    }
-    params
-}
-
-/// [`encode_ai`] of a `.ai` file with or without PDF content, carrying the native document and
-/// the editing copy for other apps when `editing` is true, and neither otherwise.
-fn encode_ai_pages(cmd: &str, f: &Format, doc: &Document, p: &Value, editing: bool) -> Result<Encoded> {
-    let params = ai_pdf_params(p, editing);
-    let pdf_compatible = bool_or(&params, "pdfCompatible", true);
-    let f = &if pdf_compatible { *f } else { without_pdf(f) };
-    let native_options = super::native::ai_options(cmd, f, doc, &params)?;
-    if !pdf_compatible {
-        let picked: ArtboardPick = super::encode::options(f, &params)?;
-        let picked = picked.resolve(doc.artboards.len()).map_err(|e| bad(cmd, e))?;
-        if picked.is_some_and(|v| !v.into_iter().eq(0..doc.artboards.len())) {
-            return Err(bad(cmd, "pdfCompatible: false needs every artboard to keep the editable artwork"));
-        }
-    }
-    let edited = doc.without_edit_modes();
-    // Resolve placed files only for the drawn pages. Missing files become preview images there;
-    // the native attachment keeps the original placed objects and their relinkable metadata.
-    let (pages, placed_warnings) = if pdf_compatible {
-        crate::cmd::place::document::full_documents(&edited)
-    } else {
-        (std::borrow::Cow::Owned(blank_pages(&edited)), Vec::new())
-    };
-    let native = || super::native::ai_native(cmd, doc, &native_options);
-    let other_apps: AiEditingData = super::encode::options(f, &params)?;
-    let carries_editing = std::cell::Cell::new(false);
-    let private = || {
-        if !other_apps.editing_data.unwrap_or(true) {
-            return Ok(None);
-        }
-        // The art with placed files resolved as the pages draw them, also when the pages are blank.
-        let resolved;
-        let (art, mut resolved_warnings): (&Document, Vec<String>) = if pdf_compatible {
-            (&pages, Vec::new())
-        } else {
-            let (d, w) = crate::cmd::place::document::full_documents(&edited);
-            resolved = d;
-            (&resolved, w)
-        };
-        // With the artboards' background colors, as the pages draw them.
-        let art = super::export::with_artboard_fills(art, &params, 0..art.artboards.len()).map_err(|e| bad(cmd, e))?;
-        let o = vectorcraft_eps::AiEditingOptions {
-            title: doc.info_title().to_owned(),
-            created: doc.metadata.created.or_else(vectorcraft_doc::metadata::output_time),
-        };
-        let (data, lost) = vectorcraft_eps::ai_private_data(&art, &o).map_err(|e| bad(cmd, e))?;
-        // Placed files that weren't found are written as their previews here too.
-        resolved_warnings.extend(lost);
-        carries_editing.set(true);
-        Ok(Some((data, resolved_warnings)))
-    };
-    let (bytes, notes) = super::pdf::encode_carrying(cmd, &pages, &params, native, private)?;
-    let mut enc = Encoded::one_with_notes(bytes, notes);
-    enc.warnings.extend(placed_warnings);
-    // A note on the options: `pdfCompatible: false` writes blank pages.
-    if !pdf_compatible {
-        enc.setting_notes.push(if carries_editing.get() { NOT_PDF_COMPATIBLE_EDITING } else { NOT_PDF_COMPATIBLE }.to_string());
-    }
-    Ok(enc)
 }
 
 /// Snapshot the active document for `plan` (stamping File Info's dates on the snapshot when the
@@ -939,28 +709,8 @@ fn job_for_stamped(s: &Session, st: &DocState, plan: SavePlan, stamped: Option<i
         super::native::save_options(cmd, plan.format, &doc, &params).map_err(|e| named_for_save(cmd, e))?;
     }
     let boards = separate_boards(cmd, plan.format, &doc, &params)?;
-    let mut params = super::pdf::expand_preset(s, cmd, &params)?.into_owned();
-    let legacy = super::legacy_ai::wanted(cmd, plan.format, &params)?;
-    if matches!(plan.format.id, "ai" | "ait") {
-        named_artboards_exist(cmd, plan.format, &doc, &params)?;
-    }
-    if let (Some(o), "ai" | "ait") = (params.as_object_mut(), plan.format.id) {
-        // Save keeps every artboard; exports may choose a subset instead. A legacy .ai file per
-        // artboard keeps a range given: the artboards to save.
-        let chosen = legacy && plan.format.id == "ai" && o.get("range").and_then(Value::as_str).is_some_and(|r| !r.trim().is_empty());
-        // A `range` that isn't text is left for the encoder to refuse, as an export refuses it.
-        let text = o.get("range").is_none_or(|r| r.is_string() || r.is_null());
-        if !chosen && text {
-            o.insert("range".into(), json!("all"));
-        }
-    }
-    // A saved `.ai` or `.ait` file has the artboards as its pages, whatever `useArtboards` says.
-    let checked = match (&params, plan.format.id) {
-        (Value::Object(o), "ai" | "ait") => {
-            std::borrow::Cow::Owned(Value::Object(o.iter().filter(|(k, _)| *k != "useArtboards").map(|(k, v)| (k.clone(), v.clone())).collect()))
-        }
-        _ => std::borrow::Cow::Borrowed(&params),
-    };
+    let params = super::pdf::expand_preset(s, cmd, &params)?.into_owned();
+    let checked = std::borrow::Cow::Borrowed(&params);
     super::check_linked_scripts(cmd, plan.format.id, st, &checked)?;
     super::access::check_native_images(cmd, plan.format.id, &st.doc, crate::cmd::links::LinkBase::of(st), &checked)?;
     Ok(SaveJob { plan, doc, params, snapshot, source: st.doc.clone(), stamped, boards })
@@ -1019,16 +769,10 @@ impl SaveJob {
     fn encode_one(&self, doc: &Document) -> Result<Encoded> {
         let (cmd, f) = (self.plan.mode.command(), self.plan.format);
         let enc = match f.id {
-            "ai" | "ait" => encode_ai(cmd, f, doc, &self.params),
-            "eps" => super::eps::encode_save(doc, &self.params),
             _ => encode_all(doc, f.id, &self.params),
         }
         .map_err(|e| named_for_save(cmd, e))?;
-        // A legacy .ai file per artboard, or the files the EPS encoder writes: one, or with Use
-        // Artboards and two or more artboards the central file at the path and a file per
-        // artboard beside it.
-        let per_artboard = f.id == "eps" || (f.id == "ai" && super::legacy_ai::wanted(cmd, f, &self.params)?);
-        if enc.files.len() != 1 && !per_artboard {
+        if enc.files.len() != 1 {
             return Err(bad(cmd, "Save writes one artboard: name one, or export several with document.export"));
         }
         Ok(enc)
@@ -1335,25 +1079,6 @@ fn format_options(s: &mut Session, p: &Value) -> Result<Value> {
                 && let Some(pdf) = native_pdf
             {
                 o["value"] = json!(pdf);
-            }
-        }
-    }
-    // An EPS save that named artboards without Use Artboards, or with it on, had it on (the
-    // encoder reads them so): it shows on, with those artboards as the range.
-    if f.id == "eps"
-        && let Some(m) = &saved
-        && m.get("useArtboards").and_then(Value::as_bool) != Some(false)
-    {
-        let range = m.get("range").and_then(Value::as_str).filter(|r| !r.trim().is_empty());
-        let boards = m
-            .get("artboards")
-            .and_then(|a| serde_json::from_value::<Vec<usize>>(a.clone()).ok())
-            .or_else(|| m.get("artboard").and_then(Value::as_u64).and_then(|i| usize::try_from(i).ok()).map(|i| vec![i]))
-            .filter(|b| !b.is_empty());
-        if range.is_some() || boards.is_some() {
-            v["options"]["useArtboards"]["value"] = json!(true);
-            if let (None, Some(boards)) = (range, boards) {
-                v["options"]["range"]["value"] = json!(range_text(&boards));
             }
         }
     }

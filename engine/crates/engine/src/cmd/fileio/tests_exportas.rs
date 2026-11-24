@@ -272,21 +272,6 @@ fn an_export_notes_the_options_that_only_a_save_reads() {
     }
 }
 
-/// The legacy `.ai` options that the notes go by are the ones the `.ai` option table describes as
-/// the legacy file's ("with aiVersion 7"), so an option added to the table is not noted as unread
-/// on a legacy export by mistake.
-#[test]
-fn the_legacy_ai_options_are_the_ones_the_option_table_names() {
-    let described: Vec<&str> = native::AI_OPTIONS.iter().filter(|o| o.description.starts_with("with aiVersion 7")).map(|o| o.name).collect();
-    assert_eq!(described, legacy_ai::LEGACY_ONLY);
-    for key in described.iter().chain(&ARTBOARD_PARAMS).chain(&["aiVersion", "useArtboards"]) {
-        assert!(legacy_ai::reads(key), "{key}");
-        assert!(native::AI_OPTIONS.iter().any(|o| o.name == *key), "{key} is not a .ai option");
-    }
-    for key in ["compress", "pdfCompatible", "separateArtboards", "editingData", "marks"] {
-        assert!(!legacy_ai::reads(key), "{key}");
-    }
-}
 
 #[test]
 fn note_texts_give_the_losses_first_each_kind_in_order() {

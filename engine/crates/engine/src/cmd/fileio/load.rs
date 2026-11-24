@@ -612,7 +612,7 @@ pub fn open_bytes(s: &mut Session, name: &str, bytes: &[u8], path: Option<String
 /// [`open_bytes`] with the `document.open` options in `p` ([`LoadOptions::from_params`]).
 pub fn open_bytes_with(s: &mut Session, name: &str, bytes: &[u8], path: Option<String>, p: &Value) -> Result<Value> {
     let update_links = s.prefs.update_links == "automatically";
-    open_read(s, read_for_open(name, bytes, path, p, update_links, s.prefs.low_res_proxy_eps)?)
+    open_read(s, read_for_open(name, bytes, path, p, update_links)?)
 }
 
 /// A file read for `document.open` but not opened yet ([`read_for_open`], [`open_read`]).
@@ -637,15 +637,14 @@ pub struct ReadFile {
     /// The profile question as it was last asked ([`ReadFile::ask`]): an answer is taken only while
     /// the question is still the same.
     asked: Option<crate::cmd::colormgmt::ProfileQuestion>,
-    /// Update Links and the low-resolution EPS proxy setting, while the linked files and the type
-    /// are left to do after the answer ([`ReadFile::finish_read`]).
-    links_left: Option<(bool, bool)>,
+    /// Update Links, while the linked files and the type are left to do after the answer
+    /// ([`ReadFile::finish_read`]).
+    links_left: Option<bool>,
 }
 
 /// The part of [`read_for_open`] a file waiting for a profile answer has left to do.
 struct Rest {
     update_links: bool,
-    low_res_proxy_eps: bool,
     /// The color mode `colorMode` asks for, converted after the policies.
     color_mode: Option<vectorcraft_doc::ColorMode>,
 }
@@ -661,10 +660,6 @@ fn apply_policies(loaded: &mut Loaded) -> bool {
 
 #[cfg(test)]
 impl ReadFile {
-    /// The document as it was read, before it opens.
-    pub(crate) fn document(&self) -> &Document {
-        &self.loaded.doc
-    }
 }
 
 /// The first half of [`open_bytes_with`], which needs no session (an app may do it on another
@@ -675,8 +670,8 @@ impl ReadFile {
 /// Links set to Automatically; see [`crate::cmd::links::resolve`]). A file an importer plug-in
 /// reads (`importer` in `p`, or an extension only an importer lists) is read by it
 /// ([`super::importer`]).
-pub fn read_for_open(name: &str, bytes: &[u8], path: Option<String>, p: &Value, update_links: bool, low_res_proxy_eps: bool) -> Result<ReadFile> {
-    read_for_open_asking(name, bytes, path, p, update_links, low_res_proxy_eps, false)
+pub fn read_for_open(name: &str, bytes: &[u8], path: Option<String>, p: &Value, update_links: bool) -> Result<ReadFile> {
+    read_for_open_asking(name, bytes, path, p, update_links, false)
 }
 
 /// [`read_for_open`]; with `ask` (the desktop app's File › Open), a document whose profile
@@ -689,7 +684,6 @@ pub fn read_for_open_asking(
     path: Option<String>,
     p: &Value,
     update_links: bool,
-    low_res_proxy_eps: bool,
     ask: bool,
 ) -> Result<ReadFile> {
     let opts = LoadOptions::from_params("document.open", p)?;
@@ -708,7 +702,7 @@ pub fn read_for_open_asking(
         links: Resolved::default(),
         policy_changed: false,
         choice,
-        rest: Some(Rest { update_links, low_res_proxy_eps, color_mode }),
+        rest: Some(Rest { update_links, color_mode }),
         answered: None,
         asked: None,
         links_left: None,
@@ -778,9 +772,9 @@ impl ReadFile {
     /// Read the linked files and lay out the type of a file whose profile answer is applied
     /// ([`Self::answer`]), once. A file still waiting for its answer is left as it is.
     fn finish_links(&mut self) {
-        let Some((update_links, low_res_proxy_eps)) = self.links_left.take() else { return };
+        let Some(update_links) = self.links_left.take() else { return };
         let base = crate::cmd::links::LinkBase::file(self.path.as_deref());
-        self.links = crate::cmd::links::resolve(&mut self.loaded.doc, base, update_links, low_res_proxy_eps);
+        self.links = crate::cmd::links::resolve(&mut self.loaded.doc, base, update_links);
         Session::refresh_text_bounds(&mut self.loaded.doc);
     }
 
@@ -809,7 +803,7 @@ impl ReadFile {
                 super::super::colormgmt::set_color_mode(doc, mode, true, None, grays);
             });
         }
-        self.links_left = Some((rest.update_links, rest.low_res_proxy_eps));
+        self.links_left = Some(rest.update_links);
         Ok(())
     }
 }
@@ -847,7 +841,7 @@ pub fn open_template(s: &mut Session, name: &str, bytes: &[u8], path: Option<&st
     }
     let policy_changed = apply_policies(&mut loaded);
     let base = crate::cmd::links::LinkBase::file(path);
-    let links = crate::cmd::links::resolve(&mut loaded.doc, base, s.prefs.update_links == "automatically", s.prefs.low_res_proxy_eps);
+    let links = crate::cmd::links::resolve(&mut loaded.doc, base, s.prefs.update_links == "automatically");
     open_loaded(s, loaded, links, path.map(str::to_string), &LoadOptions::default(), true, policy_changed)
 }
 

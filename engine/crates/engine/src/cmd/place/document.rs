@@ -33,31 +33,15 @@ pub(crate) const MAX_FILE: usize = 256 << 20;
 const NATIVE: [&str; 2] = ["vectorcraft", "template"];
 /// The type a placed VectorCraft document's bytes are stored with (a PDF's: its format's).
 const MIME: &str = "application/json";
-/// The type a placed EPS or PostScript file's bytes are stored with.
-pub(crate) const POSTSCRIPT: &str = "application/postscript";
-/// What follows the hash in the key of a placed PostScript `.ai` file ([`key_for`]).
-const AI_MARK: &str = "-ai";
-
-/// Is `key` (of a placed document) a PostScript `.ai` file's ([`AI_MARK`])? Hashes are hex, so
-/// only the mark puts `-ai-` in a key.
-pub(crate) fn is_postscript_ai_key(key: &str) -> bool {
-    key.contains(&format!("{AI_MARK}-"))
-}
 
 /// Is `name` with `bytes` a VectorCraft document?
 pub(crate) fn is_native(name: &str, bytes: &[u8]) -> bool {
     fileio::detect(name, bytes).is_some_and(|f| NATIVE.contains(&f.id))
 }
 
-/// Is `name` with `bytes` a PDF, or a `.ai` or `.ait` file read as PDF pages (not PostScript)?
+/// Is `name` with `bytes` a PDF, or a `.ai` or `.ait` file read as PDF pages?
 pub(crate) fn is_pdf(name: &str, bytes: &[u8]) -> bool {
-    fileio::detect(name, bytes).is_some_and(|f| matches!(f.id, "pdf" | "ai" | "ait")) && !vectorcraft_pdf::is_postscript(bytes)
-}
-
-/// Is `bytes` an EPS file, a PostScript file or a PostScript `.ai` or `.ait` file, read by the EPS
-/// importer (not a DCS file, which is placed as a linked image)?
-pub(crate) fn is_postscript(bytes: &[u8]) -> bool {
-    vectorcraft_pdf::is_postscript(bytes) && !super::dcs::is_dcs(bytes)
+    fileio::detect(name, bytes).is_some_and(|f| matches!(f.id, "pdf" | "ai" | "ait"))
 }
 
 /// The editing data of the `.ai` file `name` (`bytes`) when its PDF part is only a placeholder, or
@@ -76,12 +60,9 @@ pub(crate) fn editing_data(name: &str, bytes: &[u8]) -> Option<Document> {
     }
 }
 
-/// The type the bytes of placed file `name` (`bytes`) are stored with: a PDF's format's,
-/// [`POSTSCRIPT`] for an EPS or PostScript file, else [`MIME`].
+/// The type the bytes of placed file `name` (`bytes`) are stored with: a PDF's format's, else
+/// [`MIME`].
 fn mime(name: &str, bytes: &[u8]) -> &'static str {
-    if is_postscript(bytes) {
-        return POSTSCRIPT;
-    }
     fileio::detect(name, bytes).filter(|_| is_pdf(name, bytes)).map_or(MIME, |f| f.mime)
 }
 
@@ -156,7 +137,7 @@ fn opened_document_art(
 ) -> Result<DocumentArt> {
     let file = fileio::file_name(name);
     let pdf = is_pdf(name, bytes);
-    if !pdf && !is_native(name, bytes) && !is_postscript(bytes) {
+    if !pdf && !is_native(name, bytes) {
         return Err(bad(cmd, format!("`{file}` isn't a VectorCraft document, a PDF or a PDF-compatible .ai file")));
     }
     if bytes.len() > MAX_FILE {
@@ -166,15 +147,14 @@ fn opened_document_art(
         let o = fileio::LoadOptions { crop: crop_to(page_box), ..Default::default() };
         return super::pdf_art(name, (bytes, opened), path, page as usize, o, bounding, cmd);
     }
-    // A VectorCraft document, or an EPS or PostScript file: the document our EPS files carry, else
-    // what its PostScript draws.
+    // A VectorCraft document.
     let mut l = fileio::load(name, bytes)?;
     // Its linked images show their files; its placed documents stay as they are, unless their
     // stored bytes are lost, when resolving reads their files, which can place this one again.
     // A document already being read further up, or past [`MAX_NESTED_READS`] of them, has its links
     // left as stored.
     if let Some(_reading) = Reading::enter(bytes) {
-        super::super::links::resolve(&mut l.doc, super::super::links::LinkBase::file(path), false, false);
+        super::super::links::resolve(&mut l.doc, super::super::links::LinkBase::file(path), false);
     }
     l.doc.drop_edit_modes();
     let n = l.doc.artboards.len();
@@ -315,10 +295,6 @@ fn read_source(
     let hash = shared.map_or_else(|| hash_bytes(bytes), |f| f.hash.to_string());
     let opened = shared.map(|f| f.opened);
     let shared = shared.map(|f| f.bytes);
-    // A PostScript `.ai` is read with the artboard its header gives, an EPS file on its page: the
-    // same bytes under the two names show different art, so they have keys of their own.
-    let ai = is_postscript(bytes) && fileio::detect(name, bytes).is_some_and(|f| matches!(f.id, "ai" | "ait"));
-    let hash = if ai { format!("{hash}{AI_MARK}") } else { hash };
     // The same document placed the same way is read once (placing it again is free).
     let key = key_for(&hash, page, bounding, page_box);
     // Resolving its links depends on where the file is and on what the caller may read, so a hit

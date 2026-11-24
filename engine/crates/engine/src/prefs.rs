@@ -254,7 +254,6 @@ pub struct Prefs {
     pub recovery_folder: String,
     pub recovery_off_for_complex: bool,
     pub recent_files_count: u32,
-    pub low_res_proxy_eps: bool,
     pub anti_aliased_bitmaps: bool,
     pub update_links: String,
     /// PDF Text: what the text of a PDF, `.ai` or `.ait` file opened or placed from the app
@@ -547,7 +546,6 @@ impl Default for Prefs {
             recovery_folder: String::new(),
             recovery_off_for_complex: false,
             recent_files_count: 20,
-            low_res_proxy_eps: false,
             anti_aliased_bitmaps: false,
             update_links: s("askWhenModified"),
             pdf_text_as: s("text"),

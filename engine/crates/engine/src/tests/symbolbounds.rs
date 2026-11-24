@@ -402,17 +402,6 @@ fn lock_and_hide_all_artwork_above_measure_the_instances_art() {
     assert!(!node(&s, far).visible);
 }
 
-#[test]
-fn eps_of_the_art_bounds_and_writes_an_instances_art() {
-    let (mut s, _) = open(FAR);
-    let r = run(&mut s, "document.export", json!({"format": "eps", "previewFormat": "none", "cmykPostScript": false}));
-    let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
-    let ps = String::from_utf8(vectorcraft_eps::sections(&bytes).unwrap().0.to_vec()).unwrap();
-    let bbox = ps.lines().find_map(|l| l.strip_prefix("%%BoundingBox:")).map(str::trim);
-    // The art, 60 to 80 down from the artboard's top, is 40 to 60 up from its bottom (120 high).
-    assert_eq!(bbox, Some("100 40 140 60"), "{ps}");
-    assert!(ps.contains("1 0 0 rg"), "the art is written: {ps}");
-}
 
 #[test]
 fn an_artboards_svg_keeps_an_instance_whose_art_is_on_it() {

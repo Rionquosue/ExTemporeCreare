@@ -149,10 +149,7 @@ fn carried_document(name: &str, bytes: &[u8]) -> Carried {
             Err(_) => Carried::Unreadable,
         };
     }
-    if !vectorcraft_eps::has_native(bytes) {
-        return Carried::Absent;
-    }
-    vectorcraft_eps::native(bytes).map_or(Carried::Unreadable, |data| read(&data))
+    Carried::Absent
 }
 
 /// The error for a linked file the package would copy whose native document can't be read to
@@ -213,17 +210,10 @@ fn page_fonts(name: &str, bytes: &[u8], path: &str, pages: &PlacedPages) -> BTre
 }
 
 /// The document whose links are copied beside the placed file `name` (`bytes`), which is copied
-/// as it is: a `.ai` file's editing data ([`super::place::document::editing_data`]), or the native
-/// document an EPS or PostScript file carries, which placing it reads. `None` for other files and
-/// for data that can't be read.
+/// as it is: a `.ai` file's editing data ([`super::place::document::editing_data`]). `None` for
+/// other files and for data that can't be read.
 fn editing_data(name: &str, bytes: &[u8]) -> Option<Document> {
-    if let Some(doc) = super::place::document::editing_data(name, bytes) {
-        return Some(doc);
-    }
-    if !super::place::document::is_postscript(bytes) {
-        return None;
-    }
-    vectorcraft_format::load(&vectorcraft_eps::native(bytes)?).ok()
+    super::place::document::editing_data(name, bytes)
 }
 
 /// Collect dependencies depth-first so nested VectorCraft files are rewritten before

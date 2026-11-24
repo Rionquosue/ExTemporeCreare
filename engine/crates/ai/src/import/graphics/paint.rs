@@ -7,9 +7,4 @@ thread_local! {
     static TILINGS_COMPARED: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
 
-/// [`TILINGS_COMPARED`] of this thread.
-#[cfg(test)]
-pub(crate) fn tilings_compared() -> u64 {
-    TILINGS_COMPARED.get()
-}
 

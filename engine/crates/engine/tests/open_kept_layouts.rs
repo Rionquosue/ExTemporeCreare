@@ -90,7 +90,7 @@ fn documents() -> Vec<(&'static str, Vec<u8>)> {
 fn open(bytes: &[u8]) -> Session {
     let name = "layouts.vectorcraft";
     let mut s = Session::new();
-    let read = fileio::read_for_open(name, bytes, Some(name.into()), &Value::Null, false, false).unwrap();
+    let read = fileio::read_for_open(name, bytes, Some(name.into()), &Value::Null, false).unwrap();
     fileio::open_read(&mut s, read).unwrap();
     s
 }

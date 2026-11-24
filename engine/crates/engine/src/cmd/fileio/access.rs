@@ -144,11 +144,10 @@ pub(crate) fn check_scripts_of(cmd: &str, doc: &vectorcraft_doc::Document, doc_p
 }
 
 /// Does a file of a document with `artboards` artboards, written in format `format` with options
-/// `p`, name the JavaScript files the document links? SVG, SVGZ, native files, native templates,
-/// EPS files always do. A `.ai` or `.ait` file does unless it is a legacy version 7 `.ai` file or `p`
-/// picks only some of the artboards; a PDF does with Preserve Editing on (as its preset, standard and
-/// options leave it) unless `p` picks only some of the artboards. Neither a `.ai` file nor a PDF
-/// does when `useArtboards` is false in `p` (one page, the bounds of the art). Options the encoder
+/// `p`, name the JavaScript files the document links? SVG, SVGZ, native files and native
+/// templates always do. A PDF does with Preserve Editing on (as its preset, standard and options
+/// leave it) unless `p` picks only some of the artboards, or `useArtboards` is false in `p` (one
+/// page, the bounds of the art). Options the encoder
 /// refuses count as naming them.
 pub(crate) fn names_linked_scripts(cmd: &str, format: &str, p: &Value, artboards: usize) -> bool {
     use serde::Deserialize;
@@ -158,11 +157,7 @@ pub(crate) fn names_linked_scripts(cmd: &str, format: &str, p: &Value, artboards
     };
     let art_page = || super::encode::use_artboards(cmd, p).is_ok_and(|u| u == Some(false));
     match format {
-        "svg" | "svgz" | "vectorcraft" | "template" | "eps" => true,
-        "ai" | "ait" => {
-            let legacy = super::format(format).is_some_and(|f| super::legacy_ai::wanted(cmd, f, p).unwrap_or(false));
-            !legacy && !(format == "ai" && art_page()) && every_artboard()
-        }
+        "svg" | "svgz" | "vectorcraft" | "template" => true,
         "pdf" => {
             let editing = super::pdf::settings(cmd, p).ok().is_none_or(|s| s.preserve_editing);
             editing && !art_page() && every_artboard()

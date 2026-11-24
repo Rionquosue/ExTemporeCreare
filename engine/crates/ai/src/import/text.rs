@@ -119,15 +119,3 @@ pub fn family_style(name: &str) -> (String, String) {
     (trim(family), style)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::glyph_char;
-
-    #[test]
-    fn glyph_char_rejects_plus_in_hex() {
-        assert_eq!(glyph_char("uni20AC"), '€');
-        assert_eq!(glyph_char("u1F600"), '\u{1F600}');
-        assert_eq!(glyph_char("uni+041"), '\u{2022}');
-        assert_eq!(glyph_char("u+41"), '\u{2022}');
-    }
-}

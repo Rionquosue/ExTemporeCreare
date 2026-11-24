@@ -46,7 +46,7 @@ pub(crate) use frames::TEXT_FRAME_SCANS;
 pub(crate) use frames::text_frames;
 pub use obj::{NameEncoding, Names};
 #[cfg(test)]
-pub(crate) use read::objects_read;
+
 #[cfg(test)]
 pub use read::read;
 #[cfg(test)]
@@ -59,8 +59,6 @@ pub use read::{
     BindingRef, Brushes, PaletteSwatches, PlacedPage, Structure, Symbols, active_artboard, artboards, bindings_note, brushes, graphic_styles,
     palette, read_in, symbols, variables,
 };
-#[cfg(test)]
-pub(crate) use style::ART_STYLE_PARSES;
 
 pub(crate) use read::{clip_by_type, is_look_slot};
 

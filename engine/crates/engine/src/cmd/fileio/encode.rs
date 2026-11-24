@@ -1001,9 +1001,7 @@ pub fn encode_with_warnings(doc: &Document, format: &str, p: &Value) -> Result<(
 pub fn encode_with_notes(doc: &Document, format: &str, p: &Value) -> Result<(Vec<u8>, Vec<Note>)> {
     let f = super::writable(C, Some(format), None)?;
     let enc = encode_all(doc, f.id, p)?;
-    // The error for a version 7 .ai of several artboards names the legacy .ai.
-    let legacy = f.id == "ai" && super::legacy_ai::wanted(C, f, p)?;
-    enc.single(&if legacy { super::legacy_ai::named(f) } else { *f })
+    enc.single(f)
 }
 
 /// [`encode`], with every file the export writes.
@@ -1011,7 +1009,7 @@ pub fn encode_all(doc: &Document, format: &str, p: &Value) -> Result<Encoded> {
     let format = super::writable(C, Some(format), None)?.id;
     // Formats with editing data prepare their drawn output separately from their original
     // document. Other formats only need the placed files' art.
-    if !matches!(format, "vectorcraft" | "template" | "ai" | "pdf" | "eps" | "svg" | "svgz") {
+    if !matches!(format, "vectorcraft" | "template" | "pdf" | "svg" | "svgz") {
         let (full, warnings) = crate::cmd::place::document::full_documents(doc);
         if !warnings.is_empty() {
             let mut enc = encode_all_of(&full, format, p)?;
@@ -1039,7 +1037,7 @@ fn encode_all_of(doc: &Document, format: &str, p: &Value) -> Result<Encoded> {
     }
     // Formats that draw type: missing fonts come out in the fallback font (PDF and SVG say so
     // themselves: SVG only when it outlines or embeds fonts).
-    if (f.raster || matches!(f.id, "eps" | "emf" | "wmf" | "hpgl"))
+    if f.raster
         && let Some(w) = crate::cmd::fonts::substitution_warning(doc)
     {
         enc.warnings.push(w);
@@ -1070,13 +1068,6 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
     {
         return Ok(Encoded::one_with_notes(bytes, notes));
     }
-    // So does a `.ai` file of the art's bounds (a legacy version 7 `.ai` file has none to leave out).
-    if use_artboards == Some(false)
-        && f.id == "ai"
-        && let Some(enc) = super::save::encode_ai_art_page(C, f, doc, p)?
-    {
-        return Ok(enc);
-    }
     let left_out = |_: &Node| false;
     if use_artboards == Some(false)
         && let Some((art, q)) = art_page(C, doc, p, left_out)?
@@ -1093,9 +1084,6 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
         }
         "txt" => super::text::encode(doc, p)?,
         "svg" | "svgz" => return super::svg::encode(doc, p, f.id == "svgz").map_err(|e| bad(C, e)),
-        // EPS reads its own `useArtboards` (the art's bounds unless asked).
-        "eps" => return super::eps::encode(doc, p),
-        "ai" => return super::save::encode_ai(C, f, doc, p),
         "pdf" => {
             let (bytes, notes) = super::pdf::encode(C, doc, p)?;
             return Ok(Encoded::one_with_notes(bytes, notes));

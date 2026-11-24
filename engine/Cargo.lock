@@ -372,18 +372,6 @@ version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=d7c9632bfb3040cf45db394e7500cc93c81c49e0#d7c9632bfb3040cf45db394e7500cc93c81c49e0"
 
 [[package]]
-name = "craft-dxf"
-version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=d7c9632bfb3040cf45db394e7500cc93c81c49e0#d7c9632bfb3040cf45db394e7500cc93c81c49e0"
-dependencies = [
- "craft-codepage",
- "encoding_rs",
- "kurbo",
- "log",
- "thiserror",
-]
-
-[[package]]
 name = "craft-eps"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=068e079c7be4b100a8a6b305b31ac881e069727e#068e079c7be4b100a8a6b305b31ac881e069727e"
@@ -524,17 +512,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "craft-metafile"
-version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=d7c9632bfb3040cf45db394e7500cc93c81c49e0#d7c9632bfb3040cf45db394e7500cc93c81c49e0"
-dependencies = [
- "encoding_rs",
- "image",
- "kurbo",
- "thiserror",
-]
-
-[[package]]
 name = "craft-mime"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=d7c9632bfb3040cf45db394e7500cc93c81c49e0#d7c9632bfb3040cf45db394e7500cc93c81c49e0"
@@ -552,15 +529,6 @@ dependencies = [
  "hayro-interpret",
  "hayro-syntax",
  "krilla",
- "thiserror",
-]
-
-[[package]]
-name = "craft-plotter"
-version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=d7c9632bfb3040cf45db394e7500cc93c81c49e0#d7c9632bfb3040cf45db394e7500cc93c81c49e0"
-dependencies = [
- "kurbo",
  "thiserror",
 ]
 
@@ -2703,25 +2671,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft-cad"
-version = "0.24.1"
-dependencies = [
- "craft-dxf",
- "craft-image-codecs 0.1.0 (git+https://github.com/storytold/craft-libs?rev=ba25ccd233934d1b2f74e3c0f235168bf5f13ef3)",
- "craft-plotter",
- "image",
- "kurbo",
- "serde_json",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom 0.24.1",
- "vectorcraft-pathops 0.24.1",
- "vectorcraft-text",
-]
-
-[[package]]
 name = "vectorcraft-color"
 version = "0.24.1"
 dependencies = [
@@ -2869,22 +2818,6 @@ dependencies = [
  "serde_json",
  "thiserror",
  "vectorcraft-testkit",
-]
-
-[[package]]
-name = "vectorcraft-metafile"
-version = "0.24.1"
-dependencies = [
- "craft-image-codecs 0.1.0 (git+https://github.com/storytold/craft-libs?rev=ba25ccd233934d1b2f74e3c0f235168bf5f13ef3)",
- "craft-metafile",
- "image",
- "kurbo",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom 0.24.1",
- "vectorcraft-text",
 ]
 
 [[package]]

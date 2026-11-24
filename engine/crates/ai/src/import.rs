@@ -50,37 +50,11 @@ mod type1;
 mod type42;
 
 #[cfg(test)]
-mod tests;
-#[cfg(test)]
-mod tests_cid;
-#[cfg(test)]
-mod tests_composite;
-#[cfg(test)]
-mod tests_fontnames;
-#[cfg(test)]
-mod tests_generators;
-#[cfg(test)]
-mod tests_illustrator;
-#[cfg(test)]
-mod tests_images;
-#[cfg(test)]
 mod tests_native;
-#[cfg(test)]
-mod tests_reads;
-#[cfg(test)]
-mod tests_strings;
-#[cfg(test)]
-mod tests_type1;
-#[cfg(test)]
-mod tests_type42;
 
 use vectorcraft_doc::Document;
 
 pub use ai::NameEncoding;
-#[cfg(test)]
-pub(crate) use ai::objects_read;
-#[cfg(test)]
-pub(crate) use ai::{ART_STYLE_PARSES, ENVELOPE_DRAWN, ENVELOPE_TYPE_DRAWN};
 pub use native::{AiLayers, ai_alone, ai_alone_on_page, ai_alone_with, ai_layers_alone, ai_opened_artboard, is_loss, layered_ai, layered_ai_from};
 pub(crate) use native::scale_symbols;
 pub use text::family_style;

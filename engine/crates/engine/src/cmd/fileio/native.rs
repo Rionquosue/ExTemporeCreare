@@ -78,64 +78,6 @@ const EMBED_PROFILES: FormatOption = FormatOption {
     description: "carry the ICC profiles the document is tagged with that were loaded from files (Edit → Assign Profile), so the document keeps them where they aren't installed",
 };
 
-/// The save and export options of a `.ai` file (a PDF carrying the native document; its PDF
-/// options come on top, see document.exportPdf). Saves always retain every artboard.
-pub const AI_OPTIONS: &[FormatOption] = &[
-    super::ARTBOARD,
-    super::ARTBOARDS,
-    super::USE_ARTBOARDS,
-    FormatOption {
-        name: "range",
-        ty: "string",
-        default: "null",
-        description: "1-based artboards such as \"1-3, 5\", or \"all\": the PDF pages to export, or with separateArtboards the files to save separately",
-    },
-    SEPARATE_ARTBOARDS,
-    INCLUDE_LINKED,
-    EMBED_PROFILES,
-    FormatOption {
-        name: "pdfCompatible",
-        ty: "boolean",
-        default: "true",
-        description: "write the artwork as PDF pages that other apps show; false keeps only the native document (smaller, faster; other apps show empty pages)",
-    },
-    FormatOption {
-        name: "compress",
-        ty: "boolean",
-        default: "true",
-        description: "compress the PDF's content and the native document it carries (the PDF option compression.compressText)",
-    },
-    FormatOption {
-        name: "editingData",
-        ty: "boolean",
-        default: "true",
-        description: "also carry an editing copy of the artwork in the form other apps that open .ai files read: layers and sublayers, groups, compound paths, paths, fills and strokes, colors, linear and radial gradients, patterns on a grid of tiles, swatches, artboards and which one is active, the transparency of objects and layers, objects' opacity masks, clipping groups and layers clipped by a path, embedded images with their pixels, linked images as placed files with a preview, point type, area type and type on a path as text, and symbols and their instances, with other type, other patterns, other clipping objects, other symbol instances and live objects as plain filled and stroked paths, freeform gradients, gradients along or across a stroke and gradients of more than 256 stops as their average color, gradients that dither or mix perceptually as classic ones, and gradient stops linked to global process colors as their colors (written only with every artboard, as Preserve Editing is)",
-    },
-    FormatOption {
-        name: "aiVersion",
-        ty: "string",
-        default: "\"pdf\"",
-        description: "pdf (a PDF-compatible .ai carrying the VectorCraft document) or 7 (the legacy, PostScript-form .ai of version 7, which keeps layers, groups, compound paths and clipping groups in apps that read it; one file per artboard, transparent objects opaque; the other .ai options don't apply; an error for a .ait template)",
-    },
-    FormatOption {
-        name: "transparentImages",
-        ty: "string",
-        default: "\"flatten\"",
-        description: "with aiVersion 7, the images version 7 can't hold (see-through pixels, opacity, a blending mode, or a colorize color unless every pixel is black or white): flatten (the default: each becomes an opaque image of itself and the art under it, clipped to where it changes what shows; that art stays as it is) or omit (left out)",
-    },
-    FormatOption {
-        name: "hiddenObjects",
-        ty: "string",
-        default: "\"layer\"",
-        description: "with aiVersion 7, hidden objects, which version 7 can't hide (it hides only layers): layer (the default: each layer's hidden objects in a hidden layer of their own just above it, out of their groups), omit (left out) or visible (shown where they are)",
-    },
-    FormatOption {
-        name: "outlineText",
-        ty: "boolean",
-        default: "false",
-        description: "with aiVersion 7, type as its outlines instead of text (which apps reading the file set in the fonts it names: they need them installed); type 8-bit text can't hold (characters outside Windows Latin-1, vertical type, ruby, warichu, inline graphics, gradient or pattern fills) and type with rotated characters are always outlines",
-    },
-];
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -277,43 +219,7 @@ pub(super) fn install_profiles(profiles: BTreeMap<String, Vec<u8>>) -> Vec<Strin
         .collect()
 }
 
-/// Check AI options even when chosen PDF pages omit the native editing attachment.
-pub(super) fn ai_options(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<SaveOptions> {
-    let mut q = p.clone();
-    if let Some(o) = q.as_object_mut() {
-        // AI carries the current native format without a separate preview. Its compression
-        // and PDF-content flags are still validated as booleans. Its coordinates are written exactly.
-        o.retain(|k, _| !matches!(k.as_str(), "version" | "preview" | "precision"));
-        if o.get("pdfCompatible").is_some_and(Value::is_null) {
-            o.remove("pdfCompatible");
-        }
-    }
-    let (mut so, _) = save_options(cmd, f, doc, &q)?;
-    so.pretty = false;
-    so.compress = false; // The PDF compresses its editing attachment.
-    Ok(so)
-}
 
-/// The original native document carried by an AI file, with validated save options.
-pub(super) fn ai_native(cmd: &str, doc: &Document, so: &SaveOptions) -> Result<Vec<u8>> {
-    let native = if so.include_linked {
-        match crate::cmd::place::document::full_documents(doc).0 {
-            Cow::Borrowed(d) => Cow::Borrowed(d),
-            Cow::Owned(full) => {
-                // Include available files, retaining placed objects even when their files
-                // are missing. Only drawn output substitutes unlinked preview images.
-                let mut original = doc.clone();
-                original.images = full.images;
-                Cow::Owned(original)
-            }
-        }
-    } else {
-        Cow::Borrowed(doc)
-    };
-    // Without an Export for Screens folder outside the read roots.
-    let native = super::access::with_readable_settings_folder(&native);
-    vectorcraft_format::save_with(&native, so).map_err(|e| bad(cmd, e.to_string()))
-}
 
 /// The first artboard (else the art) as a PNG fitted into [`PREVIEW_MAX`] pixels (`None`: nothing
 /// to show).

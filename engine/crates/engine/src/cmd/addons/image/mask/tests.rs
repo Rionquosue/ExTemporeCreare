@@ -906,11 +906,6 @@ fn legacy_ai_writes_the_masked_pixels() {
     written_with_the_mask(|d| written(d, "ai", json!({"aiVersion": 7})));
 }
 
-#[test]
-fn ai_editing_data_writes_the_masked_pixels() {
-    let o = vectorcraft_eps::AiEditingOptions { title: "art".into(), created: Some(0) };
-    written_with_the_mask(|d| vectorcraft_eps::export_ai_editing(d, &o).unwrap().program);
-}
 
 /// PDF/X-1a and PDF/X-3 flatten a masked image, whose hidden pixels are transparency, and write no
 /// soft mask.

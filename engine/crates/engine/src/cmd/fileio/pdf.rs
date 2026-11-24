@@ -549,19 +549,6 @@ fn overflow_warning(cmd: &str, doc: &Document, p: &Value) -> Result<Option<Strin
     Ok(crate::cmd::fonts::export_overflow_warning(doc, printed.as_deref().unwrap_or(&doc.layers), Some(&areas)))
 }
 
-/// [`encode`] the pages of `doc`, carrying `native()` as the editing data (a `.ai` file: the
-/// native document with its save options, whose pages may be left blank), and `private()`, the
-/// editing copy of the art for other apps with what it couldn't hold, on every page. It doesn't
-/// warn about art that stops short of the bleed ([`short_of_bleed`]), which PDF export does.
-pub(super) fn encode_carrying(
-    cmd: &str,
-    doc: &Document,
-    p: &Value,
-    native: impl FnOnce() -> Result<Vec<u8>>,
-    private: impl FnOnce() -> Result<Option<(vectorcraft_pdf::PrivateData, Vec<String>)>>,
-) -> Result<(Vec<u8>, Vec<Note>)> {
-    encode_carrying_at(cmd, doc, p, None, false, native, private)
-}
 
 /// [`encode_carrying`] modified at `modified` (Unix seconds) when given, instead of the time of
 /// writing, warning about art that stops short of the bleed when `bleed_check` is true.

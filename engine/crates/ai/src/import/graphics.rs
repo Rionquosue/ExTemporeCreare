@@ -4,8 +4,6 @@
 mod paint;
 mod strips;
 
-#[cfg(test)]
-pub(crate) use paint::tilings_compared;
 
 /// Width of a zero-width line (the thinnest a device draws), points.
 pub(super) const HAIRLINE: f64 = 0.25;

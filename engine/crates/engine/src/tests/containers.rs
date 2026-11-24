@@ -421,53 +421,6 @@ fn an_images_stroke_with_outline_object_follows_its_opaque_area() {
     assert_eq!([shade(&s, 41, 100), shade(&s, 45, 100), shade(&s, 64, 100)], ["white", "black", "red"]);
 }
 
-#[test]
-fn an_images_outline_object_stroke_exports_selects_and_measures_along_its_opaque_area() {
-    let mut s = session();
-    // The frame runs from 50 to 150, the disc from 70 to 130.
-    let r = run(&mut s, "file.place", json!({"name": "disc.png", "dataBase64": vectorcraft_format::base64_encode(&disc_png()), "at": [100, 100]}));
-    let im = NodeId(r["ids"][0].as_u64().unwrap());
-    run(&mut s, "appearance.addStroke", json!({}));
-    run(&mut s, "appearance.setItem", json!({"index": 0, "weight": 20, "color": "#000000"}));
-    run(&mut s, "effect.apply", json!({"effect": "path.outlineObject", "item": 0}));
-    // EPS and the PDF-compatible .ai draw the disc's outline stroked 20 pt, 20 pt inside the
-    // image's frame on each side (EPS moves the art to its bounding box).
-    let disc_outlines = |d: &vectorcraft_doc::Document| {
-        let mut frame = None;
-        d.walk(|c| {
-            if matches!(c.kind, NodeKind::Image(_)) {
-                frame = c.geometric_bounds();
-            }
-        });
-        let f = frame.unwrap();
-        let mut n = 0;
-        d.walk(|c| {
-            let disc = |b: vectorcraft_geom::Rect| {
-                [b.x0 - f.x0 - 20.0, b.y0 - f.y0 - 20.0, f.x1 - b.x1 - 20.0, f.y1 - b.y1 - 20.0].iter().all(|d| d.abs() < 0.6)
-            };
-            let stroked = (c.appearance.stroke_width() - 20.0).abs() < 0.01;
-            n += usize::from(matches!(c.kind, NodeKind::Path { .. }) && stroked && c.geometric_bounds().is_some_and(disc));
-        });
-        n
-    };
-    let saved = |s: &mut Session, p: Value| vectorcraft_format::base64_decode(run(s, "file.saveCopy", p)["dataBase64"].as_str().unwrap()).unwrap();
-    let eps = saved(&mut s, json!({"format": "eps", "previewFormat": "none", "thumbnails": false}));
-    assert_eq!(disc_outlines(&vectorcraft_eps::import_with(&eps, false).unwrap().document), 1);
-    let ai = saved(&mut s, json!({"format": "ai"}));
-    assert_eq!(disc_outlines(&crate::cmd::fileio::page_document(&ai, 0, &Default::default()).unwrap().0), 1);
-    // An Offset Path of 30 pt after Outline Object: the stroke runs round a circle of radius 60,
-    // from 30 to 50 on the left, where along the frame it would run from 10 to 30.
-    run(&mut s, "effect.apply", json!({"effect": "path.offsetPath", "params": {"offset": 30}, "item": 0}));
-    assert_eq!((pixel(&s, 35, 100), pixel(&s, 15, 100)), ([0, 0, 0, 255], [255; 4]));
-    run(&mut s, "select.none", json!({}));
-    assert_eq!(click(&mut s, 35.0, 100.0), [im]);
-    run(&mut s, "select.none", json!({}));
-    assert!(click(&mut s, 15.0, 100.0).is_empty());
-    // Use Preview Bounds measures the stroke round the circle.
-    s.prefs.use_preview_bounds = true;
-    let b = s.transform_bounds(&[im]).unwrap();
-    assert!([b.x0 - 30.0, b.y0 - 30.0, b.x1 - 170.0, b.y1 - 170.0].iter().all(|d| d.abs() < 1.0), "{b:?}");
-}
 
 /// Click with the Selection tool at (x, y) on a 100% view: what is selected afterwards.
 fn click(s: &mut Session, x: f64, y: f64) -> Vec<NodeId> {

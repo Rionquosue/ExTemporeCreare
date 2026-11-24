@@ -386,7 +386,6 @@ pub const PREF_SPECS: &[PrefSpec] = &[
     p!("recoveryFolder", "File Handling", "Data Recovery", "Folder", text),
     p!("recoveryOffForComplex", "File Handling", "Data Recovery", "Turn off Data Recovery for complex documents", bool),
     p!("recentFilesCount", "File Handling", "Files", "Number of Recent Files to Display", int(0, 30)),
-    p!("lowResProxyEps", "File Handling", "Files", "Use Low Resolution Proxy for Linked EPS", bool),
     p!("antiAliasedBitmaps", "File Handling", "Files", "Display Bitmaps as Anti-aliased Images in Pixel Preview", bool),
     p!(
         "updateLinks",

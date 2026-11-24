@@ -293,13 +293,6 @@ impl Reader<'_> {
     }
 }
 
-/// How many objects [`read`] counts against [`MAX_NODES`] in the editing data `data`.
-#[cfg(test)]
-pub(crate) fn objects_read(data: &[u8]) -> Result<usize, String> {
-    let mut r = Reader::with_names(data, NameEncoding::default());
-    r.run()?;
-    Ok(r.nodes)
-}
 
 /// The names the gradients and patterns of the editing data `data` get in the document
 /// ([`ShownNames`]), with the names its other swatches can have reserved first: Registration, the

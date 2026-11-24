@@ -52,7 +52,7 @@ mod presets;
 mod report;
 
 pub(crate) use analysis::{carry, outlined_text, see_through_images};
-pub(crate) use apply::{expand_transparent_tile_images, flatten_document, flatten_expanded};
+pub(crate) use apply::flatten_document;
 #[cfg(test)]
 pub(crate) use apply::{with_clips_ignored, with_every_region};
 pub use commands::specs;

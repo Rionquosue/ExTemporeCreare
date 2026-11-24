@@ -1,5 +1,5 @@
 //! Clipboard flavours: what Copy offers other apps besides SVG (PNG, PDF and plain text) and what
-//! Paste takes from them (bitmaps, plain text, PDF, EPS and Windows metafiles).
+//! Paste takes from them (bitmaps, plain text and PDF).
 //!
 //! The UI owns the platform clipboard (`Services::system_clipboard` in the egui frontend): on Copy
 //! it publishes [`Session::clipboard_flavours`]; before a Paste it turns what another app put on
@@ -24,19 +24,13 @@ pub const PDF: &str = "application/pdf";
 pub const PNG: &str = "image/png";
 /// Any bitmap (PNG, BMP…), in what Paste asks the system clipboard for.
 pub const BITMAP: &str = "image/*";
-/// An EMF (or WMF) picture: what Windows apps copy as vector art (the system clipboard reads it
-/// where the platform offers it).
-pub const EMF: &str = "image/emf";
-/// An EPS (or other PostScript) picture: what drawing and typesetting apps copy as vector art
-/// beside, or instead of, a PDF (#1499).
-pub const EPS: &str = "application/postscript";
 /// A `.ai` or `.ait` file whose bytes are a PDF, copied in a file manager ([`file_flavour`]): Paste
 /// reads it as `document.open` does, from its editing data. The type is VectorCraft's own: no
 /// system clipboard carries it, and Paste asks for [`PDF`] to get it.
 pub const AI: &str = "application/x-ai";
 /// What Paste reads from other apps, best first: vector art before text, text before bitmaps
 /// (word processors offer a picture of copied text too).
-pub const PASTE_ORDER: [&str; 6] = [SVG, PDF, EPS, EMF, TEXT, BITMAP];
+pub const PASTE_ORDER: [&str; 4] = [SVG, PDF, TEXT, BITMAP];
 /// Is `text` only an address (a web page's, an image's, a file's)? A browser's Copy Image puts the
 /// image's address as text next to the picture: then the picture is what Paste takes (#597). An
 /// address alone pastes as text, and nothing is fetched.
@@ -74,9 +68,9 @@ fn only_images(html: &str) -> bool {
 pub const FILE_HEAD: usize = 4096;
 
 /// What a file copied in a file manager pastes as, if one of `mimes` (`image/*`: any bitmap):
-/// SVG, PDF, EPS, a Windows metafile or a bitmap (its own `image/…` type), told from its first
-/// [`FILE_HEAD`] bytes and its name. A `.ai` or `.ait` file is [`AI`] when its bytes are a PDF (it
-/// pastes when PDF is asked for) and EPS when they are PostScript. The file's bytes are that
+/// SVG, PDF or a bitmap (its own `image/…` type), told from its first [`FILE_HEAD`] bytes and its
+/// name. A `.ai` or `.ait` file is [`AI`] when its bytes are a PDF (it pastes when PDF is asked
+/// for). The file's bytes are that
 /// flavour's data.
 pub fn file_flavour(name: &str, head: &[u8], mimes: &[&str]) -> Option<&'static str> {
     let f = fileio::detect(name, head)?;
@@ -86,11 +80,7 @@ pub fn file_flavour(name: &str, head: &[u8], mimes: &[&str]) -> Option<&'static 
         // reads SVGZ data.
         "svgz" if unpacks_to_svg(head) => (SVG, SVG),
         "pdf" => (PDF, PDF),
-        "ps" => (EPS, EPS),
-        "eps" => (EPS, EPS),
         "ai" | "ait" if head.starts_with(b"%PDF") => (PDF, AI),
-        "ai" | "ait" if vectorcraft_pdf::is_postscript(head) => (EPS, EPS),
-        "emf" | "wmf" => (EMF, EMF),
         _ if f.raster => (BITMAP, f.mime),
         _ => return None,
     };
@@ -203,15 +193,6 @@ pub fn specs() -> Vec<CommandSpec> {
             "{dataBase64, page?: 1, password? (an encrypted PDF), editingData?: false (true: the data is a .ai or .ait file, read as document.open reads it; when document.open would use its editing data, every object of that data comes in, each layer's objects in stacking order and a hidden layer's objects hidden; else page `page`), center?: [x, y]} replace the clipboard with the objects of one PDF page, or of a .ai file's editing data (with the images, patterns and swatches they use; a .ai saved without PDF compatibility: every object of its editing data, as document.open reads it, with or without editingData), centred on `center` (default: the first artboard) → {count, warnings}; then run edit.paste",
             has_doc,
             import_pdf
-        ),
-        cmd!(
-            query "clipboard.importEps",
-            "Load EPS into Clipboard",
-            [],
-            None,
-            "{dataBase64 (EPS or other PostScript bytes), center?: [x, y]} replace the clipboard with the picture's objects as document.open reads an EPS (editable paths, type and images, with the images, patterns and swatches they use; a hidden layer's objects hidden), centred on `center` (default: the first artboard) → {count, warnings}; then run edit.paste",
-            has_doc,
-            import_eps
         ),
     ]
 }
@@ -513,22 +494,7 @@ fn import_text(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 
-fn import_eps(s: &mut Session, p: &Value) -> Result<Value> {
-    const C: &str = "clipboard.importEps";
-    let bytes = data_param(p, C)?;
-    // Programs whose header is only `%!` are read too, as they are when a `.ps` or `.eps` file opens.
-    if !bytes.starts_with(b"%!") && !vectorcraft_pdf::is_postscript(&bytes) {
-        return Err(bad(C, "the data isn't an EPS or PostScript picture"));
-    }
-    import_picture(s, p, C, "Clipboard.eps", &bytes)
-}
 
-/// Replace the clipboard with the objects of the picture `bytes`, read as the file `name` is
-/// opened (command `cmd`).
-fn import_picture(s: &mut Session, p: &Value, cmd: &str, name: &str, bytes: &[u8]) -> Result<Value> {
-    let loaded = fileio::load(name, bytes).map_err(|e| bad(cmd, e.to_string()))?;
-    import_loaded(s, p, cmd, loaded)
-}
 
 /// Replace the clipboard with every object of `loaded`, a file read as `document.open` reads it
 /// (command `cmd`). The layers are left out, and the objects of a hidden layer come in hidden.

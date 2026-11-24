@@ -1373,7 +1373,7 @@ fn a_read_waits_for_the_profile_answer() {
     let bytes = std::fs::read(tagged).unwrap();
     let name = tagged.to_str().unwrap();
     let read =
-        |ask: bool| vectorcraft_engine::cmd::fileio::read_for_open_asking(name, &bytes, Some(name.into()), &json!({}), false, false, ask).unwrap();
+        |ask: bool| vectorcraft_engine::cmd::fileio::read_for_open_asking(name, &bytes, Some(name.into()), &json!({}), false, ask).unwrap();
     assert!(read(true).question().is_none(), "the box is off");
     exec(&mut s, "edit.colorSettings", json!({"askMismatchOpen": true, "rgbPolicy": "convert"}));
     assert!(read(false).question().is_none(), "document.open never asks");
@@ -1403,7 +1403,7 @@ fn a_read_waits_for_the_profile_answer() {
     assert!(read(true).question().is_none(), "the mismatch box is off now");
     let plain_bytes = std::fs::read(plain).unwrap();
     let mut waiting =
-        vectorcraft_engine::cmd::fileio::read_for_open_asking("plain.vectorcraft", &plain_bytes, None, &json!({}), false, false, true).unwrap();
+        vectorcraft_engine::cmd::fileio::read_for_open_asking("plain.vectorcraft", &plain_bytes, None, &json!({}), false, true).unwrap();
     let q = waiting.question().unwrap();
     assert_eq!((q.issue, q.profile.as_deref(), q.default.id()), (ProfileIssue::Missing, None, "assignWorking"));
     assert!(waiting.answer(ProfileChoice::Assign(cms::DEVICE_CMYK.into())).is_err(), "not an RGB profile");
@@ -1426,7 +1426,7 @@ fn a_profile_answer_waits_for_the_question_it_answers() {
     exec(&mut s, "edit.colorSettings", json!({"askMismatchOpen": true}));
     let bytes = std::fs::read(tagged).unwrap();
     let name = tagged.to_str().unwrap();
-    let mut waiting = vectorcraft_engine::cmd::fileio::read_for_open_asking(name, &bytes, Some(name.into()), &json!({}), false, false, true).unwrap();
+    let mut waiting = vectorcraft_engine::cmd::fileio::read_for_open_asking(name, &bytes, Some(name.into()), &json!({}), false, true).unwrap();
     assert_eq!(waiting.question().unwrap().working, cms::canonical_name(cms::SRGB));
     // The working space becomes the file's profile: the question is gone.
     exec(&mut s, "edit.colorSettings", json!({"rgb": cms::WIDE_GAMUT_RGB}));

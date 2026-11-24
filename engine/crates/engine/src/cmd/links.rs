@@ -163,8 +163,6 @@ struct Group {
     ids: Vec<NodeId>,
     /// Placed documents: what they show.
     document: Option<Shown>,
-    /// An image placed from a DCS file: the plate files of their own its plates were read from.
-    plate_files: Vec<vectorcraft_doc::separated::PlateFile>,
 }
 
 /// What a placed document shows: whether the art's bounds (not the artboard or page) are shown,
@@ -186,10 +184,7 @@ fn linked(n: &Node) -> Option<(&LinkInfo, &str, Option<Shown>)> {
 pub(crate) fn linked_groups(d: &Document) -> Vec<(String, Vec<u64>)> {
     let mut out = vec![];
     for g in groups(d, None).into_iter().filter(|g| !g.ids.is_empty()) {
-        let ids = ids_json(&g.ids);
-        let plates: Vec<String> = g.plate_files.iter().filter_map(|f| super::place::dcs::plate_file_path(&g.link.path, &f.name)).collect();
-        out.push((g.link.path, ids.clone()));
-        out.extend(plates.into_iter().map(|p| (p, ids.clone())));
+        out.push((g.link.path, ids_json(&g.ids)));
     }
     out
 }
@@ -207,11 +202,7 @@ fn groups(d: &Document, ids: Option<&[NodeId]>) -> Vec<Group> {
     let wanted: Option<std::collections::HashSet<NodeId>> = ids.map(|ids| ids.iter().copied().collect());
     let mut add = |link: &LinkInfo, key: &str, document: Option<Shown>, id: Option<NodeId>| {
         let i = *index.entry((link.path.clone(), key.to_string(), document.is_some())).or_insert_with(|| {
-            let plate_files = match document {
-                None => d.images.get(key).map(ImageBlob::plate_files).unwrap_or_default(),
-                Some(_) => vec![],
-            };
-            out.push(Group { link: link.clone(), key: key.to_string(), ids: vec![], document, plate_files });
+            out.push(Group { link: link.clone(), key: key.to_string(), ids: vec![], document });
             out.len() - 1
         });
         if let (Some(id), Some(g)) = (id, out.get_mut(i)) {
@@ -426,9 +417,6 @@ fn refused(link: &LinkInfo, doc_path: Option<&str>) -> Option<craft_docpath::Ref
 fn probe(g: &Group, base: LinkBase) -> (Status, Option<Found>) {
     let Some(mut f) = locate(&g.link, base) else { return (Status::Missing, None) };
     let l = &g.link;
-    if !g.plate_files.is_empty() && super::place::dcs::plate_files_changed(&g.plate_files, &f.path) {
-        return (Status::Modified, Some(f));
-    }
     if l.size == Some(f.size) && l.modified.is_some() && l.modified == f.modified {
         return (Status::Ok, Some(f));
     }
@@ -436,7 +424,7 @@ fn probe(g: &Group, base: LinkBase) -> (Status, Option<Found>) {
     let same = match &l.hash {
         Some(h) => *h == hash_bytes(&bytes),
         // Linked before links kept a hash: the image the file decodes to.
-        None => g.document.is_none() && super::place::dcs::raster(&bytes, Some(&f.path)).is_ok_and(|img| img.key == g.key),
+        None => g.document.is_none() && fileio::raster_image(&bytes).is_ok_and(|img| img.key == g.key),
     };
     f.bytes = Some(bytes);
     (if same { Status::Ok } else { Status::Modified }, Some(f))
@@ -447,37 +435,8 @@ fn previewing(d: &Document, key: &str) -> bool {
     d.images.get(key).is_none_or(ImageBlob::is_proxy)
 }
 
-/// A linked raster image whose file is an EPS (Preferences › File Handling › Use Low Resolution
-/// Proxy for Linked EPS).
-fn linked_eps(link: &LinkInfo) -> bool {
-    fileio::format_for_name(link.name()).is_some_and(|f| f.id == "eps")
-}
 
-/// With `low_res_proxy_eps`, a linked EPS image that already shows its saved preview keeps it on
-/// open instead of reading the file again (Update Links still reads modified files).
-fn keep_eps_preview(low_res_proxy_eps: bool, g: &Group, d: &Document) -> bool {
-    low_res_proxy_eps && g.document.is_none() && linked_eps(&g.link) && previewing(d, &g.key)
-}
 
-/// Is the linked file `f` found a DCS file? Only the start of the file is read, unless a binary EPS
-/// header puts its PostScript further on; a DCS file read in full stays in `f`. A file that can't
-/// be read is not one.
-fn is_dcs_file(f: &mut Found) -> bool {
-    use super::place::dcs;
-    if let Some(b) = &f.bytes {
-        return dcs::is_dcs(b);
-    }
-    let Ok(head) = fileio::read_file_head(&f.path, dcs::HEAD_BYTES) else { return false };
-    if let Some(is) = dcs::head_is_dcs(&head, f.size) {
-        return is;
-    }
-    let Ok(b) = f.read() else { return false };
-    let is = dcs::is_dcs(&b);
-    if is {
-        f.bytes = Some(b);
-    }
-    is
-}
 
 /// Does group `g` of `d` show something other than its file: an image its preview, a placed
 /// document nothing (its file's bytes are gone)?
@@ -509,16 +468,7 @@ pub(crate) fn linked_files(d: &Document, base: LinkBase) -> Vec<LinkedFile> {
         .filter(|g| seen.insert(g.link.path.clone()))
         .map(|g| {
             let named = fileio::format_for_name(g.link.name()).or_else(|| fileio::readable_format_for_name(g.link.name()));
-            // A placed document's PostScript bytes are its file's own only when its name is one that
-            // PostScript is read from (`.eps`, `.epsf`, `.ps`, a PostScript `.ai` or `.ait`).
-            let postscript_name = matches!(fileio::extension(g.link.name()).as_str(), "eps" | "epsf" | "ps" | "ai" | "ait");
-            let postscript = |b: &ImageBlob| {
-                g.document.is_some()
-                    && postscript_name
-                    && b.mime == super::place::document::POSTSCRIPT
-                    && super::place::document::is_postscript(&b.bytes)
-            };
-            let own = |b: &&ImageBlob| !b.is_proxy() && (named.is_some_and(|f| f.mime == b.mime) || postscript(b));
+            let own = |b: &&ImageBlob| !b.is_proxy() && named.is_some_and(|f| f.mime == b.mime);
             let found = locate(&g.link, base);
             let found_path = found.as_ref().map(|f| f.path.clone());
             let bytes = found.and_then(|mut f| f.read().ok()).or_else(|| d.images.get(&g.key).filter(own).map(|b| b.bytes.to_vec()));
@@ -553,7 +503,7 @@ pub(crate) fn full_linked_images<'a>(d: &'a Document, base: LinkBase) -> (Cow<'a
             previews.insert(key);
             continue;
         };
-        let Ok(img) = super::place::dcs::raster(&bytes, Some(&f.path)) else {
+        let Ok(img) = fileio::raster_image(&bytes) else {
             previews.insert(key);
             continue;
         };
@@ -634,12 +584,12 @@ pub(crate) fn readable_and_kept(blob: ImageBlob, unread: bool, linked: bool) -> 
     Ok(blob)
 }
 
-/// The linked image file `bytes` (read from `path`, when there is one), read with its preview: a
-/// DCS file's plates, else its image ([`super::place::dcs::raster`]); an error when its pixels
-/// can't be read ([`readable`]). A PNG or TIFF that Unembed wrote from a PSD or PSB file's image
+/// The linked image file `bytes` (read from `path`, when there is one), read with its preview
+/// ([`fileio::raster_image`]); an error when its pixels can't be read ([`readable`]). A PNG or TIFF that Unembed wrote from a PSD or PSB file's image
 /// is read with the clipping path it keeps ([`fileio::raster_image`]).
 fn linked_image(bytes: &[u8], path: Option<&str>) -> Result<RasterImage> {
-    let mut img = super::place::dcs::raster(bytes, path)?;
+    let _ = path;
+    let mut img = fileio::raster_image(bytes)?;
     img.blob = readable(img.blob, kept_unread(bytes), true)?;
     Ok(img)
 }
@@ -1321,8 +1271,6 @@ fn install(d: &mut Document, ids: &[NodeId], (link, img): FileRead, force: Optio
             (im.key, im.width, im.height, im.xf, im.link) = (img.key.clone(), img.width, img.height, xf, Some(link.clone()));
         }
     }
-    // A DCS file's spot plates print on spot swatches of their inks.
-    super::place::dcs::add_spot_swatches(d, &img.blob.spot_plates());
     store_image(d, &img.key, img.blob, true);
     clips.into_iter().try_for_each(|(id, clip)| match clip {
         ClipTo::Keep => Ok(()),
@@ -1576,12 +1524,12 @@ impl Resolved {
 /// read now, into the object's bounds, which isn't a change to report. A placed document whose
 /// file's bytes are gone isn't showing a preview. Links in the art of the stored brushes count too,
 /// and that art keeps the ids they are listed by. Nothing here is an undo step.
-pub fn resolve(d: &mut Document, base: LinkBase, update: bool, low_res_proxy_eps: bool) -> Resolved {
-    editing_brush_art(d, |d| resolve_links(d, base, update, low_res_proxy_eps))
+pub fn resolve(d: &mut Document, base: LinkBase, update: bool) -> Resolved {
+    editing_brush_art(d, |d| resolve_links(d, base, update))
 }
 
 /// [`resolve`] in the art `d` stores.
-fn resolve_links(d: &mut Document, base: LinkBase, update: bool, low_res_proxy_eps: bool) -> Resolved {
+fn resolve_links(d: &mut Document, base: LinkBase, update: bool) -> Resolved {
     let mut out = Resolved::default();
     // The image (with its preview) and hash of each file read for a preview here, by path: images
     // of other keys linking to the same file share them, rather than each reading, decoding and
@@ -1598,7 +1546,6 @@ fn resolve_links(d: &mut Document, base: LinkBase, update: bool, low_res_proxy_e
             Some(_) => d.images.get(&g.key).is_some_and(ImageBlob::is_proxy),
         };
         let unread = g.link.hash.is_none() && g.link.size.is_none() && shows_preview;
-        let eps_preview = keep_eps_preview(low_res_proxy_eps, &g, d);
         match probe(&g, base) {
             (Status::Missing, _) => out.missing.extend(row),
             (Status::Modified, Some(mut f)) if update || unread => {
@@ -1634,10 +1581,7 @@ fn resolve_links(d: &mut Document, base: LinkBase, update: bool, low_res_proxy_e
             }
             (Status::Ok, Some(mut f)) => {
                 let preview = previewing(d, &g.key);
-                // A DCS file is read in full even with the proxy: its plates print and separate on
-                // their own inks.
-                let eps_preview = eps_preview && !is_dcs_file(&mut f);
-                if let Some((blob, hash)) = read_images.get(&f.path).filter(|_| preview && !eps_preview).cloned() {
+                if let Some((blob, hash)) = read_images.get(&f.path).filter(|_| preview).cloned() {
                     store_image(d, &g.key, blob, true);
                     let link = f.link_hashed(hash, &g.link);
                     if link != g.link {
@@ -1647,8 +1591,8 @@ fn resolve_links(d: &mut Document, base: LinkBase, update: bool, low_res_proxy_e
                     continue;
                 }
                 // Read when the images show the preview, or when the file's details changed.
-                let bytes = if (preview && !eps_preview) || f.bytes.is_some() { f.read().ok() } else { None };
-                if preview && !eps_preview {
+                let bytes = if preview || f.bytes.is_some() { f.read().ok() } else { None };
+                if preview {
                     let Some((b, img)) = bytes.as_deref().and_then(|b| Some((b, linked_image(b, Some(&f.path)).ok()?))) else {
                         out.missing.extend(row);
                         continue;
@@ -1984,7 +1928,7 @@ fn update_where(s: &mut Session, ids: Option<Vec<NodeId>>, path: Option<&str>) -
         }
     }
     let updated: Vec<u64> = reads.iter().flat_map(|(g, _)| ids_json(&g.ids)).collect();
-    let warnings = spot_swatch_notes(&st.doc, reads.iter().map(|(_, read)| read));
+    let warnings: Vec<String> = Vec::new();
     if !reads.is_empty() {
         s.edit("Update Links", |d, _| {
             editing_brush_art(d, |d| reads.into_iter().try_for_each(|(g, read)| install_read(d, &g.ids, read, None, Some(&g))))
@@ -1997,34 +1941,6 @@ fn update_where(s: &mut Session, ids: Option<Vec<NodeId>>, path: Option<&str>) -
     Ok(out)
 }
 
-/// The warnings for the spot plates of the DCS files in `reads` whose ink a swatch of `d` already
-/// names in another color, or as a process color ([`super::place::dcs::swatch_notes`]), or that an
-/// earlier file of `reads` adds as a spot swatch in another color, each once.
-fn spot_swatch_notes<'a>(d: &Document, reads: impl Iterator<Item = &'a Read>) -> Vec<String> {
-    let mut out: Vec<String> = vec![];
-    // The spot swatches the reads add, in the order they are installed.
-    let mut added: Vec<(String, [f32; 4])> = vec![];
-    for read in reads {
-        let Read::Image((_, img)) = read else { continue };
-        let spots = img.blob.spot_plates();
-        let mut notes = super::place::dcs::swatch_notes(d, &spots);
-        for (name, cmyk) in spots.into_iter().filter(|(name, _)| d.swatch(name).is_none()) {
-            match added.iter().find(|(n, _)| *n == name) {
-                Some((_, first)) if first.iter().zip(cmyk).any(|(a, b)| (a - b).abs() >= 0.005) => {
-                    notes.push(format!("the document's swatch `{name}` is kept: it is a different color"));
-                }
-                Some(_) => {}
-                None => added.push((name, cmyk)),
-            }
-        }
-        for note in notes {
-            if !out.contains(&note) {
-                out.push(note);
-            }
-        }
-    }
-    out
-}
 
 /// Which links `links.relink` points at the new file (the Replace choice of Relink).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -2208,10 +2124,6 @@ fn relink(s: &mut Session, p: &Value) -> Result<Value> {
         }
         // Read before it is copied: a file that can't be shown isn't copied.
         let img = if images.is_empty() { None } else { Some(linked_image(&bytes, Some(&path)).map_err(|e| bad(C, format!("{path}: {e}")))?) };
-        // A copy beside the document would point at plate files it can't find there.
-        if copy_to.is_some() && img.as_ref().is_some_and(|img| !img.blob.plate_files().is_empty()) {
-            return Err(bad(C, format!("{path}: copy takes a DCS file only when its plates are inside it; relink to it where its plate files are")));
-        }
         let mut sources = vec![];
         for ((page, bounding, page_box), ids) in documents {
             sources.push((page, ids, super::place::document::source(&path, &bytes, Some(&path), page, bounding, page_box, C)?));
@@ -2248,7 +2160,7 @@ fn relink(s: &mut Session, p: &Value) -> Result<Value> {
     let relinked: Vec<u64> = reads.iter().flat_map(|(ids, _)| ids_json(ids)).collect();
     let unpreserved = preserve.and_then(|_| unpreserved_note(&doc, &reads));
     drop(doc);
-    let mut warnings = spot_swatch_notes(&s.doc()?.doc, reads.iter().map(|(_, read)| read));
+    let mut warnings: Vec<String> = Vec::new();
     warnings.extend(unpreserved);
     if !reads.is_empty() {
         s.edit("Relink", |d, _| editing_brush_art(d, |d| reads.into_iter().try_for_each(|(ids, read)| install_read(d, &ids, read, preserve, None))))?;
@@ -2436,9 +2348,6 @@ pub(crate) fn statuses(st: &crate::DocState) -> BTreeMap<NodeId, (Status, Option
 
 /// The format of the file image `im` of `d` shows: its link's extension, else its pixels' type.
 fn format_label(d: &Document, im: &ImageObject) -> &'static str {
-    if im.link.is_some() && d.images.get(&im.key).is_some_and(ImageBlob::is_separated) {
-        return "DCS";
-    }
     im.link
         .as_ref()
         .and_then(|l| fileio::format_for_name(l.name()).or_else(|| fileio::readable_format_for_name(l.name())))
@@ -2446,16 +2355,11 @@ fn format_label(d: &Document, im: &ImageObject) -> &'static str {
         .map_or("Image", |f| f.label)
 }
 
-/// A placed document's `links.list` fields (of `d`): `format` (`VectorCraft`, the PDF or `.ai`
-/// file's format, or for an EPS or PostScript file `EPS` or `PostScript`), `document: true` and its
-/// artboard's or page's size (`pageWidth`, `pageHeight`, pt) instead of pixels. A PostScript `.ai`
-/// is told by its stored bytes or, when a save kept only its preview, by its key.
-fn document_row(d: &Document, p: &PlacedDocument) -> Value {
-    use super::place::document::{POSTSCRIPT, is_postscript_ai_key};
-    let postscript = d.images.get(&p.key).is_some_and(|b| b.mime == POSTSCRIPT) || is_postscript_ai_key(&p.key);
+/// A placed document's `links.list` fields: `format` (`VectorCraft`, or the PDF or `.ai` file's
+/// format), `document: true` and its artboard's or page's size (`pageWidth`, `pageHeight`, pt)
+/// instead of pixels.
+fn document_row(_d: &Document, p: &PlacedDocument) -> Value {
     let format = match fileio::format_for_name(p.link.name()) {
-        Some(f) if matches!(f.id, "eps" | "ps") => f.label,
-        _ if postscript => "PostScript",
         Some(f) if matches!(f.id, "pdf" | "ai" | "ait") => f.label,
         _ => "VectorCraft",
     };
@@ -2669,13 +2573,6 @@ fn embed(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(C, "select the linked images or placed documents, or pass ids"));
     }
     // A DCS file's plates print from its file.
-    let separated = |id: &NodeId| match kind(id) {
-        Some(NodeKind::Image(im)) => st.doc.images.get(&im.key).is_some_and(ImageBlob::is_separated),
-        _ => false,
-    };
-    if let Some(id) = ids.iter().find(|id| separated(id)) {
-        return Err(bad(C, format!("object {}: {}", id.0, super::place::dcs::LINK_ONLY)));
-    }
     // Placed documents become editable copies of their art: those whose file can be read.
     let (mut documents, mut missing) = (vec![], vec![]);
     for id in ids.iter().copied() {
@@ -2694,10 +2591,6 @@ fn embed(s: &mut Session, p: &Value) -> Result<Value> {
         }
         match probe(&g, LinkBase::of(st)) {
             (Status::Ok | Status::Modified, Some(mut f)) => match read_image(&mut f, &g.link, &mut image_reads) {
-                // One showing its preview is a DCS file only its file tells.
-                Ok((_, img)) if img.blob.is_separated() => {
-                    return Err(bad(C, format!("object {}: {}", g.ids.first().map_or(0, |id| id.0), super::place::dcs::LINK_ONLY)));
-                }
                 Ok(read) => {
                     done.extend(&g.ids);
                     reads.push((g.ids, read));

@@ -196,58 +196,7 @@ fn composite_fonts_no_document_defines_are_forgotten() {
     assert!(db.composite_font("CF Forgotten Undo").is_some());
 }
 
-/// SVG and legacy `.ai` write type in a composite font as its outlines, since a reader can't find
-/// the font by its name.
-#[test]
-fn exports_outline_type_in_a_composite_font() {
-    let mut s = session();
-    s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Export")]})).unwrap();
-    s.execute("text.create", &json!({"x": 10, "y": 50, "text": "Ab1", "size": 20, "font": "CF Export"})).unwrap();
-    let svg = s.execute("document.export", &json!({"format": "svg"})).unwrap();
-    let svg = String::from_utf8(vectorcraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
-    assert!(!svg.contains("CF Export") && !svg.contains("<text") && svg.contains("<path"), "{svg}");
-    let ai = vectorcraft_eps::export_legacy_ai(&s.doc().unwrap().doc, &vectorcraft_eps::LegacyAiOptions::default()).unwrap();
-    assert!(!String::from_utf8_lossy(&ai.bytes).contains("CF Export"));
-}
 
-/// A document exported without a session (whose composite fonts the font database doesn't hold),
-/// or while another document defines the name differently, still has its type in a composite font
-/// written as outlines, drawn in its own definition's parts: SVG
-/// writes the outlines the same type set in the part's font writes, PDF embeds the part's font, and
-/// legacy `.ai` doesn't name the composite font.
-#[test]
-fn exports_draw_composite_fonts_of_a_document_without_a_session() {
-    let mut s = session();
-    let mono = json!({"name": "CF Standalone", "parts": {"kanji": {"font": "JetBrains Mono"}}});
-    s.execute("type.compositeFonts.set", &json!({"fonts": [mono]})).unwrap();
-    let id =
-        s.execute("text.create", &json!({"x": 10, "y": 50, "text": "Ab1", "size": 20, "font": "CF Standalone"})).unwrap()["id"].as_u64().unwrap();
-    let doc = (*s.doc().unwrap().doc).clone();
-    // The font database forgets the font; the copy of the document still defines it.
-    s.execute("type.compositeFonts.set", &json!({"fonts": []})).unwrap();
-    let db = vectorcraft_text::FontDb::global();
-    assert!(db.composite_font("CF Standalone").is_none());
-    let paths = |svg: &str| svg.split(" d=\"").skip(1).filter_map(|p| p.split('"').next().map(str::to_string)).collect::<Vec<_>>();
-    let svg = vectorcraft_svg::export(&doc, &vectorcraft_svg::ExportOptions::default());
-    assert!(!svg.contains("CF Standalone") && !svg.contains("<text"), "{svg}");
-    s.execute("text.setStyle", &json!({"ids": [id], "font": "JetBrains Mono"})).unwrap();
-    let plain = vectorcraft_svg::export(&s.doc().unwrap().doc, &vectorcraft_svg::ExportOptions { outline_text: true, ..Default::default() });
-    assert!(!paths(&svg).is_empty());
-    assert_eq!(paths(&svg), paths(&plain));
-    let pdf = vectorcraft_pdf::export(&doc, &vectorcraft_pdf::PdfOptions::uncompressed()).unwrap();
-    assert!(String::from_utf8_lossy(&pdf).contains("JetBrainsMono"));
-    let ai = vectorcraft_eps::export_legacy_ai(&doc, &vectorcraft_eps::LegacyAiOptions::default()).unwrap();
-    assert!(!String::from_utf8_lossy(&ai.bytes).contains("CF Standalone"));
-    // The fonts lent for the exports are forgotten again.
-    assert!(db.composite_font("CF Standalone").is_none());
-    // With the front document defining the name differently, the exported document's own
-    // definition draws its type, and the front document's is put back.
-    let inter = json!({"name": "CF Standalone", "parts": {"kanji": {"font": "Inter"}}});
-    s.execute("type.compositeFonts.set", &json!({"fonts": [inter]})).unwrap();
-    let svg = vectorcraft_svg::export(&doc, &vectorcraft_svg::ExportOptions::default());
-    assert_eq!(paths(&svg), paths(&plain));
-    assert_eq!(db.composite_font("CF Standalone").unwrap().parts.kanji.font, "Inter");
-}
 
 /// Replace Font and Replace Missing Fonts set type in a composite font by the font's own name,
 /// not its Kanji part's, and keep the type's style.
@@ -440,7 +389,7 @@ fn opening_measures_inline_graphics_of_composite_type_in_its_own_definition() {
     let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
     let mut s = session();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Inline")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("inline.vectorcraft", &bytes, None, &json!({}), false, false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("inline.vectorcraft", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     assert!((text(&s, id).cached_bounds.unwrap().width() - width).abs() < 1e-6);
 }
@@ -454,7 +403,7 @@ fn opening_measures_type_read_in_a_composite_font_closed_since() {
     let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Gone")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("gone.vectorcraft", &bytes, None, &json!({}), false, false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("gone.vectorcraft", &bytes, None, &json!({}), false).unwrap();
     assert!(s.close_document(1));
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     let actual = text(&s, id);
@@ -470,7 +419,7 @@ fn an_opened_file_measures_its_type_in_its_own_composite_fonts() {
     let (bytes, id, width) = full_roman_file("CF Opened");
     let mut s = session();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Opened")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("opened.vectorcraft", &bytes, None, &json!({}), false, false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("opened.vectorcraft", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     let actual = text(&s, id);
     assert!((actual.cached_bounds.unwrap().width() - width).abs() < 1e-6);
@@ -540,7 +489,7 @@ fn an_opened_file_draws_its_dimension_labels_in_its_own_composite_fonts() {
     let (bytes, id, center) = dimension_file("CF Dimension");
     let mut s = session();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Dimension")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("dimension.vectorcraft", &bytes, None, &json!({}), false, false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("dimension.vectorcraft", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     let opened = label(&s.doc().unwrap().doc, id);
     assert!(label_in_cmyk(&opened));
@@ -568,7 +517,7 @@ fn an_opened_file_flows_its_threads_in_its_own_composite_fonts() {
     // A new front document without the font: the font database no longer holds it.
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     assert!(vectorcraft_text::FontDb::global().composite_font("CF Threaded").is_none());
-    let file = crate::cmd::fileio::read_for_open("threaded.vectorcraft", &bytes, None, &json!({}), false, false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("threaded.vectorcraft", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     assert_eq!(text(&s, a).plain_text(), first);
 }

@@ -28,22 +28,20 @@ pub fn unused_option_notes(cmd: &str, f: &Format, p: &Value) -> Vec<String> {
     let Some(given) = p.as_object() else { return Vec::new() };
     let listed = |k: &str| super::FORMATS.iter().filter(|f| f.write).flat_map(|f| f.options).any(|o| o.name == k);
     let written = super::save::written_as(cmd, f, p);
-    let legacy = super::save::legacy_file(cmd, f, p);
     given
         .iter()
-        .filter(|(k, v)| !v.is_null() && !EXPORT_PARAMS.contains(&k.as_str()) && listed(k) && !export_reads(f, legacy, k))
+        .filter(|(k, v)| !v.is_null() && !EXPORT_PARAMS.contains(&k.as_str()) && listed(k) && !export_reads(f, k))
         .map(|(k, _)| super::save::unused_option_note(k, &written))
         .collect()
 }
 
-/// Does the file an export writes in `f` read option `key`, `legacy` when it is a legacy `.ai`
-/// file? As a save's file does ([`super::save::file_reads`]), except that an export writes one
+/// Does the file an export writes in `f` read option `key`? As a save's file does ([`super::save::file_reads`]), except that an export writes one
 /// file: only a save writes each artboard to a file of its own, and a native file's `range` names
 /// those files.
-pub(super) fn export_reads(f: &Format, legacy: bool, key: &str) -> bool {
+pub(super) fn export_reads(f: &Format, key: &str) -> bool {
     match (f.id, key) {
-        ("vectorcraft" | "template" | "ai", "separateArtboards") | ("vectorcraft" | "template", "range") => false,
-        _ => super::save::file_reads(f, legacy, key),
+        ("vectorcraft" | "template", "separateArtboards" | "range") => false,
+        _ => super::save::file_reads(f, key),
     }
 }
 
@@ -110,15 +108,10 @@ pub(super) fn export(s: &mut Session, p: &Value) -> Result<Value> {
     write_encoded(path, &default_name(doc, f.extensions[0]), doc, &enc, json!({ "format": f.id, "warnings": enc.notes() }))
 }
 
-/// The document an export of `st` in format `f` writes ([`export_source`]): a `.ai` or `.ait`
-/// file names the view's active artboard ([`DocState::active_artboard`]) as its active one, as a
-/// save does. The open document is unchanged.
-pub fn export_doc<'a>(st: &'a DocState, f: &Format, p: &Value) -> Result<Cow<'a, Document>> {
-    let mut doc = export_source(st, p)?;
-    if let Some(id) = super::save::moved_active_artboard(st, &doc, f) {
-        doc.to_mut().opened_artboard = Some(id);
-    }
-    Ok(doc)
+/// The document an export of `st` in format `f` writes ([`export_source`]). The open document is
+/// unchanged.
+pub fn export_doc<'a>(st: &'a DocState, _f: &Format, p: &Value) -> Result<Cow<'a, Document>> {
+    export_source(st, p)
 }
 
 /// The document an export of `st` writes: the whole document, or with `selectedOnly` just the

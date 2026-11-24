@@ -384,28 +384,9 @@ pub const FORMATS: &[Format] = &[
         options: svg::OPTIONS,
     },
     Format { id: "pdf", label: "PDF", extensions: &["pdf"], mime: "application/pdf", read: true, write: true, raster: false, options: pdf::OPTIONS },
-    Format {
-        id: "ai",
-        label: "PDF-compatible .ai",
-        extensions: &["ai"],
-        mime: "application/pdf",
-        read: true,
-        // Save As writes it; exports write the same file.
-        write: true,
-        raster: false,
-        options: native::AI_OPTIONS,
-    },
-    Format {
-        id: "ait",
-        label: "PDF-compatible .ait template",
-        extensions: &["ait"],
-        mime: "application/pdf",
-        read: true,
-        // Save as Template writes it, with the .ai file's options; exports don't.
-        write: false,
-        raster: false,
-        options: native::AI_OPTIONS,
-    },
+    // Illustrator files are read, not written.
+    reader("ai", "PDF-compatible .ai", &["ai"], "application/pdf", false),
+    reader("ait", "PDF-compatible .ait template", &["ait"], "application/pdf", false),
     Format {
         id: "png",
         label: "PNG",

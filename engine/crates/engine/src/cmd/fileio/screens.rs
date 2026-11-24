@@ -265,10 +265,10 @@ impl Row {
         format!("{}|{}|{}|{}", self.format.id, self.size.label(), self.suffix, self.options)
     }
 
-    /// Formats that hold a whole document to edit (native, Illustrator, EPS): written from a
-    /// document of the item alone, one artboard, rather than with an `artboard` option.
+    /// Formats that hold a whole document to edit (native): written from a document of the item
+    /// alone, one artboard, rather than with an `artboard` option.
     fn whole_document(&self) -> bool {
-        matches!(self.format.id, "vectorcraft" | "ai" | "eps")
+        matches!(self.format.id, "vectorcraft")
     }
 
     /// The encoder options for `region`, `artboard` of the document written.
@@ -556,9 +556,8 @@ pub(crate) fn unused_option_notes(asked: &Value, p: &Value) -> Vec<String> {
     };
     // The keys of `given` that `f`, writing with `options` (the format's settings and the row's
     // own), doesn't read.
-    let unread = |f: &Format, given: &Map<String, Value>, options: &Value| -> Vec<String> {
-        let legacy = super::save::legacy_file(C, f, options);
-        given.iter().filter(|(k, v)| !v.is_null() && !own(k) && listed(k) && !export_reads(f, legacy, k)).map(|(k, _)| k.clone()).collect()
+    let unread = |f: &Format, given: &Map<String, Value>, _options: &Value| -> Vec<String> {
+        given.iter().filter(|(k, v)| !v.is_null() && !own(k) && listed(k) && !export_reads(f, k)).map(|(k, _)| k.clone()).collect()
     };
     let note = |key: String, f: &Format, options: &Value| super::save::unused_option_note(&key, &super::save::written_as(C, f, options));
     let settings = p.get("settings").and_then(Value::as_object);
@@ -1400,11 +1399,7 @@ fn encode_and_write(export: ScreenExport, writer: &mut dyn FnMut(&str, &[u8]) ->
             } else if r.whole_document() && item.artboard.is_some() {
                 let b = item.artboard.unwrap_or(0);
                 let d = board_docs.entry((Arc::as_ptr(&item.doc) as usize, b)).or_insert_with(|| Arc::new(board_document(item))).clone();
-                let mut options = r.options_for(item.region, None)?;
-                // An EPS page is the artboard, not its art's bounds: an artboard without art still writes.
-                if r.format.id == "eps" {
-                    options["useArtboards"] = json!(true);
-                }
+                let options = r.options_for(item.region, None)?;
                 write(&d, r.format.id, &options)?
             } else {
                 let doc = if r.format.id == "pdf" { pdf_doc.unwrap_or(&item.doc) } else { &item.doc };

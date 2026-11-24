@@ -963,7 +963,7 @@ impl Session {
         let (mut doc, _, warnings) = super::fileio::native_file(&bytes).map_err(|e| e.to_string())?;
         // Linked images in its symbols, patterns and brushes are read from their files, as placing
         // a document reads them.
-        super::links::resolve(&mut doc, super::links::LinkBase::file(Some(&file)), false, false);
+        super::links::resolve(&mut doc, super::links::LinkBase::file(Some(&file)), false);
         Ok(Some(ReadProfile { doc, file, warnings }))
     }
 }
