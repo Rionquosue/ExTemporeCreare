@@ -56,3 +56,17 @@ Stored keys, paths, constants and identifiers.
 - Link statuses: `found`, `changed` (SHA-256 differs), `uri` (only a content URI locates it), `missing`.
 - Find-missing limits: 6 folders deep, 20 000 files.
 - Temporary board copies on Android: `<cacheDir>/engine-boards/`.
+
+## Dial tools
+
+- Tool names (dial names and settings keys): `Brush`, `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move` (`Crop`, `Export` to come).
+- Engine tools used: Brush `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only).
+- Tool settings file: SharedPreferences `tool-settings` (`ToolSettingsStore.FILE`), one JSON string per tool name.
+- Brush settings JSON: `{"mode": "PAINTBRUSH"|"BLOB", "size": pt 0.1–1000 (5), "hardness": % 0–100 (100), "brushLibrary", "brushName"}`.
+- Pen settings JSON: `{"size": pt 0.1–1000 (1), "hardness": % (100)}`.
+- Eraser settings JSON: `{"size": pt 0.1–1000 (10)}`.
+- Fill settings JSON: `{"tolerance": pt ≥ 0 (0)}` → engine `gapDetection` (tolerance > 0) and `gapLength`.
+- Shapes settings JSON: `{"kind": "RECTANGLE"|"ELLIPSE"|"POLYGON"|"STAR"|"LINE", "sides": 3–1000 (6), "points": 3–1000 (5)}`.
+- Engine tool options set: Blob Brush and Eraser `size`; Fill Area `gapDetection`, `gapLength`; Polygon `sides`; Star `points`.
+- Hardness: feather radius = size / 2 × (1 − hardness / 100) pt, applied as effect `stylize.feather` to the objects a Brush stroke or a new Pen path added.
+- Undo group labels: `Brush`, `Pen`, `Move`.

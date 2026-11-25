@@ -32,11 +32,22 @@ EXTEMPORECREARE
 |-- components/
 |   |-- readme.md
 |   |-- engine/
-|       |-- EngineBoards.kt
-|       |-- EngineBridge.kt
-|       |-- EngineFiles.kt
-|       |-- EnginePresets.kt
-|       |-- UriReplace.kt
+|   |   |-- EngineBoards.kt
+|   |   |-- EngineBridge.kt
+|   |   |-- EngineFiles.kt
+|   |   |-- EnginePresets.kt
+|   |   |-- UriReplace.kt
+|   |-- tools/
+|       |-- CanvasTool.kt
+|       |-- EngineAnswer.kt
+|       |-- EngineTool.kt
+|       |-- StrokeFinish.kt
+|       |-- StrokeGesture.kt
+|       |-- ToolPointer.kt
+|       |-- ToolResult.kt
+|       |-- ToolSettings.kt
+|       |-- ToolSettingsStore.kt
+|       |-- ToolUndoGroup.kt
 |-- dependencies/
 |   |-- readme.md
 |-- docs/
@@ -97,6 +108,25 @@ EXTEMPORECREARE
 |   |-- readme.md
 |-- tools/
     |-- readme.md
+    |-- Brush/
+    |   |-- BrushTool.kt
+    |   |-- BrushToolSettings.kt
+    |-- Eraser/
+    |   |-- EraserTool.kt
+    |   |-- EraserToolSettings.kt
+    |-- Fill/
+    |   |-- FillTool.kt
+    |   |-- FillToolSettings.kt
+    |-- Move/
+    |   |-- MoveTool.kt
+    |-- Pen/
+    |   |-- PenTool.kt
+    |   |-- PenToolSettings.kt
+    |-- Selection/
+    |   |-- SelectionTool.kt
+    |-- Shapes/
+    |   |-- ShapesTool.kt
+    |   |-- ShapesToolSettings.kt
     |-- Libraries/
         |-- presets/
             |-- brushes/

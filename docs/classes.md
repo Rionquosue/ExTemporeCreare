@@ -38,3 +38,26 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`.
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.
 - `EnginePresets.kt`: `EnginePresets.install(context)`: copies the bundled presets (assets `presets/`) into `filesDir/presets` when the app version changed and sets the engine's presets folder.
+
+## components/tools (shared by the dial tools)
+
+- `CanvasTool.kt`: `CanvasTool`, a rotary dial tool: `name`, `activate`, `pointer`, `deactivate`.
+- `EngineTool.kt`: `EngineTool<S>`, a dial tool built on an engine tool, with saved settings: `settings`, `isActive`, `engineToolId`, `pushSettings`, `update`, `setOption`.
+- `EngineAnswer.kt`: `EngineAnswer`, one bridge answer parsed: `isOk`, `okObject`, `error`.
+- `ToolPointer.kt`: `ToolPointer` (`Kind`: `DOWN`, `DRAG`, `UP`, `MOVE`), a pointer event in document points: `toJson`.
+- `ToolResult.kt`: `ToolResult` (`requests`, `created`, `error`): `NONE`, `failed`, `failedOrNone`, `fromPointer`.
+- `ToolSettings.kt`: `ToolSettings` (`toJson`); `NoToolSettings`.
+- `ToolSettingsStore.kt`: `ToolSettingsStore(context)`: `load`, `save` per tool name.
+- `ToolUndoGroup.kt`: `ToolUndoGroup`: `begin`, `end`, `isOpen` around `edit.undoGroup.begin` / `end`.
+- `StrokeFinish.kt`: `StrokeFinish`: `featherRadius`, `apply` (stroke weight and Feather on created objects).
+- `StrokeGesture.kt`: `StrokeGesture(label)`: a stroke tool's gesture as one undo step, finished on release: `pointer`, `close`.
+
+## tools (dial tools)
+
+- `Brush/BrushTool.kt`: `BrushTool` (engine `paintbrush` / `blobBrush`); `Brush/BrushToolSettings.kt`: `BrushMode` (`PAINTBRUSH`, `BLOB`), `BrushToolSettings`.
+- `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
+- `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
+- `Fill/FillTool.kt`: `FillTool` (engine `fillArea`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
+- `Selection/SelectionTool.kt`: `SelectionTool` (engine `selection`).
+- `Shapes/ShapesTool.kt`: `ShapesTool` (engine `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`); `Shapes/ShapesToolSettings.kt`: `ShapeKind`, `ShapesToolSettings`.
+- `Move/MoveTool.kt`: `MoveTool` (`object.move` per drag step in one undo group; engine `selection` chosen for its frame).
