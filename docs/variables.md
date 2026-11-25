@@ -38,3 +38,9 @@ Stored keys, paths, constants and identifiers.
 - Render pixels: premultiplied RGBA8, rows top to bottom (Android `ARGB_8888`).
 - Temporary files for open and save: `<cacheDir>/engine-files/` (`open-*.tmp`, `save-<uid>-<n>.tmp`).
 - Save modes the bridge takes: `save`, `saveAs`, `copy`, `template`.
+
+## Android build
+
+- `applicationId` / `namespace`: `com.extemporecreare.app`; `minSdk` 26, `targetSdk` 35, `compileSdk` 35; ABIs `arm64-v8a`, `x86_64`.
+- Source sets of `app/`: Kotlin from `interface/`, `components/`, `tools/`; assets from `tools/Libraries` (so `presets/`); native libraries from `app/build/engine/jniLibs` (task `buildEngine`, cargo-ndk).
+- Presets on the device: `filesDir/presets/`, with `.version` (the app's last update time) marking the copy.

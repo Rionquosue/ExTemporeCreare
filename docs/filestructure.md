@@ -10,6 +10,8 @@ All tool code lives in tools/
 
 All dependencies live in dependencies/
 
+The Android app module lives in app/. Its Gradle build compiles the Kotlin in interface/, components/ and tools/, packages tools/Libraries/presets as assets, and packages the engine bridge library built from engine/.
+
 ## Existing file structure
 
 The following is the existing file structure as a tree:
@@ -19,11 +21,20 @@ EXTEMPORECREARE
 |-- .gitignore
 |-- LICENSE
 |-- README.md
+|-- build.gradle.kts
+|-- gradle.properties
+|-- settings.gradle.kts
+|-- app/
+|   |-- build.gradle.kts
+|   |-- src/
+|       |-- main/
+|           |-- AndroidManifest.xml
 |-- components/
 |   |-- readme.md
 |   |-- engine/
 |       |-- EngineBridge.kt
 |       |-- EngineFiles.kt
+|       |-- EnginePresets.kt
 |-- dependencies/
 |   |-- readme.md
 |-- docs/
