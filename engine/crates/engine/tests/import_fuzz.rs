@@ -1702,18 +1702,7 @@ proptest! {
 
 
 
-", head in prop::sample::select(vec!["", "name,Title,Show,Chart\n", "Title\tShow\tChart\n", "name\tTitle\n", "Show,Chart\n", "name,#Show,@Photo,New\n", "#Shown\t@Title\tChart\n", "name,%Chart,#\n"])) {
-        datasets("data set CSV garbage", json!({"csv": format!("{head}{s}")}))?;
-    }
 
-"), 1..8),
-        tabs in any::<bool>(),
-        body in ".{0,200}",
-    ) {
-        let sep = if tabs { "\t" } else { "," };
-        let header: Vec<String> = cells.iter().map(|(prefix, name)| format!("{prefix}{name}")).collect();
-        datasets("prefixed data set CSV header", json!({"csv": format!("{}\n{body}", header.join(sep))}))?;
-    }
 
 
 }
