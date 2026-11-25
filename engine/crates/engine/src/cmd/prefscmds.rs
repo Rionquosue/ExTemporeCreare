@@ -433,7 +433,6 @@ pub const PREF_SPECS: &[PrefSpec] = &[
     p!("editOriginalSystemDefaults", "File Handling", "Files", "Use System Defaults for Edit Original", bool),
     p!("appendConverted", "File Handling", "Files", "Mark Older Files as [Converted] When Opened", bool),
     // Native saves (`document.save {compress}`)
-    p!("useCompression", "File Handling", "Files", "Use Compression", bool),
     // The W/H link of the Transform panel, the Properties panel and the Control bar
     p!("constrainProportions", "General", "Transform Panel", "Constrain Width and Height Proportions", bool),
     p!("singleCornerRadius", "General", "Transform Panel", "Single Corner Radius", bool),
@@ -590,7 +589,7 @@ fn writable_folder(path: &str) -> std::result::Result<(), String> {
     let refused = |e: std::io::Error| format!("Data Recovery can't keep copies in {path}: {e}");
     std::fs::read_dir(dir).map_err(refused)?;
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |t| t.as_nanos());
-    let check = dir.join(format!(".vectorcraft-write-check-{}-{nanos}", std::process::id()));
+    let check = dir.join(format!(".etc-write-check-{}-{nanos}", std::process::id()));
     std::fs::create_dir(&check).map_err(refused)?;
     std::fs::remove_dir(&check).map_err(refused)
 }

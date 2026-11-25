@@ -124,7 +124,7 @@ fn export_and_expand_write_the_adjusted_colours() {
     let id = red_rect(&mut s);
     s.execute("effect.apply", &json!({"effect": "adjust.levels", "params": {"outputWhite": 128, "channel": "red"}})).unwrap();
     let svg = s.execute("document.export", &json!({"format": "svg"})).unwrap();
-    let svg = String::from_utf8(vectorcraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let svg = String::from_utf8(etcfile::base64::decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     assert!(svg.contains("#800000") && !svg.contains("#ff0000"), "{svg}");
     // Expand Appearance makes it permanent.
     s.execute("effect.expandAppearance", &json!({})).unwrap();
@@ -191,9 +191,9 @@ fn adjustments_survive_the_native_file() {
     let mut s = session();
     red_rect(&mut s);
     s.execute("effect.apply", &json!({"effect": "adjust.curves", "params": {"points": "0,0 64,32 255,255", "channel": "green"}})).unwrap();
-    let saved = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
+    let saved = s.execute("document.export", &json!({"format": "etc"})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "a.vectorcraft", "dataBase64": saved})).unwrap();
+    o.execute("document.open", &json!({"name": "a.etc", "dataBase64": saved})).unwrap();
     let mut found = None;
     o.doc().unwrap().doc.walk(|n| {
         if let Some(e) = n.appearance.effects.first() {

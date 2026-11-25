@@ -1009,7 +1009,7 @@ pub fn encode_all(doc: &Document, format: &str, p: &Value) -> Result<Encoded> {
     let format = super::writable(C, Some(format), None)?.id;
     // Formats with editing data prepare their drawn output separately from their original
     // document. Other formats only need the placed files' art.
-    if !matches!(format, "vectorcraft" | "template" | "pdf" | "svg" | "svgz") {
+    if !matches!(format, "etc" | "pdf" | "svg" | "svgz") {
         let (full, warnings) = crate::cmd::place::document::full_documents(doc);
         if !warnings.is_empty() {
             let mut enc = encode_all_of(&full, format, p)?;
@@ -1075,13 +1075,7 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
         return encode_files(&art, f, &q);
     }
     let bytes = match f.id {
-        "vectorcraft" => super::native::encode(C, f, doc, p)?,
-        // A native file flagged so opening it starts a new untitled document.
-        "template" => {
-            let mut d = doc.clone();
-            d.template = true;
-            super::native::encode(C, f, &d, p)?
-        }
+        "etc" => super::native::encode(C, f, doc, p)?,
         "txt" => super::text::encode(doc, p)?,
         "svg" | "svgz" => return super::svg::encode(doc, p, f.id == "svgz").map_err(|e| bad(C, e)),
         "pdf" => {

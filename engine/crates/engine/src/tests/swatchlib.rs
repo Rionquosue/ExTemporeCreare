@@ -324,7 +324,7 @@ fn another_documents_swatches_load_as_a_library() {
     let mut s = session();
     run(&mut s, "swatch.new", json!({"name": "Signal", "color": "#ff3300"}));
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Poster.vectorcraft"}));
+    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Poster.etc"}));
     assert_eq!(r["name"], "Poster");
     let (_, lib) = cmd::swatchlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert!(lib.swatch("Signal").is_some() && lib.swatch("[None]").is_none());
@@ -357,7 +357,7 @@ fn another_documents_pattern_swatches_of_one_pattern_add_as_separate_swatches() 
     })
     .unwrap();
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Dots.vectorcraft"}))["library"].clone();
+    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Dots.etc"}))["library"].clone();
     run(&mut s, "file.new", json!({"width": 100, "height": 100}));
     let r = run(&mut s, "swatch.library.add", json!({"library": id, "names": ["Tiles", "More tiles", "Turned tiles"]}));
     assert_eq!(r["added"], json!(["Tiles", "More tiles", "Turned tiles"]), "{r}");
@@ -392,7 +392,7 @@ fn a_pattern_swatch_named_after_its_pattern_reuses_one_added_in_the_same_call() 
     })
     .unwrap();
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Dots.vectorcraft"}))["library"].clone();
+    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Dots.etc"}))["library"].clone();
     run(&mut s, "file.new", json!({"width": 100, "height": 100}));
     let r = run(&mut s, "swatch.library.add", json!({"library": id, "names": ["Tiles", "Dots"]}));
     assert_eq!((&r["added"], &r["existing"]), (&json!(["Tiles"]), &json!(["Tiles"])), "{r}");
@@ -426,7 +426,7 @@ fn a_pattern_painted_with_another_pattern_is_not_matched_by_the_inner_patterns_n
     })
     .unwrap();
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Dots.vectorcraft"}))["library"].clone();
+    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Dots.etc"}))["library"].clone();
     run(&mut s, "file.new", json!({"width": 100, "height": 100}));
     s.edit("Pattern", |d, _| {
         make(d, 5.0);
@@ -468,7 +468,7 @@ fn a_color_a_pattern_brings_is_not_added_twice_in_one_call() {
     })
     .unwrap();
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Squares.vectorcraft"}))["library"].clone();
+    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Squares.etc"}))["library"].clone();
     run(&mut s, "file.new", json!({"width": 100, "height": 100}));
     let r = run(&mut s, "swatch.library.add", json!({"library": id, "names": ["Tiles", "Inks"]}));
     let d = doc(&s);
@@ -501,7 +501,7 @@ fn a_library_pattern_keeps_its_global_color_when_the_document_has_that_name_in_a
     })
     .unwrap();
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Squares.vectorcraft"}))["library"].clone();
+    let id = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Squares.etc"}))["library"].clone();
     run(&mut s, "file.new", json!({"width": 100, "height": 100}));
     run(&mut s, "swatch.new", json!({"name": "Ink", "color": "#ff0000", "global": true}));
     let r = run(&mut s, "swatch.library.add", json!({"library": id, "names": ["Tiles", "Ink"]}));
@@ -520,7 +520,7 @@ fn a_library_pattern_keeps_its_global_color_when_the_document_has_that_name_in_a
 fn swatch_exchange_files_load_add_and_list_as_user_libraries() {
     let bytes = vectorcraft_testkit::ase::sample();
     let mut s = session();
-    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Brand.ase"}));
+    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "Brand.ase"}));
     assert_eq!((r["library"].as_str(), r["name"].as_str(), r["count"].as_u64()), (Some("loaded/Brand.ase"), Some("Brand"), Some(4)));
     let g = run(&mut s, "swatch.library.get", json!({"library": r["library"]}));
     let swatches = g["swatches"].as_array().unwrap();
@@ -534,7 +534,7 @@ fn swatch_exchange_files_load_add_and_list_as_user_libraries() {
     assert!(d.swatch("Ink").is_some_and(|w| w.spot && w.global));
     assert_eq!(d.swatch_groups.iter().find(|g| g.name == "Neutrals").map(|g| g.swatches.len()), Some(2));
     // A damaged file is an error from the swatch exchange reader, not from the document loader.
-    let cut = vectorcraft_format::base64_encode(&bytes[..bytes.len() - 1]);
+    let cut = etcfile::base64::encode(&bytes[..bytes.len() - 1]);
     let e = s.execute("swatch.library.load", &json!({"dataBase64": cut, "name": "Cut.ase"})).unwrap_err().to_string();
     assert!(e.contains("cut short"), "{e}");
     // `.ase` files in the user library folder are User Defined libraries.
@@ -564,7 +564,7 @@ fn swatch_exchange_files_save_with_models_kinds_and_groups() {
     assert_eq!(r["format"], "ase");
     assert!(r.get("data").is_none(), "a binary file comes back as dataBase64");
     let b64 = r["dataBase64"].as_str().unwrap().to_string();
-    assert!(vectorcraft_format::base64_decode(&b64).unwrap().starts_with(b"ASEF"));
+    assert!(etcfile::base64::decode(&b64).unwrap().starts_with(b"ASEF"));
     let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Brand Kit.ase"}));
     let (_, lib) = cmd::swatchlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert_eq!(lib.name, "Brand Kit", "named after the file");
@@ -664,8 +664,8 @@ fn loaded_libraries_copy_into_the_user_folder_without_replacing_files() {
     // A document's swatches and a library loaded from data are written as .vcswatches.
     run(&mut s, "swatch.new", json!({"name": "Signal", "color": "#ff3300"}));
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let poster = elsewhere.join("Poster.vectorcraft");
-    std::fs::write(&poster, vectorcraft_format::base64_decode(&b64).unwrap()).unwrap();
+    let poster = elsewhere.join("Poster.etc");
+    std::fs::write(&poster, etcfile::base64::decode(&b64).unwrap()).unwrap();
     let loaded = run(&mut s, "swatch.library.load", json!({ "path": poster.to_string_lossy() }))["library"].clone();
     let r = run(&mut s, "swatch.library.copyToUser", json!({ "library": loaded }));
     assert_eq!((r["library"].as_str(), r["copied"].as_bool()), (Some("user/Poster.vcswatches"), Some(true)));
@@ -674,7 +674,7 @@ fn loaded_libraries_copy_into_the_user_folder_without_replacing_files() {
     let loaded = run(&mut s, "swatch.library.load", json!({ "path": poster.to_string_lossy() }))["library"].clone();
     let r = run(&mut s, "swatch.library.copyToUser", json!({ "library": loaded }));
     assert_eq!((r["library"].as_str(), r["copied"].as_bool()), (Some("user/Poster.vcswatches"), Some(false)));
-    let kit = vectorcraft_format::base64_encode(&sample());
+    let kit = etcfile::base64::encode(&sample());
     let loaded = run(&mut s, "swatch.library.load", json!({"dataBase64": kit, "name": "Kit.ase"}))["library"].clone();
     assert_eq!(run(&mut s, "swatch.library.copyToUser", json!({ "library": loaded }))["library"], "user/Kit.vcswatches");
     // A library without a name is copied as Library.
@@ -811,7 +811,7 @@ fn a_library_group_stays_one_group_when_a_swatch_has_its_name() {
         Block::Color("Frost", b"RGB ", &[0.9, 0.95, 1.0], 2),
         Block::GroupEnd,
     ]);
-    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Blues.ase"}));
+    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "Blues.ase"}));
     run(&mut s, "swatch.library.add", json!({"library": r["library"]}));
     let groups: Vec<(&str, Vec<&str>)> =
         doc(&s).swatch_groups.iter().map(|g| (g.name.as_str(), g.swatches.iter().map(|w| w.name.as_str()).collect())).collect();
@@ -822,7 +822,7 @@ fn a_library_group_stays_one_group_when_a_swatch_has_its_name() {
 #[test]
 fn text_libraries_sent_as_bytes_load_when_they_are_not_valid_utf8() {
     let mut s = session();
-    let latin1 = vectorcraft_format::base64_encode(b"GIMP Palette\n237 28 36 Rouge fonc\xe9\n");
+    let latin1 = etcfile::base64::encode(b"GIMP Palette\n237 28 36 Rouge fonc\xe9\n");
     let r = run(&mut s, "swatch.library.load", json!({"dataBase64": latin1, "name": "Rouge.gpl"}));
     assert_eq!(r["count"], 1);
 }
@@ -1152,7 +1152,7 @@ fn a_pattern_library_adds_only_the_picked_pattern_and_it_undoes_and_saves() {
     assert!(doc(&s).pattern("Checkerboard").is_none() && doc(&s).swatch("Checkerboard").is_none());
     run(&mut s, "edit.redo", json!({}));
     assert!(has(doc(&s)));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc(&s), false)).unwrap();
+    let back = etcfile::load(&etcfile::save(doc(&s), false)).unwrap();
     assert_eq!(back.patterns, doc(&s).patterns);
     assert!(has(&back));
     assert_eq!(back.swatch("Checkerboard").map(|w| &w.paint), doc(&s).swatch("Checkerboard").map(|w| &w.paint));
@@ -1186,7 +1186,7 @@ fn a_grit_texture_adds_once_undoes_and_saves() {
     assert_eq!(counts(doc(&s)), empty);
     assert!(doc(&s).pattern("Stipple").is_none() && doc(&s).swatch("Stipple").is_none());
     run(&mut s, "edit.redo", json!({}));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc(&s), false)).unwrap();
+    let back = etcfile::load(&etcfile::save(doc(&s), false)).unwrap();
     assert_eq!(back.pattern("Stipple"), Some(&def));
     assert_eq!(back.swatch("Stipple").map(|w| &w.paint), doc(&s).swatch("Stipple").map(|w| &w.paint));
 }
@@ -1228,7 +1228,7 @@ fn an_optical_effect_adds_once_fills_undoes_and_saves() {
     assert!(doc(&s).pattern("Warped Checks").is_none() && doc(&s).swatch("Warped Checks").is_none() && !filled(doc(&s)));
     run(&mut s, "edit.redo", json!({}));
     assert!(filled(doc(&s)));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc(&s), false)).unwrap();
+    let back = etcfile::load(&etcfile::save(doc(&s), false)).unwrap();
     assert_eq!(back.pattern("Warped Checks"), Some(&def));
     assert_eq!(back.swatch("Warped Checks").map(|w| &w.paint), doc(&s).swatch("Warped Checks").map(|w| &w.paint));
     assert!(filled(&back));

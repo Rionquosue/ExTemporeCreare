@@ -330,8 +330,8 @@ fn block_round_trips_through_the_native_format() {
     let id = area(&mut s, 300.0, 400.0, "Fit me\nand me too");
     s.execute("type.dynamicText", &json!({"wordGap": 120, "lineGap": 3})).unwrap();
     let doc = s.doc().unwrap().doc.clone();
-    let bytes = vectorcraft_format::save(&doc, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(&doc, false);
+    let back = etcfile::load(&bytes).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert_eq!((t.dynamic_text, t.area.word_gap, t.area.line_gap), (true, 120.0, 3.0));
     assert_eq!(t.runs, text(&s, id).runs, "the fitted sizes are saved in the characters");
@@ -345,7 +345,7 @@ fn block_round_trips_through_the_native_format() {
     assert!(plain.get("wordGap").is_none() && plain.get("lineGap").is_none(), "{plain}");
     // Turned off, it opens off with the sizes it had.
     s.execute("type.dynamicText", &json!({"on": false})).unwrap();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert!(!t.dynamic_text);
     assert_eq!(t.runs, text(&s, id).runs);

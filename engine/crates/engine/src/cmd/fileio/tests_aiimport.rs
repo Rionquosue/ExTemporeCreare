@@ -13,7 +13,7 @@ use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf_with};
 use super::*;
 
 fn open(s: &mut Session, name: &str, bytes: &[u8], params: Value) -> Result<Value> {
-    let mut p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)});
+    let mut p = json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)});
     if let (Some(p), Some(extra)) = (p.as_object_mut(), params.as_object()) {
         p.extend(extra.clone());
     }
@@ -160,6 +160,45 @@ fn an_ai_unread_group_keeps_its_layers_and_live_neighbor() {
     assert!(result["warnings"].to_string().contains("`ZZ` (1)"), "{result}");
 }
 
+#[test]
+fn a_differing_object_keeps_the_layers_with_a_note() {
+    let square = |cmyk: &str, x: f64| format!("{cmyk} k\n{}f\n", ai::rect(x, 40.0, x + 16.0, 56.0));
+    let front = square("0 0 0 1", 90.0) + &square("0 0 1 0", 160.0);
+    let data = ai::editing_data(200.0, 100.0, &(ai::layer("Back", &square("0 0 1 0", 20.0)) + &ai::layer("Front", &front)));
+    let page = "0 0 1 0 k 20 40 16 16 re f 1 0 0 0 k 90 40 16 16 re f 0 0 1 0 k 160 40 16 16 re f";
+    let mut session = Session::new();
+    let result = open(&mut session, "differs.ai", &ai::ai(&compressed(data.as_bytes()), page), json!({})).unwrap();
+    let doc = &session.doc().unwrap().doc;
+    assert_eq!(names(&doc.layers), ["Back", "Front"], "{result}");
+    let front = doc.layers[1].children().unwrap();
+    assert!(matches!(front[0].kind, NodeKind::Group { .. }) && matches!(front[1].kind, NodeKind::Path { .. }), "{result}");
+    let replacement = &front[0].children().unwrap()[0];
+    assert!(
+        matches!(replacement.appearance.items.first(), Some(vectorcraft_doc::AppearanceItem::Fill(fill))
+        if fill.paint == vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0))),
+        "{result}"
+    );
+    assert!(
+        result["warnings"].to_string().contains("objects that drew differently from the file's own page came in as its art: Front (1)"),
+        "{result}"
+    );
+    // An export to the file's own path is refused unless it is given `acknowledgeLoss`.
+    let d = std::env::temp_dir().join(format!("vc-aidiffers-{}", std::process::id()));
+    std::fs::create_dir_all(&d).unwrap();
+    let path = d.join("differs.ai");
+    let file = ai::ai(&compressed(data.as_bytes()), page);
+    std::fs::write(&path, &file).unwrap();
+    let path = path.to_string_lossy().to_string();
+    let mut s = Session::new();
+    s.execute("document.open", &json!({"path": path})).unwrap();
+    let e = s.execute("document.export", &json!({"path": path})).unwrap_err().to_string();
+    assert!(e.contains("left things out") && e.contains("objects that drew differently"), "{e}");
+    assert_eq!(std::fs::read(&path).unwrap(), file);
+    s.execute("document.export", &json!({"path": path, "acknowledgeLoss": true})).unwrap();
+    assert_ne!(std::fs::read(&path).unwrap(), file);
+    std::fs::remove_dir_all(d).ok();
+}
+
 
 /// A palette of three swatches and a color group `Inks` holding a fourth.
 const INKS_PALETTE: &str = "%AI5_BeginPalette\n0 0 Pb\n0 0 0 0 1 1 1 Xa\n(White)\nPc\n0.04 0.3 0 0 81.96 21 -8 (Pink ink) 0 2 Xx\n(Pink ink)\nPc\n\
@@ -250,7 +289,7 @@ fn a_swatch_library_in_a_ai_file_without_layers_loads_its_palette() {
     let data = ai::editing_data(200.0, 100.0, &format!("{gradient}{palette}"));
     let file = ai::ai(&compressed(data.as_bytes()), "1 0 0 rg 10 50 30 40 re f");
     let mut s = Session::new();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&file), "name": "inks.ai"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&file), "name": "inks.ai"});
     let r = s.execute("swatch.library.load", &p).unwrap();
     assert_eq!(r["count"], json!(5), "{r}");
     let lib = s.execute("swatch.library.get", &json!({"library": r["library"]})).unwrap();
@@ -278,7 +317,7 @@ fn textures_library(square: &str) -> Vec<u8> {
 
 /// `swatch.library.load` of `file` named `name` → its library id.
 fn load_library(s: &mut Session, name: &str, file: &[u8]) -> Value {
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(file), "name": name});
+    let p = json!({"dataBase64": etcfile::base64::encode(file), "name": name});
     s.execute("swatch.library.load", &p).unwrap()["library"].clone()
 }
 
@@ -356,10 +395,10 @@ fn swatch_library_documents_without_swatches_or_damaged_are_refused() {
     })
     .unwrap();
     let b64 = s.execute("document.serialize", &json!({})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-    let e = s.execute("swatch.library.load", &json!({"dataBase64": b64, "name": "Bare.vectorcraft"})).unwrap_err().to_string();
-    assert!(e.contains("`Bare.vectorcraft` has no swatches of its own"), "{e}");
+    let e = s.execute("swatch.library.load", &json!({"dataBase64": b64, "name": "Bare.etc"})).unwrap_err().to_string();
+    assert!(e.contains("`Bare.etc` has no swatches of its own"), "{e}");
     let data = ai::editing_data(200.0, 100.0, &ai::layer("Art", &format!("0 0 0 1 k\n{}f\n", ai::rect(10.0, 50.0, 40.0, 90.0))));
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&ai::ai(&compressed(data.as_bytes()), "1 0 0 rg 10 50 30 40 re f")), "name": "art.ai"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&ai::ai(&compressed(data.as_bytes()), "1 0 0 rg 10 50 30 40 re f")), "name": "art.ai"});
     let e = s.execute("swatch.library.load", &p).unwrap_err().to_string();
     assert!(e.contains("`art.ai` has no swatches of its own"), "{e}");
     let damaged = json!({"data": "%PDF-1.4\n%damaged\n", "name": "damaged.ai"});
@@ -397,7 +436,7 @@ fn a_graphic_style_library_in_a_ai_file_without_layers_loads_its_styles() {
     let data = ai::editing_data(200.0, 100.0, &styles);
     let file = ai::ai(&compressed(data.as_bytes()), "1 0 0 rg 10 50 30 40 re f");
     let mut s = Session::new();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&file), "name": "fills.ai"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&file), "name": "fills.ai"});
     let r = s.execute("graphicStyle.loadLibrary", &p).unwrap();
     assert_eq!((&r["name"], &r["count"]), (&json!("fills"), &json!(4)), "{r}");
     let library = r["library"].clone();
@@ -447,7 +486,7 @@ fn graphic_styles_in_a_ai_library_that_paint_with_a_named_gradient_load_with_it(
     let data = ai::editing_data(200.0, 100.0, &format!("{gradient}{palette}{styles}"));
     let file = ai::ai(&compressed(data.as_bytes()), "1 0 0 rg 10 50 30 40 re f");
     let mut s = Session::new();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&file), "name": "skies.ai"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&file), "name": "skies.ai"});
     let r = s.execute("graphicStyle.loadLibrary", &p).unwrap();
     let library = r["library"].clone();
     let lib = s.execute("graphicStyle.library", &json!({"library": library})).unwrap();
@@ -502,7 +541,7 @@ fn a_symbol_library_in_a_ai_file_without_layers_loads_its_symbols() {
     let data = ai::editing_data(200.0, 100.0, &symbols);
     let file = ai::ai(&compressed(data.as_bytes()), "1 0 0 rg 10 50 30 40 re f");
     let mut s = Session::new();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&file), "name": "shapes.ai"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&file), "name": "shapes.ai"});
     let r = s.execute("symbol.loadLibrary", &p).unwrap();
     assert_eq!((&r["name"], &r["count"]), (&json!("shapes"), &json!(3)), "{r}");
     let lib = s.execute("symbol.library", &json!({"library": r["library"]})).unwrap();
@@ -563,7 +602,7 @@ fn a_zero_width_stroke_in_the_editing_data_draws_a_hairline() {
         let r = open(&mut s, "zero.ai", &file, json!({})).unwrap();
         assert_eq!(names(&s.doc().unwrap().doc.layers), ["Art"], "{r}");
         let v = s.execute("document.export", &json!({"format": "png", "background": "transparent"})).unwrap();
-        let png = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+        let png = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
         craft_image_codecs::decode(&png)
             .map(|__cimg| {
                 let (__w, __h) = __cimg.dimensions();
@@ -596,19 +635,13 @@ const SQUARE_AND_TYPE: &str = "0 g 10 10 40 40 re f BT /F1 12 Tf 100 50 Td (Hi) 
 /// `file` loaded with `clipboard.importPdf` (`editingData` as given) and pasted → the command's
 /// reply and the objects the paste selected, in stacking order.
 fn paste(s: &mut Session, file: &[u8], editing_data: bool) -> (Value, Vec<Node>) {
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(file), "editingData": editing_data});
+    let p = json!({"dataBase64": etcfile::base64::encode(file), "editingData": editing_data});
     let r = s.execute("clipboard.importPdf", &p).unwrap();
     s.execute("edit.paste", &json!({})).unwrap();
     let st = s.doc().unwrap();
     (r, st.selection.in_paint_order(&st.doc).into_iter().filter_map(|id| st.doc.node(id).cloned()).collect())
 }
 
-/// Is any of `nodes` (or an object inside one) type?
-fn has_type(nodes: &[Node]) -> bool {
-    let mut found = false;
-    nodes.iter().for_each(|n| n.walk(&mut |c| found |= matches!(c.kind, NodeKind::Text(_))));
-    found
-}
 
 
 /// A PDF saved with the editing data opens from it, as a `.ai` does (#868).
@@ -641,6 +674,30 @@ fn a_pdfs_art_past_the_page_opens_whole_from_its_editing_data() {
     let r = open(&mut s, "past.pdf", &file, json!({"editingData": false})).unwrap();
     assert_eq!(r["warnings"], json!([vectorcraft_pdf::PAST_PAGE_NOTE]), "{r}");
     assert!(s.doc().unwrap().doc.art_bounds().is_some_and(|b| b.x1 < 200.5));
+}
+
+/// A `.ai` or a PDF whose editing data can't be decompressed opens from its PDF part with a note
+/// that its layers weren't read, and an export to its own path is refused unless it is given
+/// `acknowledgeLoss`.
+#[test]
+fn a_file_whose_editing_data_cant_be_decompressed_is_not_written_over_unasked() {
+    let d = std::env::temp_dir().join(format!("vc-aiundecoded-{}", std::process::id()));
+    std::fs::create_dir_all(&d).unwrap();
+    let damaged = b"%AI12_CompressedDataxx";
+    for (name, file) in [("art.ai", ai::ai(damaged, ai::page_pdf())), ("art.pdf", ai::pdf(damaged, ai::page_pdf()))] {
+        let path = d.join(name);
+        std::fs::write(&path, &file).unwrap();
+        let path = path.to_string_lossy().to_string();
+        let mut s = Session::new();
+        let r = s.execute("document.open", &json!({"path": path})).unwrap();
+        assert!(r["warnings"].to_string().contains("layers weren't read from its editing data (its zlib compression is damaged)"), "{name}: {r}");
+        let e = s.execute("document.export", &json!({"path": path})).unwrap_err().to_string();
+        assert!(e.contains("left things out") && e.contains("layers weren't read"), "{name}: {e}");
+        assert_eq!(std::fs::read(&path).unwrap(), file, "{name}");
+        s.execute("document.export", &json!({"path": path, "acknowledgeLoss": true})).unwrap();
+        assert_ne!(std::fs::read(&path).unwrap(), file, "{name}");
+    }
+    std::fs::remove_dir_all(d).ok();
 }
 
 
@@ -782,7 +839,7 @@ fn a_copied_file_whose_pdf_part_cant_be_read_pastes_from_its_editing_data() {
         let pasted: Vec<String> = pasted.iter().map(|n| n.name.clone().unwrap_or_default()).collect();
         assert_eq!(pasted, ["Pair", "Ring", "Window", "Shaded", "", "Sub", ""], "{name}");
         assert!(r["warnings"][0].as_str().unwrap().starts_with("the PDF part couldn't be read (cannot read PDF: "), "{name}: {r}");
-        let p = json!({"dataBase64": vectorcraft_format::base64_encode(&file)});
+        let p = json!({"dataBase64": etcfile::base64::encode(&file)});
         let e = s.execute("clipboard.importPdf", &p).unwrap_err().to_string();
         assert!(e.contains("decode parameters"), "{name}: {e}");
     }
@@ -795,7 +852,7 @@ fn a_file_whose_pdf_part_cant_be_read_places_from_its_editing_data() {
     let mut s = Session::new();
     s.execute("file.new", &json!({})).unwrap();
     for (name, file) in refused_files(&compressed(&ai::sample_data()), ai::page_pdf()) {
-        let data = vectorcraft_format::base64_encode(&file);
+        let data = etcfile::base64::encode(&file);
         let r = s.execute("file.place", &json!({"name": name, "dataBase64": data, "link": false})).unwrap();
         assert_eq!((r["width"].as_f64(), r["height"].as_f64()), (Some(200.0), Some(100.0)), "{name}: {r}");
         assert!(r["warnings"][0].as_str().unwrap().starts_with("the PDF part couldn't be read ("), "{name}: {r}");
@@ -809,7 +866,7 @@ fn a_file_whose_pdf_part_cant_be_read_places_from_its_editing_data() {
         }
     }
     let [(name, file), _] = refused_files(&typed_data(), "");
-    let data = vectorcraft_format::base64_encode(&file);
+    let data = etcfile::base64::encode(&file);
     let r = s.execute("file.place", &json!({"name": name, "dataBase64": data, "link": false, "textAs": "outlines", "crop": "bounding"})).unwrap();
     assert!(r["warnings"][0].as_str().unwrap().starts_with("the PDF part couldn't be read ("), "{r}");
     let placed = s.doc().unwrap().doc.layers[0].children().unwrap().last().unwrap().clone();
@@ -824,7 +881,7 @@ fn a_file_whose_pdf_part_cant_be_read_places_from_its_editing_data() {
     let art = format!("0 g\n{}f\n{}f\n", ai::rect(10.0, 10.0, 50.0, 50.0), ai::rect(10.0, -140.0, 70.0, -100.0));
     let paged = ai::editing_data(100.0, 100.0, &(boards.to_string() + &ai::layer("Art", &art)));
     let [(name, file), _] = refused_files(&compressed(paged.as_bytes()), ai::page_pdf());
-    let data = vectorcraft_format::base64_encode(&file);
+    let data = etcfile::base64::encode(&file);
     let size = |s: &mut Session, page: u64| {
         let r = s.execute("file.place.info", &json!({"name": name, "dataBase64": data, "page": page, "crop": "bounding"}));
         r.map(|r| (r["width"].as_f64(), r["height"].as_f64())).map_err(|e| e.to_string())
@@ -855,6 +912,17 @@ fn a_copied_ai_file_whose_editing_data_cant_be_read_pastes_its_page() {
     // Editing data that reads and draws as the page does: its objects, not the page's.
     let (r, _) = paste(&mut s, &ai::ai(&compressed(&ai::sample_data()), ai::page_pdf()), true);
     assert_eq!(r["count"], 7, "{r}");
+}
+
+#[test]
+fn what_the_reader_doesnt_read_opens_as_before_with_a_warning() {
+    let symbols = ai::editing_data(200.0, 100.0, &ai::layer("Art", "/SymbolInstance :\n(Dot) /SymbolRef ,\n;\n"));
+    let mut s = Session::new();
+    let r = open(&mut s, "symbols.eps", &ai::eps(symbols.as_bytes(), ai::page_ps()), json!({})).unwrap();
+    assert!(r["warnings"].to_string().contains("layers weren't read") && r["warnings"].to_string().contains("symbols"), "{r}");
+    assert_eq!(names(&s.doc().unwrap().doc.layers), ["Layer 1"]);
+    let r = open(&mut s, "symbols.ai", &ai::ai(&compressed(symbols.as_bytes()), ai::page_pdf()), json!({})).unwrap();
+    assert!(r["warnings"].to_string().contains("symbols") && r["warnings"].to_string().contains("PDF part"), "{r}");
 }
 
 
@@ -920,7 +988,7 @@ fn an_ai_file_saved_without_its_pdf_part_opens_with_pages_naming_every_page() {
 /// and none.
 fn placeholder_files() -> [String; 3] {
     [compressed(&ai::sample_data()), b"%AI12_CompressedData not zlib".to_vec(), vec![]]
-        .map(|private| vectorcraft_format::base64_encode(&ai::ai(&private, PLACEHOLDER)))
+        .map(|private| etcfile::base64::encode(&ai::ai(&private, PLACEHOLDER)))
 }
 
 #[test]
@@ -949,7 +1017,7 @@ fn an_ai_file_saved_without_its_pdf_part_places_in_the_encoding_picked() {
     let at = data.windows(4).position(|w| w == b"Pair").unwrap();
     // 빨강 in code page 949.
     data.splice(at..at + 4, br"\273\241\260\255".iter().copied());
-    let file = vectorcraft_format::base64_encode(&ai::ai(&compressed(&data), PLACEHOLDER));
+    let file = etcfile::base64::encode(&ai::ai(&compressed(&data), PLACEHOLDER));
     let mut s = Session::new();
     s.execute("file.new", &json!({})).unwrap();
     let r = s.execute("file.place", &json!({"name": "art.ai", "dataBase64": file, "link": false, "legacyNameEncoding": "windows-949"})).unwrap();
@@ -976,7 +1044,7 @@ fn an_ai_file_saved_without_its_pdf_part_places_from_its_editing_data() {
     // The place takes the art of both layers that show.
     let square = |x: f64| format!("0 g\n{}f\n", ai::rect(x, 10.0, x + 40.0, 50.0));
     let two = ai::editing_data(200.0, 100.0, &[ai::layer("Back", &square(10.0)), ai::layer("Front", &square(110.0))].concat());
-    let two = vectorcraft_format::base64_encode(&ai::ai(&compressed(two.as_bytes()), PLACEHOLDER));
+    let two = etcfile::base64::encode(&ai::ai(&compressed(two.as_bytes()), PLACEHOLDER));
     let r = s.execute("file.place.info", &json!({"name": "two.ai", "dataBase64": two, "crop": "bounding"})).unwrap();
     assert_eq!((r["width"].as_f64(), r["height"].as_f64()), (Some(140.0), Some(40.0)), "{r}");
     // The file has two 100-point artboards and one placeholder page. The second artboard lies 50
@@ -987,7 +1055,7 @@ fn an_ai_file_saved_without_its_pdf_part_places_from_its_editing_data() {
         %_; (ArtboardArray) ,\n%_; /NotRecorded ,\n%_;\n";
     let art = format!("0 g\n{}f\n{}f\n", ai::rect(10.0, 10.0, 50.0, 50.0), ai::rect(10.0, -140.0, 70.0, -100.0));
     let paged = ai::editing_data(100.0, 100.0, &(boards.to_string() + &ai::layer("Art", &art)));
-    let paged = vectorcraft_format::base64_encode(&ai::ai(&compressed(paged.as_bytes()), PLACEHOLDER));
+    let paged = etcfile::base64::encode(&ai::ai(&compressed(paged.as_bytes()), PLACEHOLDER));
     let mut size = |page: u64| {
         let r = s.execute("file.place.info", &json!({"name": "boards.ai", "dataBase64": paged, "page": page, "crop": "bounding"}));
         r.map(|r| (r["width"].as_f64(), r["height"].as_f64())).map_err(|e| e.to_string())
@@ -1120,7 +1188,7 @@ fn an_ai_file_whose_pdf_part_is_only_text_opens_from_it_when_its_editing_data_ca
     assert!(e.contains("placeholder"), "{e}");
     // Placed, it is read as its page too.
     let r = s.execute("file.new", &json!({})).and_then(|_| {
-        let data = vectorcraft_format::base64_encode(&ai::ai_with(unreadable, TEXT_ART, "/ArtBox [0 0 200 100]"));
+        let data = etcfile::base64::encode(&ai::ai_with(unreadable, TEXT_ART, "/ArtBox [0 0 200 100]"));
         s.execute("file.place", &json!({"name": "text.ai", "dataBase64": data, "link": false}))
     });
     assert!(r.is_ok(), "{r:?}");
@@ -1361,6 +1429,26 @@ fn outlined_threaded_type_of_the_editing_data_shows_the_text_of_every_frame() {
     assert!(doc.text_threads.is_empty(), "outlined frames are in no thread: {:?}", doc.text_threads);
 }
 
+#[test]
+fn editing_data_false_opens_only_what_the_page_prints() {
+    let mut s = Session::new();
+    for (name, file) in [("art.eps", ai::eps(&ai::sample_data(), ai::page_ps())), ("art.ai", ai::ai(&compressed(&ai::sample_data()), ai::page_pdf()))]
+    {
+        let r = open(&mut s, name, &file, json!({"editingData": false})).unwrap();
+        let layers = &s.doc().unwrap().doc.layers;
+        assert_eq!(layers.len(), 1, "{name}: {r}");
+        assert_ne!(names(layers), ["Art"], "{name}: the page's layer");
+    }
+    let e = open(&mut s, "art.eps", &ai::eps(&ai::sample_data(), ai::page_ps()), json!({"editingData": "no"})).unwrap_err().to_string();
+    assert!(e.contains("editingData must be true, false or \"always\""), "{e}");
+    // `always`: the editing data, as by default (whether it draws as the page does is the reader's).
+    open(&mut s, "art.ai", &ai::ai(&compressed(&ai::sample_data()), ai::page_pdf()), json!({"editingData": "always"})).unwrap();
+    assert_eq!(names(&s.doc().unwrap().doc.layers), ["Art", "Hidden"]);
+    // A file that is only its editing data can't open without it.
+    let e = open(&mut s, "art.ai", &ai::ai(&compressed(&ai::sample_data()), PLACEHOLDER), json!({"editingData": false})).unwrap_err().to_string();
+    assert!(e.contains("placeholder"), "{e}");
+}
+
 
 /// A CMYK image opens with the same ink amounts from a `.ai` file's editing data as from its PDF
 /// part.
@@ -1390,6 +1478,23 @@ fn a_cmyk_image_keeps_its_inks_from_the_editing_data_as_from_the_pdf_part() {
     let r = open(&mut s, "cmyk.ai", &file, json!({"editingData": false})).unwrap();
     assert_ne!(names(&s.doc().unwrap().doc.layers), ["Art"], "{r}");
     assert_eq!(opened(&s), [Some(inks.to_vec())], "from the PDF part");
+}
+
+#[test]
+fn fit_to_artwork_bounds_leaves_out_the_hidden_art_and_guides_the_editing_data_has() {
+    // A shown square; a hidden one and a long guide far from it, which the page doesn't draw.
+    let art =
+        format!("0 g\n{}f\n1 Xw\n{}f\n0 Xw\n-500 20 m\n700 20 L\n(N) *\n", ai::rect(10.0, 10.0, 50.0, 50.0), ai::rect(150.0, 60.0, 190.0, 95.0));
+    let data = ai::editing_data(200.0, 100.0, &ai::layer("Art", &art));
+    let mut s = Session::new();
+    let r = open(&mut s, "fit.eps", &ai::eps(data.as_bytes(), "0 setgray 10 10 40 40 rectfill\n"), json!({})).unwrap();
+    let layer = &s.doc().unwrap().doc.layers[0];
+    let kids = layer.children().unwrap();
+    assert_eq!(kids.len(), 3, "{r}");
+    assert!(!kids[1].visible && matches!(kids[2].kind, NodeKind::Path { guide: true, .. }));
+    s.execute("artboard.fitToArt", &json!({})).unwrap();
+    // The square, 50 to 90 down the 100-point page.
+    assert_eq!(s.doc().unwrap().doc.artboards[0].rect, vectorcraft_geom::Rect::new(10.0, 50.0, 50.0, 90.0));
 }
 
 
@@ -1734,7 +1839,7 @@ fn an_ai_file_with_a_user_unit_opens_at_its_size_in_points() {
         let art = doc.art_bounds().unwrap();
         assert!(near(art, [200.0, 500.0, 600.0, 800.0]), "{params}: {art:?}");
     }
-    let v = s.execute("document.pdfInfo", &json!({"dataBase64": vectorcraft_format::base64_encode(&file)})).unwrap();
+    let v = s.execute("document.pdfInfo", &json!({"dataBase64": etcfile::base64::encode(&file)})).unwrap();
     let page = &v["pageInfo"][0];
     assert_eq!((page["width"].as_f64(), page["height"].as_f64()), (Some(2000.0), Some(1000.0)), "{v}");
     assert_eq!(page["boxes"]["media"], json!([0.0, 0.0, 2000.0, 1000.0]), "{v}");
@@ -1802,5 +1907,29 @@ fn open_rows(s: &Session) -> (Vec<String>, Vec<String>) {
         }
     });
     (rows, open)
+}
+
+/// #1475: a `.ai` another app wrote keeps no open rows VectorCraft reads, so it opens with every
+/// row closed, its top-level layers as its groups; a `.ai` VectorCraft wrote, and other formats,
+/// open as before (with their top-level layers open unless the file says otherwise).
+#[test]
+fn an_illustrator_ai_file_opens_with_its_layers_closed() {
+    let mut s = Session::new();
+    for file in [ai::ai(&compressed(&ai::sample_data()), ai::page_pdf()), ai::eps(&ai::sample_data(), ai::page_ps())] {
+        let r = open(&mut s, "art.ai", &file, json!({})).unwrap();
+        assert_eq!((&r["format"], &r["restored"]), (&json!("ai"), &json!(false)), "{r}");
+        let (rows, open) = open_rows(&s);
+        assert!(rows.contains(&"Art".into()) && rows.contains(&"Pair".into()) && rows.contains(&"Sub".into()), "{rows:?}");
+        assert_eq!(open, Vec::<String>::new(), "{r}");
+    }
+    // The same art as an EPS: its top-level layers open.
+    open(&mut s, "art.eps", &ai::eps(&ai::sample_data(), ai::page_ps()), json!({})).unwrap();
+    assert_eq!(open_rows(&s).1, ["Art", "Hidden"]);
+    // Saved as .ai by VectorCraft, it opens with the rows it was saved with.
+    let saved = s.execute("document.save", &json!({"format": "ai"})).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let r = open(&mut s, "again.ai", &bytes, json!({})).unwrap();
+    assert_eq!(r["restored"], json!(true), "{r}");
+    assert_eq!(open_rows(&s).1, ["Art", "Hidden"]);
 }
 

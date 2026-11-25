@@ -21,9 +21,6 @@ craft-proof = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632b
 # Decides who draws the window frame (desktop vs. app) so the suite shares one native titlebar per
 # desktop. The `egui` feature adds `craft_window::decorate`. (craft-libs#217.)
 craft-window = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0", features = ["egui"] }
-# The `.vectorcraft` envelope: its members, version, embedded images and the data after the JSON.
-craft-vectorcraft-format = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-gzip = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
 # craft-update: app-specific pretend versions apply to startup and manual checks.
 # Native Affinity documents (craft-libs#914).
 craft-affinity = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
@@ -60,7 +57,6 @@ vectorcraft-three-d = { path = "crates/three-d" }
 vectorcraft-render = { path = "crates/render" }
 vectorcraft-svg = { path = "crates/svg" }
 vectorcraft-pdf = { path = "crates/pdf" }
-vectorcraft-format = { path = "crates/format" }
 etcfile = { path = "crates/etcfile" }
 vectorcraft-tools = { path = "crates/tools" }
 # Without its default `bundled-fonts`, as vectorcraft-text: each crate that wants the fonts asks for

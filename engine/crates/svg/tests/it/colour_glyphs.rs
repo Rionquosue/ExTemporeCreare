@@ -5,7 +5,7 @@ use skrifa::raw::TableProvider;
 use vectorcraft_doc::{CharStyle, Document, Node, NodeKind, TextObject};
 use vectorcraft_geom::Point;
 use vectorcraft_svg::{ExportOptions, export_full};
-use vectorcraft_testkit::format::base64_decode;
+use vectorcraft_testkit::etcfile::base64::decode;
 use vectorcraft_text::test_fonts::{COLOUR_CHAR, colour_bitmap_family, colour_bitmap_font};
 
 /// [`COLOUR_CHAR`] and an outline glyph in the `CBDT` test font, 24 pt.
@@ -33,7 +33,7 @@ fn outlined_text_writes_bitmap_glyphs_as_images() {
 fn embedded_fonts_leave_bitmap_glyphs_to_the_viewer() {
     let out = export_full(&doc(), &ExportOptions { embed_fonts: true, ..Default::default() }, None);
     let data = out.svg.split("base64,").nth(1).unwrap().split(')').next().unwrap();
-    let font = base64_decode(data).unwrap();
+    let font = decode(data).unwrap();
     let cmap = skrifa::FontRef::new(&font).unwrap().cmap().unwrap();
     assert!(cmap.map_codepoint('F').is_some());
     assert!(cmap.map_codepoint(COLOUR_CHAR).is_none(), "its subset would hold no bitmap");

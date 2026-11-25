@@ -134,14 +134,14 @@ fn a_file_with_add_around_out_of_range_opens_with_it_in_range() {
     shadowed(&mut s);
     let mut d = (*s.doc().unwrap().doc).clone();
     d.raster_effects.add_around = 1e300;
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(&d)).unwrap();
+    let back = etcfile::load(&etcfile::save_file(&d)).unwrap();
     assert_eq!(back.raster_effects.add_around, MAX_ADD_AROUND);
     let xfs = image_transforms(&back);
     assert!(!xfs.is_empty() && xfs.iter().flatten().all(|c| c.is_finite()), "{xfs:?}");
     // 1,000 pt on every side at 72 ppi.
     assert_eq!(effect_image(&back).width() - effect_image(&s.doc().unwrap().doc).width(), 2000);
     d.raster_effects.add_around = -5.0;
-    assert_eq!(vectorcraft_format::load(&vectorcraft_format::save_file(&d)).unwrap().raster_effects.add_around, 0.0);
+    assert_eq!(etcfile::load(&etcfile::save_file(&d)).unwrap().raster_effects.add_around, 0.0);
 }
 
 #[test]
@@ -293,7 +293,7 @@ fn the_rasterize_effect_keeps_the_path_and_expands_to_the_image_object_rasterize
         let n = d.node(r).unwrap();
         assert_eq!((n.path_data().cloned(), n.appearance.effects[0].id.as_str()), (before, "rasterize"), "the path stays as it was");
         // Saved and read back.
-        let back = vectorcraft_format::load(&vectorcraft_format::save_file(&d)).unwrap();
+        let back = etcfile::load(&etcfile::save_file(&d)).unwrap();
         assert_eq!(back.node(r).unwrap().appearance.effects, n.appearance.effects);
         // Object › Rasterize of the same rectangle.
         let mut o = session();
@@ -525,13 +525,13 @@ fn raster_settings_round_trip_and_old_files_load() {
     let mut d = Document::new(10.0, 10.0);
     d.raster_effects =
         RasterEffectsSettings { color_model: RasterColorModel::Bitmap, background: Background::White, add_around: 12.0, ..Default::default() };
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(&d)).unwrap();
+    let back = etcfile::load(&etcfile::save_file(&d)).unwrap();
     assert_eq!(back.raster_effects, d.raster_effects);
     // Saved before the settings existed: only the resolution.
     let old = Document::new(10.0, 10.0);
-    let bytes = vectorcraft_format::save_file(&old);
+    let bytes = etcfile::save_file(&old);
     assert!(!String::from_utf8_lossy(&bytes).contains("raster_effects\""), "default settings aren't written");
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!((back.raster_effects_ppi, back.raster_effects), (72.0, RasterEffectsSettings::default()));
 }
 
@@ -539,8 +539,8 @@ fn raster_settings_round_trip_and_old_files_load() {
 fn reopen_with_ppi(s: &mut Session, ppi: f64) {
     let mut d = (*s.doc().unwrap().doc).clone();
     d.raster_effects_ppi = ppi;
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d));
-    s.execute("document.open", &json!({"name": "ppi.vectorcraft", "dataBase64": data})).unwrap();
+    let data = etcfile::base64::encode(&etcfile::save_file(&d));
+    s.execute("document.open", &json!({"name": "ppi.etc", "dataBase64": data})).unwrap();
 }
 
 #[test]
@@ -592,7 +592,7 @@ fn rasterize_to_cmyk_makes_a_cmyk_image() {
     assert!(opaque.extras().mask.is_none(), "opaque: no mask");
     // A CMYK TIFF export keeps the image's inks.
     let tiff = s.execute("document.export", &json!({"format": "tiff", "colorModel": "cmyk", "ppi": 72})).unwrap();
-    let tiff = vectorcraft_format::base64_decode(tiff["dataBase64"].as_str().unwrap()).unwrap();
+    let tiff = etcfile::base64::decode(tiff["dataBase64"].as_str().unwrap()).unwrap();
     let inks = vectorcraft_doc::ImageBlob::new("image/tiff", tiff).cmyk().expect("a CMYK TIFF");
     let at = ((30 * inks.width + 30) * 4) as usize;
     assert!(near(&inks.data[at..at + 4]), "exported: {:?}", &inks.data[at..at + 4]);

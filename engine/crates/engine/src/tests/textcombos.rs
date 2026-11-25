@@ -296,7 +296,7 @@ fn every_feature_saves_and_reopens() {
     assert!(!l.overflow && l.fit_scale < 1.0, "{}", l.fit_scale);
     assert_eq!(l.inlines.len(), 1);
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     let NodeKind::Text(t2) = &back.node(id).unwrap().kind else { panic!("not text") };
     let mut t2 = (**t2).clone();
     // Resolved art bounds and layout caches aren't saved: resolve them as opening does.

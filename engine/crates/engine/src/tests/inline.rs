@@ -259,7 +259,7 @@ fn inline_graphics_in_symbol_art_follow_their_symbol() {
     assert!((art_text(&s, "Holder").cached_bounds.unwrap().width() - w1).abs() < 1e-6);
     // Opening a saved copy measures it the same way.
     let doc = (*s.doc().unwrap().doc).clone();
-    let mut back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let mut back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     back.title = "copy".into();
     let mut s2 = Session::new();
     s2.add_document(back, None);
@@ -416,7 +416,7 @@ fn an_inline_graphic_follows_the_art_of_a_symbol_nested_in_its_symbol() {
     assert_eq!(inline_bounds(&obj(&s, id)), tall);
     // Opening a saved copy measures it the same way.
     let doc = (*s.doc().unwrap().doc).clone();
-    let mut back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let mut back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     back.title = "copy".into();
     let mut s2 = Session::new();
     s2.add_document(back, None);
@@ -515,9 +515,9 @@ fn saved_documents_keep_inline_graphics() {
     let id = text(&mut s, "ab");
     s.execute("text.insertInline", &json!({"id": id.0, "at": 1, "symbol": "Dot", "scale": 2})).unwrap();
     let doc = (*s.doc().unwrap().doc).clone();
-    let bytes = vectorcraft_format::save(&doc, false);
+    let bytes = etcfile::save(&doc, false);
     assert!(String::from_utf8_lossy(&bytes).contains("\"inline\""));
-    let mut back = vectorcraft_format::load(&bytes).unwrap();
+    let mut back = etcfile::load(&bytes).unwrap();
     // Bounds aren't saved: opening resolves them.
     let mut s2 = Session::new();
     back.title = "copy".into();

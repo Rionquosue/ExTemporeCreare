@@ -341,7 +341,7 @@ fn guides_outside_the_art_survive_saving_and_reopening_a_native_file() {
     s.execute("symbol.options", &json!({"name": "Panel", "nineSliceGuides": [-0.25, 0.25, 0.25, 0.25]})).unwrap();
     s.execute("symbol.options", &json!({"name": "Panel", "nineSliceGuides": guides})).unwrap();
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     let g = back.symbol_nine_slice("Panel").unwrap();
     assert_eq!([g.left, g.top, g.right, g.bottom], guides);
     let placed = |d: &vectorcraft_doc::Document| {
@@ -353,7 +353,7 @@ fn guides_outside_the_art_survive_saving_and_reopening_a_native_file() {
     for bad in [json!([-20.0, 0.25, 0.25, 0.25]), json!([0.8, 0.25, 0.5, 0.25]), json!([0.25, 0.25, 0.25]), json!("x")] {
         let mut d = (*doc).clone();
         d.unknown.insert(vectorcraft_doc::SYMBOL_NINE_SLICE.into(), json!({ "Panel": bad }));
-        let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+        let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
         assert!(back.symbol_nine_slice("Panel").is_none(), "{bad}");
         let NodeKind::SymbolInstance { symbol, xf } = &back.node(id).unwrap().kind else { panic!("an instance") };
         assert!(back.symbol_slice_map(symbol, *xf).is_none(), "{bad}: scaled as a whole");

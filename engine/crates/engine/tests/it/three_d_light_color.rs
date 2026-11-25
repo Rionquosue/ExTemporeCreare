@@ -40,7 +40,7 @@ fn all_four_light_colors_save_reopen_undo_and_expand_without_editing_source() {
         s.execute("effect.setParams", &change).unwrap();
         assert_eq!(doc(&s).node(id).unwrap().path_data(), Some(&path));
         let red = doc(&s).clone();
-        let reopened = vectorcraft_format::load(&vectorcraft_format::save(&red, false)).unwrap();
+        let reopened = etcfile::load(&etcfile::save(&red, false)).unwrap();
         assert_eq!(reopened.node(id).unwrap().appearance.effects[0].params["lightColor"], json!("#ff0000"));
         s.execute("edit.undo", &json!({})).unwrap();
         assert_eq!(doc(&s), &original);
@@ -53,7 +53,7 @@ fn all_four_light_colors_save_reopen_undo_and_expand_without_editing_source() {
             assert!(text.contains("#ff4040"), "front plane is white under red light and neutral 25% ambient: {text}");
         }
         let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-        let bytes = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+        let bytes = etcfile::base64::decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
         assert!(!bytes.windows(b"/Subtype /Image".len()).any(|s| s == b"/Subtype /Image"), "{effect}");
         assert_eq!(doc(&s), &red, "exports leave the live document intact");
         s.execute("effect.expandAppearance", &json!({})).unwrap();
@@ -115,7 +115,7 @@ fn vector_exports(s: &mut Session) -> String {
         "continuous curved cap boundaries survive export"
     );
     let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
     assert!(!bytes.windows(b"/Subtype /Image".len()).any(|s| s == b"/Subtype /Image"));
     svg
 }
@@ -252,7 +252,7 @@ fn multiple_lights_survive_commands_history_native_save_and_vector_expansion() {
         s.execute("effect.setParams", &change).unwrap();
         let lit = doc(&s).clone();
         assert_eq!(params(&s, id)["lights"], lights);
-        let restored = vectorcraft_format::load(&vectorcraft_format::save(&lit, false)).unwrap();
+        let restored = etcfile::load(&etcfile::save(&lit, false)).unwrap();
         assert_eq!(restored.node(id).unwrap().appearance.effects[0].params["lights"], lights);
         assert_eq!(doc(&s).node(id).unwrap().path_data(), Some(&source));
         s.execute("edit.undo", &json!({})).unwrap();
@@ -266,7 +266,7 @@ fn multiple_lights_survive_commands_history_native_save_and_vector_expansion() {
         let svg = s.execute("document.serialize", &json!({"format":"svg"})).unwrap()["text"].as_str().unwrap().to_owned();
         assert!(!svg.contains("<image"));
         let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-        let bytes = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+        let bytes = etcfile::base64::decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
         assert!(!bytes.windows(b"/Subtype /Image".len()).any(|s| s == b"/Subtype /Image"));
         s.execute("effect.expandAppearance", &json!({})).unwrap();
         let expanded = render(doc(&s));
@@ -624,7 +624,7 @@ fn colored_light_seams_stay_closed_in_svg_pdf_and_expansion() {
         let svg = s.execute("document.serialize", &json!({"format":"svg"})).unwrap()["text"].as_str().unwrap().to_owned();
         assert!(svg.contains("<clipPath") && svg.contains("linearGradient") && svg.contains("screen") && !svg.contains("<image"), "{fill}");
         let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-        let bytes = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+        let bytes = etcfile::base64::decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
         assert!(!bytes.windows(b"/Subtype /Image".len()).any(|w| w == b"/Subtype /Image"), "{fill}");
         let before = doc(&s).clone();
         s.execute("effect.expandAppearance", &json!({})).unwrap();
@@ -752,7 +752,7 @@ fn colored_revolve_faces_leave_no_alpha_holes_at_one_to_one() {
         let svg = s.execute("document.serialize", &json!({"format":"svg"})).unwrap()["text"].as_str().unwrap().to_owned();
         assert!(!svg.contains("<image"), "{name}");
         let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-        let pdf = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+        let pdf = etcfile::base64::decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
         assert!(!pdf.windows(b"/Subtype /Image".len()).any(|w| w == b"/Subtype /Image"), "{name}");
         let live = doc(&s).clone();
         s.execute("effect.expandAppearance", &json!({})).unwrap();

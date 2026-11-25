@@ -13,7 +13,7 @@ fn session(artboards: usize) -> Session {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 fn export(s: &mut Session, p: Value) -> Value {
@@ -103,6 +103,112 @@ fn use_artboards_false_writes_one_page_of_the_arts_bounds() {
     }
 }
 
+/// A page of the art's bounds is measured on the layers the PDF draws: a non-printing layer that
+/// the PDF leaves out doesn't make it larger, unless `includeNonPrinting` or `createLayers` keeps
+/// the layer. A `.ai` file of the art's bounds, which keeps layers by default, measures it unless
+/// `createLayers` is off. A document whose only visible art doesn't print is refused.
+#[test]
+fn a_page_of_the_arts_bounds_leaves_out_non_printing_layers() {
+    let mut s = session(1);
+    let printing = s.doc().unwrap().doc.layers[0].id;
+    let notes = s.execute("layer.new", &json!({})).unwrap()["id"].clone();
+    s.execute("layer.setProps", &json!({"id": notes, "printable": false})).unwrap();
+    s.execute("shape.rectangle", &json!({"x": 200, "y": 200, "width": 20, "height": 20})).unwrap();
+    let size = |bytes: &[u8]| vectorcraft_pdf::import(bytes).unwrap().artboards[0].rect.size();
+    let printed = size(&b64(&export(&mut s, json!({"useArtboards": false}))));
+    assert!(printed.width < 50.0 && printed.height < 40.0, "{printed:?}");
+    let through_export = s.execute("document.export", &as_export(&json!({"useArtboards": false}))).unwrap();
+    assert_eq!(size(&b64(&through_export)), printed);
+    let ai = |s: &mut Session, extra: Value| {
+        let mut p = json!({"format": "ai", "useArtboards": false});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        size(&b64(&s.execute("document.export", &p).unwrap_or_else(|e| panic!("{p}: {e}"))))
+    };
+    assert_eq!(ai(&mut s, json!({"createLayers": false})), printed);
+    let kept = [
+        size(&b64(&export(&mut s, json!({"useArtboards": false, "includeNonPrinting": true})))),
+        size(&b64(&export(&mut s, json!({"useArtboards": false, "createLayers": true})))),
+        ai(&mut s, json!({})),
+    ];
+    for all in kept {
+        assert!(all.width > 200.0 && all.height > 200.0, "{all:?}");
+    }
+
+    // Only the non-printing layer shows: the PDF would draw nothing.
+    s.execute("layer.setProps", &json!({"id": printing, "visible": false})).unwrap();
+    for p in [json!({"useArtboards": false}), json!({"useArtboards": false, "includeNonPrinting": false})] {
+        let e = s.execute("document.exportPdf", &p).unwrap_err().to_string();
+        assert!(e.contains("no visible art"), "{p}: {e}");
+    }
+    let e = s.execute("document.export", &json!({"format": "ai", "useArtboards": false, "createLayers": false})).unwrap_err().to_string();
+    assert!(e.contains("no visible art"), "{e}");
+    assert!(size(&b64(&export(&mut s, json!({"useArtboards": false, "includeNonPrinting": true})))).width < 25.0);
+}
+
+/// In a PDF without a standard, the warning for a page longer than 14,400 pt written with a
+/// `UserUnit` above 1 names "Write pages longer than 200 in at full size in points": at PDF 1.5
+/// (written as 1.6) and later, through `document.exportPdf`, `document.export`, a page of the
+/// art's bounds and the Summary's export, with one such warning per page. PDF/A files and `.ai`
+/// saves keep the warning without the option's name. Pages written in points (the option on, PDF
+/// 1.4, PDF/X, a page too narrow for a `UserUnit` above 1) and a page too long and narrow for
+/// 14,400 units have other warnings, which don't name it.
+#[test]
+fn a_page_with_a_user_unit_names_the_option_that_writes_it_in_points() {
+    use super::pdf::LONG_PAGES_IN_POINTS;
+    const SMALLER: &str = "so apps that ignore UserUnit show it that many times smaller";
+    let mut s = Session::new();
+    s.execute("file.new", &json!({"width": 20_000, "height": 1_000})).unwrap();
+    s.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 19_000, "height": 500})).unwrap();
+    let warnings = |v: &Value| -> Vec<String> {
+        v["warnings"].as_array().unwrap().iter().filter_map(|w| w.as_str()).filter(|w| w.contains("UserUnit")).map(str::to_string).collect()
+    };
+    let named = |v: &Value| warnings(v).iter().any(|w| w.contains(LONG_PAGES_IN_POINTS));
+    for p in [
+        json!({"longPagesInPoints": false}),
+        json!({"longPagesInPoints": false, "compatibility": "1.5"}),
+        json!({"longPagesInPoints": false, "compatibility": "2.0"}),
+        json!({"longPagesInPoints": false, "useArtboards": false}),
+    ] {
+        let mut q = p.clone();
+        q["includeDocument"] = json!(true);
+        for v in [export(&mut s, p.clone()), s.execute("document.export", &as_export(&p)).unwrap(), s.execute("document.pdfSettings", &q).unwrap()] {
+            let page: Vec<String> = warnings(&v).into_iter().filter(|w| w.starts_with("the page of artboard")).collect();
+            assert_eq!(page.len(), 1, "{p}: {v}");
+            assert!(page[0].ends_with(&format!("{SMALLER}{LONG_PAGES_IN_POINTS}")), "{p}: {page:?}");
+            assert_eq!(warnings(&v).iter().filter(|w| w.contains("apps that ignore UserUnit")).count(), 1, "{p}: {v}");
+        }
+    }
+    for p in [
+        json!({"longPagesInPoints": true}),
+        json!({"longPagesInPoints": false, "compatibility": "1.4"}),
+        json!({"longPagesInPoints": false, "preset": "PDF/X-4:2010"}),
+    ] {
+        assert!(!named(&export(&mut s, p.clone())), "{p}");
+    }
+    for p in
+        [json!({"longPagesInPoints": false, "standard": "pdfA2b"}), json!({"longPagesInPoints": false, "standard": "pdfA2b", "compatibility": "1.4"})]
+    {
+        let v = export(&mut s, p.clone());
+        assert!(warnings(&v).iter().any(|w| w.ends_with(SMALLER)) && !named(&v), "{p}: {v}");
+    }
+    let ai = s.execute("document.export", &json!({"format": "ai", "longPagesInPoints": false})).unwrap();
+    assert!(warnings(&ai).iter().any(|w| w.ends_with(SMALLER)) && !named(&ai), "{ai}");
+    // The art's bounds are within 14,400 pt.
+    s.execute("select.all", &json!({})).unwrap();
+    s.execute("edit.clear", &json!({})).unwrap();
+    s.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 500, "height": 500})).unwrap();
+    assert!(!named(&export(&mut s, json!({"longPagesInPoints": false, "useArtboards": false}))));
+    // A page 3 pt high keeps a UserUnit of 1, so it is written in points either way; a page
+    // 85,040 × 17 pt gets a UserUnit above 1 that leaves its long side past 14,400 units.
+    for (w, h) in [(20_000, 3), (85_040, 17)] {
+        let mut s = Session::new();
+        s.execute("file.new", &json!({"width": w, "height": h})).unwrap();
+        s.execute("shape.rectangle", &json!({"x": 100, "y": 0, "width": w - 1_000, "height": h})).unwrap();
+        let v = export(&mut s, json!({"longPagesInPoints": false}));
+        assert!(!named(&v), "{w} × {h}: {v}");
+    }
+}
+
 
 
 /// A PDF of the art's bounds carries no Preserve Editing data, through `document.exportPdf`,
@@ -128,7 +234,7 @@ fn a_pdf_of_the_arts_bounds_carries_no_editing_data() {
 
     for v in [export(&mut s, json!({})), export(&mut s, json!({"useArtboards": true}))] {
         let editing = vectorcraft_pdf::editing(&b64(&v)).expect("editing data");
-        let reopened = vectorcraft_format::load(&editing.data).unwrap();
+        let reopened = etcfile::load(&editing.data).unwrap();
         assert_eq!(reopened.artboards.len(), 3);
         assert!(!left_out(&v), "{:?}", warnings(&v));
     }
@@ -173,7 +279,7 @@ fn a_pdf_of_the_artboards_leaves_out_the_mask_editing_layer() {
     let plain = json!({"preserveEditing": false});
     let through_export = nodes(&b64(&s.execute("document.export", &as_export(&plain)).unwrap()));
     assert_eq!(nodes(&b64(&export(&mut s, plain))), through_export, "the drawn page");
-    let layers = |v: &Value| vectorcraft_format::load(&vectorcraft_pdf::editing(&b64(v)).unwrap().data).unwrap().layers;
+    let layers = |v: &Value| etcfile::load(&vectorcraft_pdf::editing(&b64(v)).unwrap().data).unwrap().layers;
     let through_export = layers(&s.execute("document.export", &as_export(&json!({}))).unwrap());
     assert_eq!(layers(&export(&mut s, json!({}))), through_export, "the Preserve Editing data");
 }
@@ -262,6 +368,116 @@ fn options_not_applied_yet_and_document_features_warn() {
     assert!(knockout(warnings(&s.execute("document.export", &as_export(&json!({}))).unwrap())));
     // Other formats have none.
     assert!(warnings(&s.execute("document.export", &json!({"format": "png"})).unwrap()).is_empty());
+}
+
+/// A placed 16-bit PNG is written at 8 bits a sample in PDF 1.3 and 1.4 files (PDF/X-3 and the
+/// pages of a .ai file too), and keeps 16 bits from PDF 1.5.
+#[test]
+fn a_16_bit_png_is_written_at_8_bits_before_pdf_1_5() {
+    let mut s = session(1);
+    let deep = image::ImageBuffer::from_fn(8, 8, |x, y| image::Rgb([x as u16 * 8000, y as u16 * 8000, 40000]));
+    let mut png = vec![];
+    {
+        let __dyn: image::DynamicImage = image::DynamicImage::ImageRgb16(deep);
+        let (__w, __h) = (__dyn.width(), __dyn.height());
+        let (__layout, __sample, __raw) = match __dyn {
+            image::DynamicImage::ImageLuma8(b) => (craft_image_codecs::ChannelLayout::Gray, craft_image_codecs::SampleType::U8, b.into_raw()),
+            image::DynamicImage::ImageLumaA8(b) => (craft_image_codecs::ChannelLayout::GrayA, craft_image_codecs::SampleType::U8, b.into_raw()),
+            image::DynamicImage::ImageRgb8(b) => (craft_image_codecs::ChannelLayout::Rgb, craft_image_codecs::SampleType::U8, b.into_raw()),
+            image::DynamicImage::ImageRgba8(b) => (craft_image_codecs::ChannelLayout::Rgba, craft_image_codecs::SampleType::U8, b.into_raw()),
+            image::DynamicImage::ImageLuma16(b) => (
+                craft_image_codecs::ChannelLayout::Gray,
+                craft_image_codecs::SampleType::U16,
+                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+            ),
+            image::DynamicImage::ImageLumaA16(b) => (
+                craft_image_codecs::ChannelLayout::GrayA,
+                craft_image_codecs::SampleType::U16,
+                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+            ),
+            image::DynamicImage::ImageRgb16(b) => (
+                craft_image_codecs::ChannelLayout::Rgb,
+                craft_image_codecs::SampleType::U16,
+                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+            ),
+            image::DynamicImage::ImageRgba16(b) => (
+                craft_image_codecs::ChannelLayout::Rgba,
+                craft_image_codecs::SampleType::U16,
+                b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+            ),
+            other => (craft_image_codecs::ChannelLayout::Rgba, craft_image_codecs::SampleType::U8, other.into_rgba8().into_raw()),
+        };
+        let __cimg = craft_image_codecs::Image::from_raw(__w, __h, __layout, __sample, __raw).unwrap();
+        craft_image_codecs::encode(&__cimg, craft_image_codecs::Format::Png, &craft_image_codecs::EncodeOptions::default())
+            .map(|__b| png.extend_from_slice(&__b))
+    }
+    .unwrap();
+    s.execute("file.place", &json!({"name": "deep.png", "dataBase64": etcfile::base64::encode(&png), "at": [50, 40]})).unwrap();
+    let readable = json!({"compressText": false});
+    for (cmd, p, depth) in [
+        ("document.exportPdf", json!({"compatibility": "1.3", "compression": readable}), 8),
+        ("document.exportPdf", json!({"compatibility": "1.4", "compression": readable}), 8),
+        ("document.exportPdf", json!({"standard": "pdfX3", "compression": readable}), 8),
+        ("file.saveCopy", json!({"format": "ai", "compatibility": "1.4"}), 8),
+        ("document.exportPdf", json!({"compatibility": "1.5", "compression": readable}), 16),
+        ("document.exportPdf", json!({"compression": readable}), 16),
+    ] {
+        let v = s.execute(cmd, &p).unwrap_or_else(|e| panic!("{cmd} {p}: {e}"));
+        let text = String::from_utf8_lossy(&b64(&v)).into_owned();
+        let (eight, sixteen) = (text.contains("/BitsPerComponent 8"), text.contains("/BitsPerComponent 16"));
+        assert_eq!((eight, sixteen), (depth == 8, depth == 16), "{cmd} {p}");
+        assert!(warnings(&v).iter().all(|w| !w.contains("decoded")), "{cmd} {p}: {}", v["warnings"]);
+    }
+}
+
+/// A placed image whose pixel data can't be decoded is left out of every PDF the engine writes,
+/// and the rest of the page is written. Each reply that carries the PDF's warnings has the note
+/// raster exports give, once.
+#[test]
+fn every_pdf_leaves_out_an_image_that_cant_be_decoded() {
+    const NOTE: &str = "an image couldn't be decoded and is missing from the picture";
+    let mut s = session(1);
+    let cut = crate::tests_menucmds::place_undecodable_png(&mut s);
+    // Whether each object on the PDF's pages is an image. The pages should hold the rectangle and
+    // no image.
+    let drawn = |bytes: &[u8]| {
+        let mut images = vec![];
+        vectorcraft_pdf::import(bytes).unwrap().walk(|n| {
+            if !n.is_container() && !matches!(n.kind, vectorcraft_doc::NodeKind::Path { clipping: true, .. }) {
+                images.push(matches!(n.kind, vectorcraft_doc::NodeKind::Image(_)));
+            }
+        });
+        images
+    };
+    for (cmd, p) in [
+        ("document.exportPdf", json!({})),
+        ("document.exportPdf", json!({"preset": "High Quality Print"})),
+        ("document.exportPdf", json!({"standard": "pdfX1a"})),
+        ("document.export", json!({"format": "pdf"})),
+        ("file.saveCopy", json!({"format": "pdf"})),
+        ("file.saveCopy", json!({"format": "ai"})),
+        ("file.print", json!({})),
+    ] {
+        let v = s.execute(cmd, &p).unwrap_or_else(|e| panic!("{cmd} {p}: {e}"));
+        assert_eq!(warnings(&v).iter().filter(|w| *w == NOTE).count(), 1, "{cmd} {p}: {}", v["warnings"]);
+        assert_eq!(drawn(&b64(&v)), [false], "{cmd} {p}");
+    }
+    // The .ai file reopens with the image as it was placed, from the image bytes in its editing data.
+    let ai = b64(&s.execute("file.saveCopy", &json!({"format": "ai"})).unwrap());
+    let placed = s.doc().unwrap().doc.images.clone();
+    s.execute("document.open", &json!({"name": "cut.ai", "dataBase64": etcfile::base64::encode(&ai)})).unwrap();
+    let reopened = &s.doc().unwrap().doc;
+    assert!(reopened.node(cut).is_some_and(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Image(_))));
+    assert_eq!(reopened.images, placed);
+    // Export for Screens, a native file carrying a PDF, and the PDF that Copy offers are written.
+    let r = s.execute("document.exportForScreens", &json!({"formats": [{"format": "pdf"}]})).unwrap();
+    assert_eq!(drawn(&b64(&r["files"][0])), [false]);
+    assert!(s.execute("file.saveCopy", &json!({"format": "etc"})).is_ok());
+    s.execute("select.set", &json!({"ids": [cut.0]})).unwrap();
+    s.execute("edit.copy", &json!({})).unwrap();
+    assert!(b64(&s.execute("clipboard.exportPdf", &json!({})).unwrap()).starts_with(b"%PDF"));
+    s.execute("prefs.set", &json!({"key": "copyAsPdf", "value": true})).unwrap();
+    assert!(s.clipboard_flavours().iter().any(|f| f.mime == crate::cmd::clipboard::PDF));
 }
 
 

@@ -111,7 +111,7 @@ fn grid_definition_fields_survive_a_native_round_trip() {
     run(&mut s, "perspective.grid.define", json!({"units": "cm", "scale": [1, 4], "angle": 40, "groundColor": "#123456", "opacity": 20}));
     let doc = s.doc().unwrap().doc.clone();
     vectorcraft_testkit::invariants::check_native_roundtrip_exact(&doc).unwrap();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(PerspectiveGrid::from_doc(&back), PerspectiveGrid::from_doc(&doc));
     let g = PerspectiveGrid::from_doc(&back).unwrap();
     assert_eq!((g.units.as_str(), g.scale, g.ground_color, g.opacity), ("centimeters", [1.0, 4.0], Rgb([0x12, 0x34, 0x56]), 20.0));
@@ -308,7 +308,7 @@ fn view_options_toggle_without_undo_steps_and_survive_presets() {
     assert!(g.locked && g.lock_station && !g.snap && g.rulers, "a preset keeps the view options");
     // Saved with the document.
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(PerspectiveGrid::from_doc(&back), Some(g));
 }
 
@@ -707,7 +707,7 @@ fn widget_options_and_the_right_extent_are_saved() {
     assert_eq!(back.perspective_widget.position, WidgetCorner::TopRight);
     run(&mut s, "perspective.grid.set", json!({"extentRight": 123}));
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(PerspectiveGrid::from_doc(&back).unwrap().extent_right, Some(123.0));
     assert!(s.execute("perspective.grid.set", &json!({"extentRight": -1})).is_err());
 }

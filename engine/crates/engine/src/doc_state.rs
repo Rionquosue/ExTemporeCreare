@@ -338,7 +338,7 @@ impl DocState {
             mask_view: None,
             spelling_ignored: Default::default(),
             transparency_grid,
-            format: "vectorcraft",
+            format: "etc",
             save_options: Default::default(),
             save_artboards: vec![],
             converted: false,

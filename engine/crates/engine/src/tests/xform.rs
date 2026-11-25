@@ -883,7 +883,7 @@ fn distort_refuses_a_folded_image_and_crop_and_trace_refuse_a_distorted_one() {
         ("object.mesh.create", json!({})),
         (
             "file.place",
-            json!({"replace": true, "name": "b.png", "dataBase64": vectorcraft_format::base64_encode(&crate::tests_links::png(2, 2, [0, 0, 255]))}),
+            json!({"replace": true, "name": "b.png", "dataBase64": etcfile::base64::encode(&crate::tests_links::png(2, 2, [0, 0, 255]))}),
         ),
     ] {
         let e = s.execute(cmd, &params).unwrap_err().to_string();
@@ -893,7 +893,7 @@ fn distort_refuses_a_folded_image_and_crop_and_trace_refuse_a_distorted_one() {
     assert!(s.doc().unwrap().doc.node(img).unwrap().is_distorted_image());
     assert_eq!(undo_len(&s), undo + 1);
     // Type replaces a distorted image by its bounds, which the corners give: not refused.
-    let text = json!({"replace": true, "name": "note.txt", "dataBase64": vectorcraft_format::base64_encode(b"Hello")});
+    let text = json!({"replace": true, "name": "note.txt", "dataBase64": etcfile::base64::encode(b"Hello")});
     let out = s.execute("file.place", &text).unwrap();
     let id = NodeId(out["ids"][0].as_u64().unwrap());
     assert!(matches!(s.doc().unwrap().doc.node(id).unwrap().kind, vectorcraft_doc::NodeKind::Text(_)));
@@ -1027,8 +1027,8 @@ fn a_distorted_image_saves_and_reads_back() {
     let img = placed_image(&mut s);
     s.execute("object.distort", &json!({ "corners": [[40, 0], [60, 0], [100, 100], [0, 100]] })).unwrap();
     let doc = &s.doc().unwrap().doc;
-    let bytes = vectorcraft_format::save(doc, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(doc, false);
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.node(img).unwrap().image_corners(), doc.node(img).unwrap().image_corners());
     assert!(back.node(img).unwrap().is_distorted_image());
     assert!(String::from_utf8_lossy(&bytes).contains("image_quad"));
@@ -1036,15 +1036,15 @@ fn a_distorted_image_saves_and_reads_back() {
     let mut plain = session();
     let img = placed_image(&mut plain);
     let doc = &plain.doc().unwrap().doc;
-    let bytes = vectorcraft_format::save(doc, false);
+    let bytes = etcfile::save(doc, false);
     assert!(!String::from_utf8_lossy(&bytes).contains("image_quad"));
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.node(img), doc.node(img));
     // Corners in a file that fold the image over leave it placed by its transform.
     let mut bad = (**doc).clone();
     bad.node_mut(img).unwrap().extras_mut().image_quad =
         Some(Box::new([(0.0, 0.0), (100.0, 0.0), (0.0, 100.0), (100.0, 100.0)].map(|(x, y)| Point::new(x, y))));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&bad, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&bad, false)).unwrap();
     assert!(!back.node(img).unwrap().is_distorted_image());
     assert_corners(back.node(img).unwrap().image_corners().unwrap(), [(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0)]);
 }

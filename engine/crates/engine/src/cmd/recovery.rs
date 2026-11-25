@@ -29,7 +29,7 @@
 //! a heartbeat newer than the one another app wrote when taking the area over marks it running
 //! again.
 //!
-//! Each copy is two entries: `<area>/<file>.vectorcraft` (the native document, written as a save
+//! Each copy is two entries: `<area>/<file>.etc` (the native document, written as a save
 //! writes it, without its images) and `<area>/<file>.json` (its title, original path and format,
 //! when it was written, and its images). The images are entries of their own, `<area>/img-…blob`,
 //! named by their content and shared by the area's copies: a copy written again writes only the
@@ -55,7 +55,7 @@ use crate::DocState;
 pub const COMPLEX_OBJECTS: usize = 20_000;
 
 /// The extension of a copy's document entry.
-const DOC_EXT: &str = ".vectorcraft";
+const DOC_EXT: &str = ".etc";
 /// The extension of a copy's details entry.
 const META_EXT: &str = ".json";
 /// The extension of an image entry (see [`blob_name`]).
@@ -472,7 +472,7 @@ impl RecoveryStore for FolderStore {
             Self::create_area(dir)?;
             Self::own_area(dir)?;
         }
-        vectorcraft_format::write_atomic(&f, bytes).map_err(|e| Self::file_error(&f, &e))
+        etcfile::write_atomic(&f, bytes).map_err(|e| Self::file_error(&f, &e))
     }
     fn remove(&self, name: &str) -> std::result::Result<(), String> {
         let f = self.file(name)?;
@@ -856,10 +856,6 @@ struct Meta {
     path: Option<String>,
     /// The format Save writes for it ([`SAVE_FORMATS`]).
     format: String,
-    /// A document's own native PDF choice before the recovery copy omits its PDF. None keeps
-    /// inheritance from the current application preference. Older copies did not record a choice.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    native_pdf_compatible: Option<bool>,
     /// When the copy was written (Unix seconds; none without a clock).
     saved: Option<i64>,
     /// The file it was read from when that import left things out of the document, and what
@@ -1153,7 +1149,7 @@ pub fn jobs(s: &mut Session, store: &Arc<dyn RecoveryStore>) -> Result<(Vec<Reco
     let mut taken: Vec<String> =
         copies_in(&store.list().map_err(EngineError::Other)?).into_iter().filter(|(a, _)| *a == area).map(|(_, f)| f).collect();
     taken.extend(s.documents().iter().filter_map(|d| d.recovery.as_ref()).map(|c| c.file.clone()));
-    let native = fileio::format("vectorcraft").ok_or_else(|| EngineError::Other("no native format".into()))?;
+    let native = fileio::format("etc").ok_or_else(|| EngineError::Other("no native format".into()))?;
     let saved = store.now();
     let mut out = vec![];
     for st in s.documents().iter().filter(|st| skip_reason(s, st).is_none()) {
@@ -1171,7 +1167,7 @@ pub fn jobs(s: &mut Session, store: &Arc<dyn RecoveryStore>) -> Result<(Vec<Reco
             mode: SaveMode::Copy,
             path: st.path.clone(),
             format: native,
-            options: serde_json::Map::from_iter([("pdfCompatible".into(), json!(false))]),
+            options: serde_json::Map::new(),
             name: format!("{file}{DOC_EXT}"),
             folder: None,
             modified: None,
@@ -1184,11 +1180,6 @@ pub fn jobs(s: &mut Session, store: &Arc<dyn RecoveryStore>) -> Result<(Vec<Reco
             title: title.clone(),
             path: st.path.clone(),
             format: st.format.to_string(),
-            native_pdf_compatible: if matches!(st.format, "vectorcraft" | "template") {
-                st.save_options.get("pdfCompatible").and_then(Value::as_bool)
-            } else {
-                None
-            },
             saved,
             imported_from: st.imported_from.clone(),
             import_losses: st.import_losses.clone(),
@@ -1431,7 +1422,7 @@ fn restore_one(s: &mut Session, store: &Arc<dyn RecoveryStore>, file: &str) -> R
     let bytes = store.read(&format!("{file}{DOC_EXT}")).map_err(EngineError::Other)?;
     let meta_bytes = store.read(&format!("{file}{META_EXT}")).unwrap_or_default();
     let meta: Meta = serde_json::from_slice(&meta_bytes).unwrap_or_default();
-    let (mut doc, _, mut warnings) = fileio::native_file(&bytes).map_err(|e| EngineError::Other(format!("recovery copy `{file}`: {e}")))?;
+    let (mut doc, mut warnings) = fileio::native_file(&bytes).map_err(|e| EngineError::Other(format!("recovery copy `{file}`: {e}")))?;
     // A frame whose first paragraph continues from the frame before draws it without the
     // paragraph's first-line indent and list marker.
     super::threads::mark_continued(&mut doc);
@@ -1489,10 +1480,7 @@ fn restore_one(s: &mut Session, store: &Arc<dyn RecoveryStore>, file: &str) -> R
     st.links_from = links_from;
     st.imported_from = meta.imported_from.clone();
     st.import_losses = meta.import_losses.clone();
-    st.format = SAVE_FORMATS.iter().copied().find(|f| *f == meta.format).unwrap_or("vectorcraft");
-    if let Some(pdf) = meta.native_pdf_compatible {
-        st.save_options.insert("pdfCompatible".into(), json!(pdf));
-    }
+    st.format = SAVE_FORMATS.iter().copied().find(|f| *f == meta.format).unwrap_or("etc");
     st.mark_unsaved();
     // The copy stays until the document is saved or closed.
     st.recovery = Some(RecoveryCopy { file: mine.clone(), doc: st.doc.clone() });

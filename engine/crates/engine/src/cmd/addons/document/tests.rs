@@ -34,12 +34,12 @@ fn stamp(s: &mut Session, p: Value) -> crate::Result<Value> {
 fn a_timestamped_copy_goes_next_to_the_document_which_stays_as_it_was() {
     let dir = folder("next-to");
     let mut s = session();
-    let own = dir.join("poster.vectorcraft");
+    let own = dir.join("poster.etc");
     s.execute("document.save", &json!({"path": own})).unwrap();
     s.execute("shape.ellipse", &json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap();
     let (steps, title) = (s.doc().unwrap().history.undo.len(), s.doc().unwrap().doc.title.clone());
     let r = stamp(&mut s, json!({"time": TIME})).unwrap();
-    let copy = dir.join("poster_2026-10-05_14-03.vectorcraft");
+    let copy = dir.join("poster_2026-10-05_14-03.etc");
     assert_eq!(Path::new(r["path"].as_str().unwrap()), copy);
     assert!(copy.is_file());
     let st = s.doc().unwrap();
@@ -51,7 +51,7 @@ fn a_timestamped_copy_goes_next_to_the_document_which_stays_as_it_was() {
     assert_eq!(other.doc().unwrap().doc.layers[0].children().unwrap().len(), 2);
     // The same minute again: numbered.
     let r = stamp(&mut s, json!({"time": TIME})).unwrap();
-    assert!(r["path"].as_str().unwrap().ends_with("poster_2026-10-05_14-03-2.vectorcraft"), "{r}");
+    assert!(r["path"].as_str().unwrap().ends_with("poster_2026-10-05_14-03-2.etc"), "{r}");
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -263,7 +263,7 @@ fn export_all_open_documents_writes_one_file_each() {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    s.execute("file.place", &json!({"name": "a.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    s.execute("file.place", &json!({"name": "a.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     s.execute("document.save", &json!({"path": dir.join("pic.svg"), "format": "svg", "options": {"images": "link"}})).unwrap();
     let saved: Vec<_> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()).filter(|e| e.path().is_file()).collect();
     assert!(saved.len() > 1, "the linked save wrote its image beside it: {saved:?}");
@@ -386,7 +386,7 @@ fn batch_trace_folder_traces_a_layered_psd_as_its_merged_image() {
     s.execute("paint.setFill", &json!({"color": "#000000"})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 6, "y": 6, "width": 12, "height": 12})).unwrap();
     let psd = s.execute("document.export", &json!({"format": "psd"})).unwrap();
-    std::fs::write(src.join("two.psd"), vectorcraft_format::base64_decode(psd["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    std::fs::write(src.join("two.psd"), etcfile::base64::decode(psd["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     let r =
         s.execute(C, &json!({"folder": src, "destinationFolder": out, "format": "svg", "preset": "Black and White Logo", "expand": true})).unwrap();
     assert_eq!(r["traced"].as_array().unwrap().len(), 1, "{r}");

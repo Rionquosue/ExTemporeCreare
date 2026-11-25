@@ -19,7 +19,7 @@ fn names(s: &mut Session) -> Vec<String> {
 }
 
 fn pdf(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 fn is_bad_params(r: crate::Result<Value>) -> bool {
@@ -133,7 +133,7 @@ fn long_pages_in_points_round_trips_through_presets_and_reopens_at_full_size() {
     s.execute("file.new", &json!({"width": 28_346.456_692_913_386, "height": 2_834.645_669_291_338_5})).unwrap();
     let reopened = |bytes: &[u8]| {
         let mut o = Session::new();
-        o.execute("document.open", &json!({"name": "banner.pdf", "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+        o.execute("document.open", &json!({"name": "banner.pdf", "dataBase64": etcfile::base64::encode(bytes)})).unwrap();
         let rect = o.doc().unwrap().doc.artboards[0].rect;
         assert!((rect.width() - 28_346.46).abs() < 0.01 && (rect.height() - 2_834.65).abs() < 0.01, "{rect:?}");
     };

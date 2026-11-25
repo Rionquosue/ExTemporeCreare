@@ -1329,6 +1329,36 @@ mod tests {
         sorted(KEPT_SEEN.with(|v| v.take()))
     }
 
+    /// The Flattener Preview, `object.flattenTransparency` and flattening a whole document each look
+    /// at every node of the objects without transparency once, with type and strokes outlined and
+    /// overprints dropped, an object they leave as it is included.
+    #[test]
+    fn kept_objects_are_looked_at_once() {
+        let (mut s, _) = kept_session(100);
+        let o = outlining();
+        let doc = s.doc().unwrap().doc.clone();
+        let roots = top_level(&doc);
+        let mut nodes = vec![];
+        for r in &roots {
+            doc.node(*r).unwrap().walk(&mut |c| nodes.push(c.id));
+        }
+        nodes.sort();
+        assert_eq!(nodes.len(), 309);
+        let preview = kept_seen_by(|| drop(super::super::report::report(&doc, &roots, &o).unwrap()));
+        assert!(preview == nodes, "the preview looked at {} nodes of {}", preview.len(), nodes.len());
+        let whole = kept_seen_by(|| drop(flatten_document(&doc, &o).unwrap().unwrap()));
+        assert!(whole == nodes, "flattening the document looked at {} nodes of {}", whole.len(), nodes.len());
+        let ids: Vec<u64> = roots.iter().map(|r| r.0).collect();
+        let command = kept_seen_by(|| {
+            s.execute(
+                "object.flattenTransparency",
+                &json!({"ids": ids, "textToOutlines": true, "strokesToOutlines": true, "preserveOverprints": false}),
+            )
+            .unwrap();
+        });
+        assert!(command == nodes, "object.flattenTransparency looked at {} nodes of {}", command.len(), nodes.len());
+    }
+
 
     /// [`apply`]'s outlining of `kept` (objects of `d` without transparency) with `o`, done as a
     /// walk of each object for each option: → the ids standing for them, in paint order.
@@ -1363,6 +1393,59 @@ mod tests {
         }
         ids.sort_by_key(|id| d.index_path(*id));
         ids
+    }
+
+    /// With each mix of the text, stroke and overprint options, the objects without transparency
+    /// end as a walk of each of them for each option leaves them: the same art, ids and selection.
+    #[test]
+    fn kept_objects_change_as_a_walk_per_option_changes_them() {
+        let (s, _) = kept_session(3);
+        let doc = Document::clone(&s.doc().unwrap().doc);
+        let roots = top_level(&doc);
+        for bits in 0..8u8 {
+            let o = FlattenOptions {
+                text_to_outlines: bits & 1 != 0,
+                strokes_to_outlines: bits & 2 != 0,
+                preserve_overprints: bits & 4 != 0,
+                ..FlattenOptions::default()
+            };
+            let p = plan(&doc, &roots, &o, true).unwrap();
+            assert!(p.flat.is_empty(), "{o:?}");
+            // In the order the plan's groups come in.
+            let kept = p.kept.clone();
+            assert_eq!(sorted(kept.clone()), sorted(roots.clone()), "{o:?}");
+            let mut once = doc.clone();
+            let mut sel = vectorcraft_doc::Selection::default();
+            let (ids, ..) = apply(&mut once, &mut sel, p, &o).unwrap();
+            let mut walked = doc.clone();
+            let want = outlined_walk_by_walk(&mut walked, &kept, &o);
+            assert_eq!(ids, want, "{o:?}");
+            assert!(once == walked, "{o:?}");
+            assert_eq!(once == doc, bits == 4, "{o:?}: only with every option off does nothing change");
+        }
+    }
+
+    /// The Flattener Preview lists the kept objects the options change, and of those the type and
+    /// the stroked paths that show and are not pieces of a compound path.
+    #[test]
+    fn the_preview_lists_what_the_options_change_in_kept_objects() {
+        let (s, a) = kept_session(2);
+        let doc = &s.doc().unwrap().doc;
+        let roots = top_level(doc);
+        let r = super::super::report::report(doc, &roots, &outlining()).unwrap();
+        let (g, rects, texts): (Vec<_>, Vec<_>, Vec<_>) =
+            (a.groups.iter().map(|g| g.0).collect(), a.groups.iter().map(|g| g.1).collect(), a.groups.iter().map(|g| g.2).collect());
+        assert_eq!(r.affected, [g.clone(), vec![a.rect, a.text, a.compound, a.hidden_group]].concat());
+        // Both lists come in the order the plan's groups do.
+        assert_eq!(sorted(r.text.clone()), sorted([texts, vec![a.text]].concat()));
+        assert_eq!(sorted(r.strokes.clone()), sorted([rects, vec![a.rect, a.compound]].concat()));
+        assert!(!r.strokes.contains(&a.hidden) && !r.strokes.iter().any(|id| a.pieces.contains(id)) && !r.affected.contains(&a.plain));
+        // Dropping overprints alone changes the objects that overprint.
+        let o = FlattenOptions { preserve_overprints: false, ..FlattenOptions::default() };
+        let r = super::super::report::report(doc, &roots, &o).unwrap();
+        assert_eq!((r.affected, r.text, r.strokes), ([g, vec![a.text]].concat(), vec![], vec![]));
+        // With every option off, nothing.
+        assert!(super::super::report::report(doc, &roots, &FlattenOptions::default()).unwrap().affected.is_empty());
     }
 
 

@@ -72,7 +72,7 @@ fn every_setting_reaches_the_document() {
     assert_eq!(d.color_mode, ColorMode::Cmyk);
     assert_eq!(d.raster_effects_ppi, 150.0);
     // Saved and reopened, the settings stay.
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(d)).unwrap();
+    let back = etcfile::load(&etcfile::save_file(d)).unwrap();
     assert_eq!((back.raster_effects_ppi, back.setup.bleed, back.setup.background), (150.0, d.setup.bleed, Background::White));
 }
 
@@ -89,7 +89,7 @@ fn a_white_background_exports_opaque() {
     let alpha = |bg: &str| {
         let mut s = new_doc(json!({"width": 20, "height": 20, "backgroundContents": bg}));
         let r = s.execute("document.export", &json!({"format": "png"})).unwrap();
-        let png = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+        let png = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
         craft_image_codecs::decode(&png)
             .map(|__cimg| {
                 let (__w, __h) = __cimg.dimensions();
@@ -135,6 +135,39 @@ fn a_preset_starts_the_document_and_params_change_it() {
     assert_eq!(s.doc().unwrap().doc.units, Unit::Millimeters);
     s.execute("file.new", &json!({"preset": "HDTV 720p"})).unwrap();
     assert_eq!(s.doc().unwrap().doc.units, Unit::Pixels);
+}
+
+#[test]
+fn ppi_overprint_preview_and_bad_params() {
+    // Overprint Preview is process-wide.
+    let _view = crate::tests_colormgmt::GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
+    let mut s = new_doc(json!({"rasterEffectsPpi": 300, "previewMode": "overprint"}));
+    assert_eq!(s.doc().unwrap().doc.raster_effects_ppi, 300.0);
+    let overprint = |s: &mut Session| s.execute("view.proofSetup", &json!({})).unwrap()["overprintPreview"].clone();
+    assert_eq!(overprint(&mut s), true);
+    s.execute("view.overprintPreview", &json!({"on": false})).unwrap();
+    let r = s.execute("file.new", &json!({"previewMode": "pixel"})).unwrap();
+    assert_eq!(r["previewMode"], "pixel", "for the app's Pixel Preview");
+    assert_eq!(overprint(&mut s), false);
+    for p in [
+        json!({"orientation": "sideways"}),
+        json!({"width": -5}),
+        json!({"width": "wide"}),
+        json!({"bleed": 100}),
+        json!({"backgroundContents": "plaid"}),
+        json!({"colorMode": "lab"}),
+        json!({"rasterEffectsPpi": 0}),
+        json!({"previewMode": "xray"}),
+        json!({"artboardLayout": {"layout": "spiral"}}),
+        json!({"artboardLayout": {"columns": 0}}),
+        json!({"artboardLayout": {"rows": 2}}),
+        json!({"units": "furlongs"}),
+        json!({"width": 160000, "artboards": 1000}),
+    ] {
+        let mut s = Session::new();
+        assert!(s.execute("file.new", &p).is_err(), "{p}");
+        assert!(s.active().is_none(), "{p}: no document on an error");
+    }
 }
 
 
@@ -518,7 +551,7 @@ fn swatch_names(s: &Session) -> Vec<String> {
 fn edit_print_profile(s: &mut Session, dir: &std::path::Path) {
     // Edit writes the shipped profile and opens it.
     s.execute("file.newProfiles.edit", &json!({"name": "print"})).unwrap();
-    assert!(dir.join("Print.vectorcraft").is_file());
+    assert!(dir.join("Print.etc").is_file());
     assert_eq!(s.doc().unwrap().doc.color_mode, ColorMode::Cmyk);
     s.execute("swatch.new", &json!({"name": "Brand Red", "color": "#cc2200"})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 40, "height": 40})).unwrap();
@@ -562,7 +595,7 @@ fn edit_print_profile(s: &mut Session, dir: &std::path::Path) {
                 .map(|__b| out.extend_from_slice(&__b))
         }
         .unwrap();
-        vectorcraft_format::base64_encode(&out)
+        etcfile::base64::encode(&out)
     };
     s.execute("file.place", &json!({"name": "red.png", "dataBase64": png([255, 0, 0]), "link": false})).unwrap();
     s.execute("symbol.new", &json!({"name": "Logo"})).unwrap();
@@ -690,7 +723,7 @@ fn the_profile_follows_the_preset_access_and_reset() {
     let listed = crate::file_access::confine(Some(&roots), || s.execute("file.newProfiles", &json!({}))).unwrap();
     assert!(listed["profiles"].as_array().unwrap().iter().all(|p| p.get("customized").is_none() && p.get("path").is_none()), "{listed}");
     assert!(crate::file_access::confine(Some(&roots), || s.execute("file.newProfiles.edit", &json!({"name": "Web"}))).is_err());
-    assert!(!dir.join("Web.vectorcraft").exists());
+    assert!(!dir.join("Web.etc").exists());
     let _ = std::fs::remove_dir_all(&elsewhere);
     // A saved preset made from a Print preset keeps the profile.
     s.execute("file.newPresets.save", &json!({"name": "Zine", "preset": "A5"})).unwrap();
@@ -769,7 +802,7 @@ fn profile_errors_name_the_file_by_its_name_outside_the_read_roots() {
     let elsewhere = dir.with_extension("elsewhere");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::create_dir_all(&elsewhere).unwrap();
-    let whole = dir.join("Print.vectorcraft").to_string_lossy().to_string();
+    let whole = dir.join("Print.etc").to_string_lossy().to_string();
     let run = |s: &mut Session, roots: &std::sync::Arc<crate::file_access::AutomationRoots>, cmd: &str| {
         crate::file_access::confine(Some(roots), || s.execute(cmd, &json!({"name": "Print"}))).unwrap_err().to_string()
     };
@@ -777,17 +810,17 @@ fn profile_errors_name_the_file_by_its_name_outside_the_read_roots() {
     let read_only = crate::file_access::AutomationRoots::new(&[elsewhere.as_path()], &[]).unwrap().unwrap();
     for cmd in ["file.newProfiles.edit", "file.newProfiles.reset"] {
         let e = run(&mut s, &read_only, cmd);
-        assert!(e.ends_with(": Print.vectorcraft") && !e.contains(&whole), "{cmd}: {e}");
+        assert!(e.ends_with(": Print.etc") && !e.contains(&whole), "{cmd}: {e}");
     }
     // Write access without read access: edit is refused, and nothing is written.
     let write_only = crate::file_access::AutomationRoots::new(&[elsewhere.as_path()], &[dir.as_path()]).unwrap().unwrap();
     let e = run(&mut s, &write_only, "file.newProfiles.edit");
-    assert!(e.contains("outside the read root") && e.ends_with(": Print.vectorcraft") && !e.contains(&whole), "{e}");
-    assert!(!dir.join("Print.vectorcraft").exists());
+    assert!(e.contains("outside the read root") && e.ends_with(": Print.etc") && !e.contains(&whole), "{e}");
+    assert!(!dir.join("Print.etc").exists());
     // A file reset cannot delete (a folder in its place) is named by its file name too.
-    std::fs::create_dir_all(dir.join("Print.vectorcraft")).unwrap();
+    std::fs::create_dir_all(dir.join("Print.etc")).unwrap();
     let e = run(&mut s, &write_only, "file.newProfiles.reset");
-    assert!(e.starts_with("Print.vectorcraft: ") && !e.contains(&whole), "{e}");
+    assert!(e.starts_with("Print.etc: ") && !e.contains(&whole), "{e}");
     // Inside the read roots the error names the whole path.
     let inside = crate::file_access::AutomationRoots::new(&[dir.as_path()], &[dir.as_path()]).unwrap().unwrap();
     let e = run(&mut s, &inside, "file.newProfiles.reset");
@@ -803,7 +836,7 @@ fn the_new_document_links_from_the_profile_file() {
     let (mut s, dir) = with_profiles("links");
     edit_print_profile(&mut s, &dir);
     assert_eq!(s.execute("file.new", &json!({"preset": "A4"})).unwrap()["profile"], "Print");
-    let file = dir.join("Print.vectorcraft").to_string_lossy().to_string();
+    let file = dir.join("Print.etc").to_string_lossy().to_string();
     assert_eq!(s.doc().unwrap().links_from.as_deref(), Some(file.as_str()));
     s.execute("file.new", &json!({"preset": "Web 1920×1080"})).unwrap();
     assert_eq!(s.doc().unwrap().links_from, None);
@@ -824,28 +857,28 @@ fn a_profile_brings_the_color_profile_its_file_carries() {
     let icc = cms::icc_bytes(&builtin.name).unwrap().to_vec();
     let name = format!("Profile RGB {}", std::process::id());
     cms::register_icc(&icc, Some(name.clone())).unwrap();
-    let bytes_of = |v: &Value| vectorcraft_format::base64_decode(v.as_str().expect("base64")).unwrap();
+    let bytes_of = |v: &Value| etcfile::base64::decode(v.as_str().expect("base64")).unwrap();
     s.execute("file.new", &json!({"preset": "Web 1920×1080", "profile": null})).unwrap();
     std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc).color_profiles.rgb = Some(name.clone());
-    let file = String::from_utf8(bytes_of(&s.execute("file.saveCopy", &json!({"compress": false})).unwrap()["dataBase64"])).unwrap();
+    let file = String::from_utf8(bytes_of(&s.execute("file.saveCopy", &json!({})).unwrap()["dataBase64"])).unwrap();
     cms::unregister_icc(&name);
     // A profile made on another machine names a color profile this one lacks.
     let elsewhere = format!("Profile RGB elsewhere {}", std::process::id());
     assert!(cms::profile(&elsewhere).is_none());
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(dir.join("Web.vectorcraft"), file.replace(&name, &elsewhere)).unwrap();
+    std::fs::write(dir.join("Web.etc"), file.replace(&name, &elsewhere)).unwrap();
     let r = s.execute("file.new", &json!({"preset": "Web 1920×1080"})).unwrap();
     assert!(r["profile"] == "Web" && r.get("warnings").is_none(), "{r}");
     assert_eq!(cms::profile(&elsewhere).map(|p| p.kind), Some(cms::ProfileKind::Rgb));
     assert_eq!(s.doc().unwrap().doc.color_profiles.rgb.as_deref(), Some(elsewhere.as_str()));
-    let saved: Value = serde_json::from_slice(&bytes_of(&s.execute("file.saveCopy", &json!({"compress": false})).unwrap()["dataBase64"])).unwrap();
-    assert_eq!(vectorcraft_format::base64_decode(saved["profiles"][&elsewhere]["data"].as_str().unwrap()).unwrap(), icc);
+    let saved: Value = serde_json::from_slice(&bytes_of(&s.execute("file.saveCopy", &json!({})).unwrap()["dataBase64"])).unwrap();
+    assert_eq!(etcfile::base64::decode(saved["profiles"][&elsewhere]["data"].as_str().unwrap()).unwrap(), icc);
     cms::unregister_icc(&elsewhere);
     // Damaged profile data starts the document with a warning.
     let broken = format!("Profile RGB broken {}", std::process::id());
     let mut v: Value = serde_json::from_str(&file.replace(&name, &broken)).unwrap();
     v["profiles"][&broken]["data"] = json!("AAAA");
-    std::fs::write(dir.join("Web.vectorcraft"), serde_json::to_vec(&v).unwrap()).unwrap();
+    std::fs::write(dir.join("Web.etc"), serde_json::to_vec(&v).unwrap()).unwrap();
     let r = s.execute("file.new", &json!({"preset": "Web 1920×1080"})).unwrap();
     assert!(r["profile"] == "Web" && r["warnings"][0].as_str().unwrap_or_default().contains(&broken), "{r}");
     let _ = std::fs::remove_dir_all(&dir);
@@ -857,14 +890,14 @@ fn a_damaged_or_oversized_profile_leaves_the_defaults_and_is_reported() {
     s.execute("file.new", &json!({"preset": "Letter", "profile": null})).unwrap();
     let defaults = swatch_names(&s);
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(dir.join("Print.vectorcraft"), b"not a document").unwrap();
+    std::fs::write(dir.join("Print.etc"), b"not a document").unwrap();
     let r = s.execute("file.new", &json!({"preset": "Letter"})).unwrap();
     assert_eq!(r["profileError"]["profile"], "Print", "{r}");
     assert!(!r["profileError"]["reason"].as_str().unwrap_or("").is_empty(), "{r}");
     assert!(r.get("profile").is_none());
     assert_eq!(swatch_names(&s), defaults);
     // Past the limit the file is not read at all (a sparse file of that length).
-    let big = std::fs::File::create(dir.join("Web.vectorcraft")).unwrap();
+    let big = std::fs::File::create(dir.join("Web.etc")).unwrap();
     big.set_len(crate::cmd::newdoc::MAX_PROFILE_BYTES + 1).unwrap();
     drop(big);
     let r = s.execute("file.new", &json!({"preset": "Web 1920×1080"})).unwrap();

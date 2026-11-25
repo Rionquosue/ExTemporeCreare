@@ -27,14 +27,14 @@ fn each_encoding_reopens_and_serializes_as_text() {
         let text = r["text"].as_str().unwrap();
         assert!(text.contains("Grüße") && text.contains(&format!("encoding=\"{name}\"")), "{text}");
         let bytes = match r.get("dataBase64") {
-            Some(b) => vectorcraft_format::base64_decode(b.as_str().unwrap()).unwrap(),
+            Some(b) => etcfile::base64::decode(b.as_str().unwrap()).unwrap(),
             None => text.as_bytes().to_vec(),
         };
         assert_eq!(bom, bytes.starts_with(&[0xfe, 0xff]), "{encoding}");
         assert_eq!(r.get("dataBase64").is_some(), encoding != "utf8", "{encoding}");
         for (file, data) in [("t.svg", bytes.clone()), ("t.svgz", vectorcraft_svg::compress_bytes(&bytes))] {
             let mut o = Session::new();
-            o.execute("document.open", &json!({"name": file, "dataBase64": vectorcraft_format::base64_encode(&data)})).unwrap();
+            o.execute("document.open", &json!({"name": file, "dataBase64": etcfile::base64::encode(&data)})).unwrap();
             let plain = o.execute("document.inspect", &json!({})).unwrap().to_string();
             assert!(plain.contains("Grüße €"), "{encoding} {file}: {plain}");
         }
@@ -159,7 +159,7 @@ fn a_chosen_artboard_s_svg_keeps_brush_art_reaching_in() {
     let svg = svg["text"].as_str().unwrap().to_string();
     assert!(vectorcraft_testkit::svg_shapes(&svg) > 0, "{svg}");
     let svgz = s.execute("document.serialize", &json!({"format": "svgz", "artboard": 0})).unwrap();
-    let svgz = vectorcraft_format::base64_decode(svgz["dataBase64"].as_str().unwrap()).unwrap();
+    let svgz = etcfile::base64::decode(svgz["dataBase64"].as_str().unwrap()).unwrap();
     assert_eq!(vectorcraft_svg::text_of(&svgz).unwrap(), svg, "the SVGZ is the SVG gzipped");
 }
 
@@ -276,7 +276,7 @@ fn an_svg_of_one_artboard_is_titled_after_it() {
             .as_array()
             .unwrap()
             .iter()
-            .map(|f| title(&String::from_utf8(vectorcraft_format::base64_decode(f["dataBase64"].as_str().unwrap()).unwrap()).unwrap()))
+            .map(|f| title(&String::from_utf8(etcfile::base64::decode(f["dataBase64"].as_str().unwrap()).unwrap()).unwrap()))
             .collect()
     };
     let svg = json!([{"format": "svg"}]);

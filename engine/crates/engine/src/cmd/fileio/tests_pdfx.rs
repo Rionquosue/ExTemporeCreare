@@ -52,7 +52,7 @@ fn session() -> Session {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    s.execute("file.place", &json!({"name": "dots.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [150, 50]})).unwrap();
+    s.execute("file.place", &json!({"name": "dots.png", "dataBase64": etcfile::base64::encode(&png), "at": [150, 50]})).unwrap();
     s
 }
 
@@ -60,7 +60,7 @@ fn session() -> Session {
 fn pdf(s: &mut Session, mut p: Value) -> (String, Vec<String>) {
     p["compression"] = json!({"compressText": false});
     let v = s.execute("document.exportPdf", &p).unwrap();
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     let warnings = v["warnings"].as_array().unwrap().iter().map(|w| w.as_str().unwrap().to_string()).collect();
     (String::from_utf8_lossy(&bytes).into_owned(), warnings)
 }
@@ -280,6 +280,98 @@ fn art_that_reaches_the_trim_edge_but_stops_short_of_the_bleed_warns() {
     assert_eq!(short_of_bleed(&mut s), ["1 object reaches the trim edge but stops short of the bleed"]);
 }
 
+/// No warning for art that already fills the bleed, art inside the trim, a document without a
+/// bleed, art on hidden, non-printing or template layers, a side without a bleed, area type, a
+/// masked object, or a `.ai` save.
+#[test]
+fn art_that_fills_the_bleed_or_stays_inside_does_not_warn() {
+    let mut s = bleed_session(json!(9));
+    plain_rect(&mut s, [-9.0, -9.0, 209.0, 109.0]);
+    plain_rect(&mut s, [-20.0, 40.0, 50.0, 60.0]);
+    plain_rect(&mut s, [10.0, 10.0, 190.0, 90.0]);
+    assert!(short_of_bleed(&mut s).is_empty());
+    // A document without a bleed has nothing to fall short of.
+    let mut s = bleed_session(json!(0));
+    plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    assert!(short_of_bleed(&mut s).is_empty());
+    // Layers that don't print.
+    for props in [json!({"visible": false}), json!({"printable": false}), json!({"template": true})] {
+        let mut s = bleed_session(json!(9));
+        let layer = s.execute("layer.new", &json!({})).unwrap()["id"].clone();
+        plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+        let mut p = props.clone();
+        p["id"] = layer;
+        s.execute("layer.setProps", &p).unwrap();
+        assert!(short_of_bleed(&mut s).is_empty(), "{props}");
+    }
+    // A hidden object, and a group whose hidden member is the one at the trim edge.
+    let mut s = bleed_session(json!(9));
+    let id = plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    s.execute("object.hide", &json!({"ids": [id]})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    let mut s = bleed_session(json!(9));
+    let edge = plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    let inside = plain_rect(&mut s, [10.0, 30.0, 50.0, 60.0]);
+    s.execute("object.group", &json!({"ids": [edge, inside]})).unwrap();
+    s.execute("object.hide", &json!({"ids": [edge]})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // Art that lies in the bleed alone, away from the trim edge.
+    let mut s = bleed_session(json!(9));
+    plain_rect(&mut s, [20.0, -5.0, 60.0, -3.0]);
+    assert!(short_of_bleed(&mut s).is_empty());
+    // A guide in a group at the trim edge.
+    let mut s = bleed_session(json!(9));
+    let guide = plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    s.execute("view.guides.make", &json!({})).unwrap();
+    let inside = plain_rect(&mut s, [10.0, 30.0, 50.0, 60.0]);
+    s.execute("object.group", &json!({"ids": [guide, inside]})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // A brushed stroke, whose brush art can paint past its visual bounds, is not measured.
+    let mut s = bleed_session(json!(9));
+    let id = plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    s.execute("brush.apply", &json!({"ids": [id], "name": "Charcoal"})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // A path with no fill and no stroke paints nothing.
+    let mut s = bleed_session(json!(9));
+    let id = plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    s.execute("paint.setFill", &json!({"ids": [id], "none": true})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // An object at 0% opacity draws nothing.
+    let mut s = bleed_session(json!(9));
+    let id = plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    s.execute("object.setProps", &json!({"ids": [id], "opacity": 0})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // A clipping layer whose clipping path lies inside the trim draws none of its art at the edge.
+    let mut s = bleed_session(json!(9));
+    let clipping = s.execute("layer.new", &json!({})).unwrap()["id"].clone();
+    plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    plain_rect(&mut s, [10.0, 10.0, 60.0, 60.0]);
+    s.execute("layer.clippingMask.toggle", &json!({"id": clipping})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // A bleed on the top alone: art short at the left doesn't count, art short at the top does.
+    let mut s = bleed_session(json!([9, 0, 0, 0]));
+    plain_rect(&mut s, [0.0, 30.0, 40.0, 60.0]);
+    assert!(short_of_bleed(&mut s).is_empty());
+    plain_rect(&mut s, [60.0, 0.0, 100.0, 40.0]);
+    assert_eq!(short_of_bleed(&mut s).len(), 1);
+    // Area type is bounded by its frame, not its glyphs: a frame at the trim edge is not measured.
+    let mut s = bleed_session(json!(9));
+    s.execute("text.create", &json!({"x": 0, "y": 0, "text": "Title", "size": 12, "area": {"width": 200, "height": 40}})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // An opacity mask decides what shows of the object, so a masked object is not measured.
+    let mut s = bleed_session(json!(9));
+    let band = plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    let mask = plain_rect(&mut s, [20.0, 30.0, 60.0, 60.0]);
+    s.execute("transparency.makeOpacityMask", &json!({"ids": [band, mask]})).unwrap();
+    assert!(short_of_bleed(&mut s).is_empty());
+    // A `.ai` save with a bleed doesn't warn: the check is PDF export's.
+    let mut s = bleed_session(json!(9));
+    plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
+    assert_eq!(short_of_bleed(&mut s).len(), 1);
+    let r = s.execute("document.export", &json!({"format": "ai", "bleed": {"useDocument": true}})).unwrap();
+    assert!(!r["warnings"].to_string().contains("short of the bleed"), "{}", r["warnings"]);
+}
+
 
 /// The warning changes neither the art nor the page boxes.
 #[test]
@@ -371,9 +463,9 @@ fn pdfx_1a_flattening_keeps_the_inks_behind_an_image_in_a_cmyk_document() {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    s.execute("file.place", &json!({"name": "logos.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [100, 50]})).unwrap();
+    s.execute("file.place", &json!({"name": "logos.png", "dataBase64": etcfile::base64::encode(&png), "at": [100, 50]})).unwrap();
     let v = s.execute("document.exportPdf", &json!({"standard": "pdfX1a"})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     let back = vectorcraft_pdf::import(&bytes).unwrap();
     // Behind the image's see-through half: the panel's own inks, K included.
     let ink = image_inks_at(&back, vectorcraft_geom::Point::new(88.0, 50.0)).expect("a CMYK image behind the see-through pixels");
@@ -462,7 +554,7 @@ fn cropped_by(mode: &str, width: f64, art: Art, layer: bool) -> (Session, u64) {
             }
             .unwrap();
             let placed =
-                run(&mut s, "file.place", json!({"name": "photo.png", "dataBase64": vectorcraft_format::base64_encode(&png), "rect": FRAME}));
+                run(&mut s, "file.place", json!({"name": "photo.png", "dataBase64": etcfile::base64::encode(&png), "rect": FRAME}));
             placed["ids"][0].clone()
         }
         Art::Gradient | Art::Shadow => {
@@ -493,7 +585,7 @@ fn cropped_by(mode: &str, width: f64, art: Art, layer: bool) -> (Session, u64) {
 /// `document.exportPdf` with `p`, read back.
 fn read_back(s: &mut Session, p: &Value) -> vectorcraft_doc::Document {
     let v = run(s, "document.exportPdf", p.clone());
-    vectorcraft_pdf::import(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap()
+    vectorcraft_pdf::import(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap()
 }
 
 /// `doc`'s artboards drawn on white at 72 ppi.
@@ -750,7 +842,7 @@ fn flat_pdf_files_of_art_that_no_clip_group_hides_are_unchanged() {
     }
     .unwrap();
     let photo =
-        run(&mut fitted, "file.place", json!({"name": "photo.png", "dataBase64": vectorcraft_format::base64_encode(&png), "rect": FRAME}))["ids"][0]
+        run(&mut fitted, "file.place", json!({"name": "photo.png", "dataBase64": etcfile::base64::encode(&png), "rect": FRAME}))["ids"][0]
             .clone();
     let [x, y, w, h] = FRAME;
     let clip = run(&mut fitted, "shape.rectangle", json!({"x": x, "y": y, "width": w, "height": h}))["id"].clone();
@@ -853,7 +945,7 @@ fn flattening_for_pdfx_removes_transparent_art_that_a_clipping_layer_hides_entir
     for flat in FLAT_FILES {
         let p: Value = serde_json::from_str(flat).unwrap();
         let back = match s.execute("document.exportPdf", &p) {
-            Ok(v) => vectorcraft_pdf::import(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap(),
+            Ok(v) => vectorcraft_pdf::import(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap(),
             Err(e) => panic!("{flat}: {e}"),
         };
         assert_eq!(lost(&drawn(&back), &reference), 0, "{flat}: the hidden art prints");
@@ -999,7 +1091,7 @@ fn pdfx_flattens_layer_and_sublayer_transparency() {
         }
         // Verify it can be imported back and renders artwork
         let v = s.execute("document.exportPdf", &json!({"standard": standard})).unwrap();
-        let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+        let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
         let imported = vectorcraft_pdf::import(&bytes).unwrap();
         assert!(!imported.layers.is_empty());
         let rendered = drawn(&imported);

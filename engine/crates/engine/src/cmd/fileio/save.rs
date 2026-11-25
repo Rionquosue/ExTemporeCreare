@@ -14,17 +14,17 @@ use vectorcraft_doc::Document;
 
 use super::super::{CommandSpec, Result, Session, always, bad, bool_or, clock_date, cmd, date_param, has_doc, str_param};
 use super::{
-    ARTBOARD_PARAMS, ArtboardPick, Encoded, Format, Loaded, encode_all, file_stem, format, format_for_name, load, read_file, with_compression_pref,
+    ARTBOARD_PARAMS, ArtboardPick, Encoded, Format, Loaded, encode_all, file_stem, format, format_for_name, load, read_file,
     write_encoded,
 };
 use crate::{DocState, Prefs};
 
 /// The formats Save As offers, in menu order (append-only). The other writable formats are exports:
 /// they never become the document's own file.
-pub const SAVE_FORMATS: &[&str] = &["vectorcraft", "template", "pdf", "svg", "svgz"];
+pub const SAVE_FORMATS: &[&str] = &["etc", "pdf", "svg", "svgz"];
 
 /// The formats Save as Template writes: a native template.
-pub const TEMPLATE_FORMATS: &[&str] = &["template"];
+pub const TEMPLATE_FORMATS: &[&str] = &["etc"];
 
 /// Save-panel filters `(label, [extension])` for `first` (a format id, or a file name whose
 /// extension names one): when Save writes that format, one per [`SAVE_FORMATS`] entry with it
@@ -112,7 +112,7 @@ impl SavePlan {
     /// Does writing this make the file the document's own (Save and Save As, except to a
     /// template)?
     pub fn retargets(&self) -> bool {
-        matches!(self.mode, SaveMode::Save | SaveMode::SaveAs) && self.format.id != "template"
+        matches!(self.mode, SaveMode::Save | SaveMode::SaveAs)
     }
 }
 
@@ -222,11 +222,11 @@ fn save_format_of(f: &str) -> std::result::Result<&'static Format, String> {
 /// The format Save writes for `format` (an id or extension), else the format `path`'s extension
 /// names, else native (see [`SAVE_FORMATS`]); other formats are exports.
 pub fn save_format(format: Option<&str>, path: Option<&str>) -> std::result::Result<&'static Format, String> {
-    save_format_of(format.or_else(|| path.and_then(format_for_name).map(|f| f.id)).unwrap_or("vectorcraft"))
+    save_format_of(format.or_else(|| path.and_then(format_for_name).map(|f| f.id)).unwrap_or("etc"))
 }
 
 /// `path` for a template in format `f`: kept when its extension names `f`, with the extension
-/// replaced when it names another format (`card.png` → `card.vctemplate`), else with `f`'s
+/// replaced when it names another format (`card.png` → `card.etc`), else with `f`'s
 /// extension added (`card`, `card v1.2`).
 fn template_path(path: &str, f: &Format) -> String {
     let ext = f.extensions[0];
@@ -249,11 +249,8 @@ pub fn save_plan(s: &Session, mode: SaveMode, p: &Value) -> Result<SavePlan> {
     let st = s.doc()?;
     let path = str_param(p, "path").map(str::to_string);
     let format = match (mode, str_param(p, "format"), path.as_deref().and_then(format_for_name)) {
-        // `.ait` when the format or else the path's extension names it; else a native template.
-        (SaveMode::Template, f, by_name) => match f.map_or(by_name, format).filter(|f| TEMPLATE_FORMATS.contains(&f.id)) {
-            Some(f) => f,
-            None => checked(cmd, "template")?,
-        },
+        // A template is always an `.etc` file.
+        (SaveMode::Template, ..) => checked(cmd, "etc")?,
         (_, Some(f), _) => checked(cmd, f)?,
         (_, None, Some(f)) => checked(cmd, f.id)?,
         (_, None, None) => checked(cmd, st.format)?,
@@ -283,18 +280,7 @@ pub fn save_plan(s: &Session, mode: SaveMode, p: &Value) -> Result<SavePlan> {
     }
     // None given: the ones the document was last saved with in this format.
     let from_memory = given.is_empty() && format.id == st.format;
-    let mut options = if from_memory { remembered_save_options(st) } else { given };
-    // Remember the effective choice, including the encoder's default, so another document's
-    // later save cannot change what this one writes. Invalid non-null values still reach validation.
-    if matches!(format.id, "vectorcraft" | "template") {
-        let pdf = match options.get("pdfCompatible") {
-            None | Some(Value::Null) => Some(native_pdf_preference(s, Some(st)).unwrap_or(true)),
-            _ => None,
-        };
-        if let Some(pdf) = pdf {
-            options.insert("pdfCompatible".into(), json!(pdf));
-        }
-    }
+    let options = if from_memory { remembered_save_options(st) } else { given };
     // Save writes the document's own file; the other modes only where they are told to.
     let path =
         path.or_else(|| (mode == SaveMode::Save && !st.converted && !st.recovered && format.id == st.format).then(|| st.path.clone()).flatten());
@@ -331,7 +317,7 @@ pub fn save_plan(s: &Session, mode: SaveMode, p: &Value) -> Result<SavePlan> {
 }
 
 /// The native save options, which a save also takes beside the path.
-const NATIVE_OPTIONS: [&str; 4] = ["compress", "version", "preview", "precision"];
+const NATIVE_OPTIONS: [&str; 1] = ["precision"];
 
 /// Does some save format (or template format) take option `key`?
 fn save_listed(key: &str) -> bool {
@@ -374,15 +360,6 @@ fn same_value(a: &Value, b: &Value) -> bool {
         (Value::Number(x), Value::Number(y)) => x == y || ((x.is_f64() || y.is_f64()) && x.as_f64() == y.as_f64()),
         _ => a == b,
     }
-}
-
-/// Native documents and templates share only their PDF choice. Other source formats use the
-/// application's last native choice, keeping an AI file's separate PDF option out of it.
-fn native_pdf_preference(s: &Session, st: Option<&DocState>) -> Option<bool> {
-    st.filter(|d| matches!(d.format, "vectorcraft" | "template"))
-        .and_then(|d| d.save_options.get("pdfCompatible"))
-        .and_then(Value::as_bool)
-        .or_else(|| s.prefs.native_save_options.get("pdfCompatible").and_then(Value::as_bool))
 }
 
 /// The options `st` was last saved with, their artboards (`artboard`, `artboards` and `range`)
@@ -498,7 +475,7 @@ pub(super) fn unused_option_note(key: &str, written: &Format) -> String {
 /// Formats that carry the whole native document: they lose nothing, and record links relative to
 /// where they are written.
 fn is_native(f: &Format) -> bool {
-    matches!(f.id, "vectorcraft" | "template")
+    matches!(f.id, "etc")
 }
 
 fn is_pdf(f: &Format) -> bool {
@@ -702,10 +679,15 @@ fn job_for_stamped(s: &Session, st: &DocState, plan: SavePlan, stamped: Option<i
     let base = crate::cmd::links::LinkBase::of(st);
     let relative = plan.path.as_deref().filter(|_| is_native(plan.format)).and_then(|p| crate::cmd::links::with_relative_paths(&own, base, p));
     let doc = relative.map_or(own, Arc::new);
-    let mut params = params;
-    if matches!(plan.format.id, "vectorcraft" | "template") {
-        // Not remembered with the options: the preference decides each time it isn't given.
-        params = with_compression_pref(&s.prefs, &params);
+    // A template is flagged so opening it starts a new untitled document.
+    let doc = if plan.mode == SaveMode::Template {
+        let mut d = (*doc).clone();
+        d.template = true;
+        Arc::new(d)
+    } else {
+        doc
+    };
+    if matches!(plan.format.id, "etc") {
         super::native::save_options(cmd, plan.format, &doc, &params).map_err(|e| named_for_save(cmd, e))?;
     }
     let boards = separate_boards(cmd, plan.format, &doc, &params)?;
@@ -836,11 +818,11 @@ impl SaveJob {
     /// Is the file written as it is encoded by [`SaveJob::write_streamed`]? A native file (or
     /// template) to a path, without a file per artboard.
     pub fn streams(&self) -> bool {
-        self.plan.path.is_some() && matches!(self.plan.format.id, "vectorcraft" | "template") && self.boards.is_empty()
+        self.plan.path.is_some() && matches!(self.plan.format.id, "etc") && self.boards.is_empty()
     }
 
     /// [`SaveJob::write`] through `stream`, which writes the file at a path with what the filler
-    /// it is given writes (atomically, as [`vectorcraft_format::write_atomic_with`]). A native
+    /// it is given writes (atomically, as [`etcfile::write_atomic_with`]). A native
     /// file goes into it as it is encoded ([`SaveJob::streams`]), never held whole in memory;
     /// other files are encoded first, then written into it. Work canceled ([`crate::cancel`])
     /// while the native file is encoded, or before its filler returns, returns
@@ -853,16 +835,6 @@ impl SaveJob {
         crate::cancel::check()?;
         let (cmd, f) = (self.plan.mode.command(), self.plan.format);
         let doc = self.doc.without_edit_modes();
-        let doc = match f.id {
-            // A native file flagged so opening it starts a new untitled document (as
-            // `encode_all` writes it).
-            "template" => {
-                let mut d = doc.into_owned();
-                d.template = true;
-                std::borrow::Cow::Owned(d)
-            }
-            _ => doc,
-        };
         // The encoder's failure, kept apart from the writer's (which `stream` reports).
         let mut failed = None;
         let mut written = 0u64;
@@ -930,16 +902,16 @@ impl SaveJob {
     /// its own also ends its Data Recovery copy.
     pub fn complete(self, s: &mut Session, uid: u64) {
         let saved = self.plan.retargets() && self.plan.path.is_some();
-        if saved && self.plan.format.id == "vectorcraft" {
+        if saved && self.plan.format.id == "etc" {
             let mut last = self.plan.options.clone();
-            last.retain(|k, _| !ARTBOARD_PARAMS.contains(&k.as_str()) && !matches!(k.as_str(), "separateArtboards" | "compress" | "precision"));
+            last.retain(|k, _| !ARTBOARD_PARAMS.contains(&k.as_str()) && !matches!(k.as_str(), "separateArtboards" | "precision"));
             s.prefs.native_save_options = last;
         }
         // The other open documents that place this one show the new version.
-        let written = self.plan.path.clone().filter(|_| matches!(self.plan.format.id, "vectorcraft" | "template"));
+        let written = self.plan.path.clone().filter(|_| matches!(self.plan.format.id, "etc"));
         // A save of the arrowheads file lists its heads in the arrowhead menus, and one of the
         // bevels file its bevels in the Bevel Shape menus.
-        let native = self.plan.format.id == "vectorcraft";
+        let native = self.plan.format.id == "etc";
         if let Some(st) = s.document_mut(uid) {
             self.finish(st);
         }
@@ -1032,7 +1004,7 @@ fn revert(s: &mut Session, _: &Value) -> Result<Value> {
     let index = s.active_index().ok_or(crate::EngineError::NoDocument)?;
     let path = s.doc()?.path.clone().ok_or_else(|| bad("file.revert", "the document has never been saved"))?;
     let bytes = read_file(&path).map_err(|e| super::access::naming_in_error(e, &path))?;
-    let Loaded { mut doc, native_pdf_compatible, .. } = load(&path, &bytes)?.with_grid_prefs(&s.prefs).with_unit_prefs(&s.prefs);
+    let Loaded { mut doc, .. } = load(&path, &bytes)?.with_grid_prefs(&s.prefs).with_unit_prefs(&s.prefs);
     doc.template = false;
     // The color management policies apply as when the file is opened.
     let (notes, policy_changed) = crate::cmd::colormgmt::apply_open_policies(&mut doc);
@@ -1042,9 +1014,6 @@ fn revert(s: &mut Session, _: &Value) -> Result<Value> {
     s.replace_document(index, doc);
     if policy_changed {
         s.doc_mut()?.mark_unsaved();
-    }
-    if let Some(pdf) = native_pdf_compatible {
-        s.doc_mut()?.save_options.insert("pdfCompatible".into(), json!(pdf));
     }
     let mut reply = json!({ "path": path });
     if !notes.is_empty() {
@@ -1057,7 +1026,7 @@ fn revert(s: &mut Session, _: &Value) -> Result<Value> {
 fn format_options(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "file.formatOptions";
     let st = s.active();
-    let id = str_param(p, "format").or(st.map(|d| d.format)).unwrap_or("vectorcraft");
+    let id = str_param(p, "format").or(st.map(|d| d.format)).unwrap_or("etc");
     let f = format(id)
         .filter(|f| f.write || SAVE_FORMATS.contains(&f.id) || TEMPLATE_FORMATS.contains(&f.id))
         .ok_or_else(|| bad(C, format!("`{id}` is no writable format (see document.formats)")))?;
@@ -1066,20 +1035,11 @@ fn format_options(s: &mut Session, p: &Value) -> Result<Value> {
         .filter(|d| d.format == f.id)
         .map(remembered_save_options)
         .filter(|m| !m.is_empty())
-        .or_else(|| (f.id == "vectorcraft" && !s.prefs.native_save_options.is_empty()).then(|| s.prefs.native_save_options.clone()));
-    // A native save compresses as Use Compression says, unless told otherwise.
-    let prefs = with_compression_pref(&s.prefs, &json!({}));
-    let native_pdf = matches!(f.id, "vectorcraft" | "template").then(|| native_pdf_preference(s, st)).flatten();
+        .or_else(|| (f.id == "etc" && !s.prefs.native_save_options.is_empty()).then(|| s.prefs.native_save_options.clone()));
     let mut v = f.to_json();
     if let Some(options) = v["options"].as_object_mut() {
         for (name, o) in options.iter_mut() {
-            let default = prefs.get(name).filter(|_| matches!(f.id, "vectorcraft" | "template")).unwrap_or(&o["default"]);
-            o["value"] = saved.as_ref().and_then(|m| m.get(name)).unwrap_or(default).clone();
-            if name == "pdfCompatible"
-                && let Some(pdf) = native_pdf
-            {
-                o["value"] = json!(pdf);
-            }
+            o["value"] = saved.as_ref().and_then(|m| m.get(name)).unwrap_or(&o["default"]).clone();
         }
     }
     v["saveFormats"] =
@@ -1121,7 +1081,7 @@ pub(super) fn specs() -> Vec<CommandSpec> {
             "Save as Template…",
             ["File"],
             None,
-            "{…as document.save} {path? (saved with the format's extension: one naming another format is replaced, and one is added to a name without it), format?: template (default) | ait (also when format is not given and the path ends in .ait), compress?, version?, preview?, precision?} a template that opens as a new untitled document: a native template (.vctemplate), or a PDF-compatible .ait written as a .ai file is (the .ai options and the PDF options, as document.save takes them for .ai; aiVersion 7 is an error); the document is unchanged → {path, format, bytes, warnings}; no path → {dataBase64, format, name: \"<name> template.<ext>\", folder: the Templates folder (preference templatesFolder), warnings}. Under automation read roots, it is refused, before any file is written, while the document links a JavaScript file outside them, as document.save refuses it",
+            "{…as document.save} {path? (saved with the .etc extension: one naming another format is replaced, and one is added to a name without it), precision?, includeLinked?, embedProfiles?} an .etc file flagged as a template: opening it starts a new untitled document",
             has_doc,
             |s, p| save(s, SaveMode::Template, p)
         ),

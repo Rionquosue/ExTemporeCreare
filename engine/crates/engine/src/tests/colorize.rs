@@ -411,7 +411,7 @@ fn colorized_gray_image_is_flattened_for_pdf_13() {
         "{}",
         tinted["warnings"]
     );
-    let bytes = vectorcraft_format::base64_decode(tinted["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(tinted["dataBase64"].as_str().unwrap()).unwrap();
     assert!(!String::from_utf8_lossy(&bytes).contains("/SMask"), "PDF 1.3 has no soft mask");
 }
 
@@ -422,8 +422,29 @@ fn colorized_gray_image_is_flattened_for_pdf_x_1a() {
     s.execute("paint.setFill", &json!({"color": "#ff0000", "ids": [id.0]})).unwrap();
     let out = s.execute("document.exportPdf", &json!({"standard": "pdfX1a"})).unwrap();
     assert!(out["warnings"].as_array().unwrap().iter().any(|w| w.as_str().unwrap().contains("transparency is flattened")), "{}", out["warnings"]);
-    let bytes = vectorcraft_format::base64_decode(out["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(out["dataBase64"].as_str().unwrap()).unwrap();
     assert!(!String::from_utf8_lossy(&bytes).contains("/SMask"), "PDF/X-1a has no soft mask");
+}
+
+/// A linked image showing the missing-link placeholder draws uncolorized, so its colorize paint
+/// doesn't flatten it in EPS or PDF 1.3 export.
+#[test]
+fn a_colorized_missing_link_placeholder_is_not_flattened() {
+    let mut s = session();
+    let bytes = std::sync::Arc::new(vectorcraft_doc::links::missing_placeholder().unwrap());
+    let id = image(&mut s, "pic", ImageBlob { mime: "image/png".into(), bytes: bytes.clone(), proxy: Some(bytes) });
+    s.edit("Colorize", |d, _| {
+        d.node_mut(id).unwrap().extras_mut().colorize = Some(Box::new(Paint::solid(Color::rgb8(255, 0, 0))));
+        Ok(())
+    })
+    .unwrap();
+    let flattened =
+        |out: &serde_json::Value| out["warnings"].as_array().unwrap().iter().any(|w| w.as_str().unwrap().contains("transparency is flattened"));
+    let eps = s.execute("document.exportEps", &json!({"previewFormat": "none", "useArtboards": false})).unwrap();
+    assert!(!flattened(&eps), "{}", eps["warnings"]);
+    let pdf = s.execute("document.exportPdf", &json!({"compatibility": "1.3"})).unwrap();
+    assert!(!flattened(&pdf), "{}", pdf["warnings"]);
+    assert_eq!(colorize(&s, id), Some(Paint::solid(Color::rgb8(255, 0, 0))), "the image keeps its paint");
 }
 
 
@@ -647,7 +668,7 @@ fn colorized_images_save_and_open_with_their_color() {
     let id = image(&mut s, "gray", gray(false));
     s.execute("paint.setFill", &json!({"swatch": "Ink"})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     assert!(back.node(id).unwrap().extras().colorize.is_some());
     // Swatch edits reach it as they reach fills.

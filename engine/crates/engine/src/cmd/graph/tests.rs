@@ -450,6 +450,65 @@ fn an_edit_of_a_graph_designs_art_is_lost_when_the_graph_is_drawn_again() {
     assert!((path(&s).opacity - 1.0).abs() < 1e-6);
 }
 
+/// The paint, stroke, gradient and overprint commands leave the art of a graph design in a series as the design draws
+/// it, and edit the other objects they are given.
+#[test]
+fn paint_commands_leave_a_graph_designs_art_out() {
+    let (mut s, graph, copy, art, mark) = design_art();
+    let fill = top_row(&s, art, true);
+    let commands = [
+        ("stroke.set", json!({"weight": 5})),
+        ("stroke.weightUp", json!({})),
+        ("stroke.setAdvanced", json!({"arrowScale": [200, 200]})),
+        ("paint.editGradient", json!({"kind": "linear"})),
+        ("paint.setGradientGeom", json!({"start": [0, 0], "end": [50, 50]})),
+        ("object.setOverprint", json!({"fill": true})),
+        ("paint.swap", json!({})),
+        ("paint.default", json!({})),
+        ("paint.invert", json!({"item": fill, "stroke": false})),
+        ("paint.invert", json!({})),
+    ];
+    let (copy_was, art_was) = (look(&s, copy), look(&s, art));
+    for (cmd, p) in &commands {
+        for ids in [json!([copy.0]), json!([art.0])] {
+            let steps = s.doc().unwrap().history.undo.len();
+            let mut q = p.clone();
+            q["ids"] = ids;
+            let _ = s.execute(cmd, &q);
+            assert_eq!((look(&s, copy), look(&s, art)), (copy_was.clone(), art_was.clone()), "{cmd}");
+            assert_eq!(s.doc().unwrap().history.undo.len(), steps, "{cmd}");
+        }
+        let mark_was = look(&s, mark);
+        let mut q = p.clone();
+        q["ids"] = json!([art.0, mark.0]);
+        s.execute(cmd, &q).unwrap();
+        assert_eq!(look(&s, art), art_was, "{cmd}");
+        assert_ne!(look(&s, mark), mark_was, "{cmd}");
+        s.execute("edit.undo", &json!({})).unwrap();
+    }
+    // Selected, without ids.
+    s.execute("select.set", &json!({"ids": [art.0]})).unwrap();
+    s.execute("stroke.set", &json!({"weight": 5})).unwrap();
+    assert_eq!(look(&s, art), art_was);
+    // Given the whole graph, Invert recolors the marks and leaves the art.
+    let mark_was = look(&s, mark);
+    s.execute("paint.invert", &json!({"ids": [graph.0]})).unwrap();
+    assert_eq!(look(&s, art), art_was);
+    assert_ne!(look(&s, mark), mark_was);
+    // A freeform gradient point is refused on the art alone.
+    refused_on_design_art(&mut s, "paint.freeform.addPoint", json!({"ids": [art.0], "at": [0, 0]}));
+}
+
+/// `attributes.info` reads the overprint of a graph design's art in a series, which the overprint edits leave out.
+#[test]
+fn attributes_info_reads_a_graph_designs_art() {
+    let (mut s, _, _, art, _) = design_art();
+    let info = s.execute("attributes.info", &json!({"ids": [art.0]})).unwrap();
+    assert_eq!(info["ids"], json!([art.0]));
+    assert_eq!(info["overprintFill"], json!(false), "{info}");
+    assert_eq!(info["overprintStroke"], json!(false), "{info}");
+}
+
 
 
 /// With only the art of a graph design selected, `stroke.setAdvanced` and the stroke mode of `paint.editGradient` act
@@ -4368,6 +4427,25 @@ fn a_recolored_series_mark_is_kept() {
     });
 }
 
+/// The ink limit of Print Ink Fixes on a series mark's fill is stored on the graph.
+#[test]
+fn an_ink_limit_on_a_series_mark_is_kept() {
+    let mut s = Session::new();
+    s.execute("file.new", &json!({"colorMode": "cmyk"})).unwrap();
+    let id = graph(&mut s, "column");
+    let mark = series(&s.doc().unwrap().doc.node(id).unwrap().clone(), 0).children().unwrap()[0].id;
+    // `paint.setFill` stores the heavy color before the limit lowers it.
+    s.execute("paint.setFill", &json!({"ids": [mark.0], "color": {"c": 100, "m": 100, "y": 100, "k": 100}})).unwrap();
+    let heavy = fill_of(&s, mark);
+    assert_eq!(spec(&s, id).series_paints[0].fill, Some(heavy.clone()));
+    s.execute("addon.color.printFixes", &json!({"ids": [mark.0], "inkLimit": 300})).unwrap();
+    let fill = fill_of(&s, mark);
+    assert_ne!(fill, heavy, "the limit lowers the ink");
+    assert_eq!(spec(&s, id).series_paints[0].fill, Some(fill.clone()));
+    s.execute("graph.setData", &json!({"id": id.0, "rows": [[1, 2], [3, 4]]})).unwrap();
+    assert!(marks_of(&s, id, 0).iter().all(|m| m.0 == fill), "{:?}", marks_of(&s, id, 0));
+}
+
 
 /// A recolor of a whole graph, or of one series group, stores the new fill of each series it reaches, and the marks have
 /// it after the graph is drawn again.
@@ -4503,7 +4581,7 @@ fn series_colours_survive_native_save_open_and_export() {
     s.execute("paint.setFill", &json!({"ids": [first.0], "color": "#f00"})).unwrap();
     s.execute("paint.setFill", &json!({"ids": [second.0], "color": "#008080"})).unwrap();
     let dir = vectorcraft_testkit::TempDir::new("graph-palette");
-    let path = dir.join("palette.vectorcraft");
+    let path = dir.join("palette.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     let paints = &s.doc().unwrap().doc.node(id).unwrap().extras().graph.as_ref().unwrap().series_paints;
@@ -4917,7 +4995,7 @@ fn series_types_survive_save_and_open_and_older_files_have_none() {
     let id = graph(&mut s, "column");
     s.execute("graph.setType", &json!({"seriesIndexes": [1], "type": "line"})).unwrap();
     let dir = vectorcraft_testkit::TempDir::new("graph-kinds");
-    let path = dir.join("kinds.vectorcraft");
+    let path = dir.join("kinds.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     assert_eq!(spec(&s, id).series_kinds, [None, Some(GraphKind::Line)]);
@@ -5098,7 +5176,7 @@ fn value_axis_options_survive_save_and_open_and_are_left_out_when_unset() {
     s.execute("graph.setType", &json!({"valueAxis": "both", "separateScales": true, "rightAxisMin": 0, "rightAxisMax": 2000})).unwrap();
     s.execute("graph.setType", &json!({"seriesIndexes": [1], "valueAxis": "right"})).unwrap();
     let dir = vectorcraft_testkit::TempDir::new("graph-axes");
-    let path = dir.join("axes.vectorcraft");
+    let path = dir.join("axes.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     let g = spec(&s, id);
@@ -5301,7 +5379,7 @@ fn tick_and_label_options_survive_save_and_open_and_are_left_out_when_unset() {
     )
     .unwrap();
     let dir = vectorcraft_testkit::TempDir::new("graph-ticks");
-    let path = dir.join("ticks.vectorcraft");
+    let path = dir.join("ticks.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     let g = spec(&s, id);
@@ -5548,8 +5626,8 @@ fn load_coin_library(s: &mut Session) -> String {
     let mut src = Session::new();
     src.execute("file.new", &json!({"width": 800, "height": 800})).unwrap();
     save_coin_design(&mut src);
-    let bytes = vectorcraft_format::save_file(&src.doc().unwrap().doc);
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Coins.vectorcraft"});
+    let bytes = etcfile::save_file(&src.doc().unwrap().doc);
+    let p = json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "Coins.etc"});
     let r = s.execute("swatch.library.load", &p).unwrap();
     assert_eq!(r["graphDesigns"], 1);
     r["library"].as_str().unwrap().to_string()
@@ -5770,10 +5848,10 @@ fn a_pasted_graph_keeps_its_art_when_only_a_resource_its_design_does_not_use_com
     .unwrap();
     // A copy of the document holds the same design; its "Ink" is another color, so the pasted
     // rectangle's swatch takes the document's color, or with "add" comes in renamed.
-    let saved = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&s.doc().unwrap().doc));
+    let saved = etcfile::base64::encode(&etcfile::save_file(&s.doc().unwrap().doc));
     s.execute("select.set", &json!({"ids": [id.0, r]})).unwrap();
     s.execute("edit.copy", &json!({})).unwrap();
-    s.execute("document.open", &json!({"name": "b.vectorcraft", "dataBase64": saved})).unwrap();
+    s.execute("document.open", &json!({"name": "b.etc", "dataBase64": saved})).unwrap();
     s.execute("swatch.edit", &json!({"name": "Ink", "color": "#0000ff"})).unwrap();
     for conflict in ["merge", "add"] {
         let r = s.execute("edit.paste", &json!({"swatchConflict": conflict})).unwrap();
@@ -5812,10 +5890,10 @@ fn a_pasted_graph_is_drawn_again_when_its_designs_svg_filter_comes_in_under_anot
     .unwrap();
     // A copy of the document holds the same design, but its "Shift" filter draws otherwise, so the
     // pasted graph's filter keeps its own definition under another name.
-    let saved = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&s.doc().unwrap().doc));
+    let saved = etcfile::base64::encode(&etcfile::save_file(&s.doc().unwrap().doc));
     s.execute("select.set", &json!({"ids": [id.0]})).unwrap();
     s.execute("edit.copy", &json!({})).unwrap();
-    s.execute("document.open", &json!({"name": "b.vectorcraft", "dataBase64": saved})).unwrap();
+    s.execute("document.open", &json!({"name": "b.etc", "dataBase64": saved})).unwrap();
     s.execute("svgFilter.define", &json!({"xml": SHIFT_MORE, "replace": "Shift"})).unwrap();
     s.execute("edit.paste", &json!({})).unwrap();
     let st = s.doc().unwrap();
@@ -5920,9 +5998,9 @@ fn a_symbol_a_library_design_brings_draws_its_graph_with_the_documents_design_it
     let instance = src.execute("symbol.new", &json!({"name": "Chart", "ids": [id.0]})).unwrap()["id"].as_u64().unwrap();
     src.execute("select.set", &json!({"ids": [instance]})).unwrap();
     src.execute("graph.design", &json!({"new": "A"})).unwrap();
-    let bytes = vectorcraft_format::save_file(&src.doc().unwrap().doc);
+    let bytes = etcfile::save_file(&src.doc().unwrap().doc);
     let mut s = Session::new();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Lib.vectorcraft"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "Lib.etc"});
     let lib = s.execute("swatch.library.load", &p).unwrap()["library"].as_str().unwrap().to_string();
     // The document's own "B" is a single rectangle, and stays.
     s.execute("file.new", &json!({"width": 800, "height": 800})).unwrap();
@@ -6094,8 +6172,8 @@ fn load_chart_library(s: &mut Session, columns: bool) -> String {
     let instance = src.execute("symbol.new", &json!({"name": "Plot", "ids": [id.0]})).unwrap()["id"].as_u64().unwrap();
     src.execute("select.set", &json!({"ids": [instance]})).unwrap();
     src.execute("graph.design", &json!({"new": "Chart"})).unwrap();
-    let bytes = vectorcraft_format::save_file(&src.doc().unwrap().doc);
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Charts.vectorcraft"});
+    let bytes = etcfile::save_file(&src.doc().unwrap().doc);
+    let p = json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "Charts.etc"});
     s.execute("swatch.library.load", &p).unwrap()["library"].as_str().unwrap().to_string()
 }
 
@@ -6245,7 +6323,7 @@ fn a_symbol_pasted_twice_whose_designs_swatch_takes_the_documents_color_is_added
     s.execute("file.new", &json!({"width": 800, "height": 800})).unwrap();
     save_coin_design(&mut s);
     // A copy of the document holds the same "Coin"; its "Gold" is another color.
-    let saved = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&s.doc().unwrap().doc));
+    let saved = etcfile::base64::encode(&etcfile::save_file(&s.doc().unwrap().doc));
     let id = graph(&mut s, "column");
     s.execute("select.set", &json!({"ids": [id.0]})).unwrap();
     s.execute("graph.column", &json!({"design": "Coin"})).unwrap();
@@ -6253,7 +6331,7 @@ fn a_symbol_pasted_twice_whose_designs_swatch_takes_the_documents_color_is_added
     s.execute("select.set", &json!({"ids": [instance]})).unwrap();
     s.execute("edit.copy", &json!({})).unwrap();
     for conflict in ["merge", "add"] {
-        s.execute("document.open", &json!({"name": format!("{conflict}.vectorcraft"), "dataBase64": saved})).unwrap();
+        s.execute("document.open", &json!({"name": format!("{conflict}.etc"), "dataBase64": saved})).unwrap();
         s.execute("swatch.edit", &json!({"name": "Gold", "color": "#0000ff"})).unwrap();
         let r = s.execute("edit.paste", &json!({"swatchConflict": conflict})).unwrap();
         let gold_renamed = r["renamed"].as_array().is_some_and(|a| a.iter().any(|x| x["from"] == "Gold"));
@@ -6359,7 +6437,7 @@ fn a_library_copied_to_user_defined_keeps_its_graph_designs_under_the_loaded_id(
 #[test]
 fn a_swatch_library_file_over_the_size_limit_is_refused_before_it_is_read() {
     let dir = vectorcraft_testkit::TempDir::new("graph-design-library-size");
-    let path = dir.join("big.vectorcraft");
+    let path = dir.join("big.etc");
     let f = std::fs::File::create(&path).unwrap();
     f.set_len(((256 << 20) + 1) as u64).unwrap();
     let mut s = Session::new();
@@ -6375,13 +6453,13 @@ fn a_document_with_graph_designs_and_no_swatches_loads_for_its_designs() {
     let mut d = (*src.doc().unwrap().doc).clone();
     d.swatches.clear();
     d.swatch_groups.clear();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d)), "name": "Pills.vectorcraft"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&etcfile::save_file(&d)), "name": "Pills.etc"});
     let mut s = Session::new();
     let r = s.execute("swatch.library.load", &p).unwrap();
     assert_eq!((r["count"].clone(), r["graphDesigns"].clone()), (json!(0), json!(1)));
     // Without graph designs it has nothing to offer.
     d.graph_designs.clear();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d)), "name": "Bare.vectorcraft"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&etcfile::save_file(&d)), "name": "Bare.etc"});
     let e = s.execute("swatch.library.load", &p).unwrap_err().to_string();
     assert!(e.contains("has no swatches of its own"), "{e}");
 }
@@ -6436,7 +6514,7 @@ fn inline_swatch_library_data_over_the_size_limit_is_refused_before_it_is_read()
     let too_big = |p: serde_json::Value| crate::cmd::swatchlib::library_too_big(&p, "swatch.library.load", 3).unwrap();
     assert!(!too_big(json!({"data": "abc"})));
     assert!(too_big(json!({"data": "abcd"})));
-    let b64 = |n: usize| vectorcraft_format::base64_encode(&vec![7u8; n]);
+    let b64 = |n: usize| etcfile::base64::encode(&vec![7u8; n]);
     assert!(!too_big(json!({"dataBase64": b64(3)})));
     assert!(too_big(json!({"dataBase64": b64(4)})));
 }
@@ -6478,9 +6556,9 @@ fn a_library_design_brings_its_symbols_with_their_symbol_options() {
     let inst = src.execute("symbol.new", &opts).unwrap()["id"].as_u64().unwrap();
     src.execute("select.set", &json!({"ids": [inst]})).unwrap();
     src.execute("graph.design", &json!({"new": "Corner Mark"})).unwrap();
-    let bytes = vectorcraft_format::save_file(&src.doc().unwrap().doc);
+    let bytes = etcfile::save_file(&src.doc().unwrap().doc);
     let mut s = Session::new();
-    let p = json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Corners.vectorcraft"});
+    let p = json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "Corners.etc"});
     let lib = s.execute("swatch.library.load", &p).unwrap()["library"].as_str().unwrap().to_string();
     s.execute("file.new", &json!({"width": 800, "height": 800})).unwrap();
     s.execute("graph.design", &json!({"library": lib, "add": "Corner Mark"})).unwrap();
@@ -6499,7 +6577,7 @@ fn designs_and_markers_survive_save_and_open() {
     let id = graph(&mut s, "line");
     s.execute("graph.marker", &json!({"seriesIndexes": [0], "design": "Pill"})).unwrap();
     let dir = vectorcraft_testkit::TempDir::new("graph-designs");
-    let path = dir.join("designs.vectorcraft");
+    let path = dir.join("designs.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     assert_eq!(s.execute("graph.design", &json!({})).unwrap()["designs"], json!(["Pill"]));
@@ -6898,7 +6976,7 @@ fn column_designs_survive_save_and_open_and_follow_their_design() {
     let v = s.execute("graph.column", &json!({"id": id.0, "seriesIndexes": [0]})).unwrap();
     assert_eq!(v, json!({"designs": ["Coin"], "design": "Coin", "columnType": "repeating", "each": 2.5, "fractions": "scale"}));
     let dir = vectorcraft_testkit::TempDir::new("graph-column-designs");
-    let path = dir.join("columns.vectorcraft");
+    let path = dir.join("columns.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     let options = ColumnDesign { design: "Coin".into(), column_type: ColumnType::Repeating, each: 2.5, fractions: Fractions::Scale };
@@ -7421,7 +7499,7 @@ fn legends_in_wedges_put_the_series_labels_inside_the_pie() {
     assert!(!spec(&s, id).pie_legend_in_wedges);
     assert!(s.execute("graph.setType", &json!({"pieLegend": "inside"})).is_err());
     let dir = vectorcraft_testkit::TempDir::new("graph-pie");
-    let path = dir.join("pie.vectorcraft");
+    let path = dir.join("pie.etc");
     s.execute("graph.setType", &json!({"pieLegend": "wedges", "piePosition": "stacked", "pieSort": "all"})).unwrap();
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
@@ -7563,7 +7641,7 @@ fn the_legend_across_top_runs_in_rows_above_the_plot() {
     let xs: Vec<f64> = (0..6).map(|i| swatch(&s, i).x1).collect();
     assert!(xs.iter().all(|x| *x <= 400.0), "{xs:?}");
     let dir = vectorcraft_testkit::TempDir::new("graph-top");
-    let path = dir.join("top.vectorcraft");
+    let path = dir.join("top.etc");
     s.execute("graph.setType", &json!({"dropShadow": true})).unwrap();
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
@@ -7683,7 +7761,7 @@ fn filled_lines_are_bands_in_the_series_colour() {
     s.execute("graph.setData", &json!({"id": id.0, "rows": [[2], [3], [2]]})).unwrap();
     assert_eq!(series_parts(&s, id, 0)[0].appearance.fill_paint().color().unwrap().to_hex(), "#ff0000");
     let dir = vectorcraft_testkit::TempDir::new("graph-filled");
-    let path = dir.join("filled.vectorcraft");
+    let path = dir.join("filled.etc");
     s.execute("graph.setType", &json!({"firstRowInFront": true, "firstColumnInFront": true})).unwrap();
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
@@ -7757,7 +7835,7 @@ fn filled_lines_take_a_line_width() {
     assert_eq!(spec(&s, id).line_width, Some(8.0));
     // Kept through save and open.
     let dir = vectorcraft_testkit::TempDir::new("graph-line-width");
-    let path = dir.join("width.vectorcraft");
+    let path = dir.join("width.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     assert_eq!(spec(&s, id).line_width, Some(8.0));
@@ -7859,7 +7937,7 @@ fn a_graph_labels_anti_aliasing_method_survives_it_being_drawn_again() {
     assert_eq!(spec(&s, id).label_styles.categories_anti_alias, None);
     s.execute("edit.redo", &json!({})).unwrap();
     let dir = vectorcraft_testkit::TempDir::new("graph-label-anti-alias");
-    let path = dir.join("labels.vectorcraft");
+    let path = dir.join("labels.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     assert_eq!(spec(&s, id).label_styles.categories_anti_alias, Some(TypeAntiAlias::Strong));
@@ -7903,7 +7981,7 @@ fn formatting_one_label_keeps_that_kind_of_label() {
     assert_eq!(look("0").1, 9.0);
     // Kept through save and open; nothing written when unset.
     let dir = vectorcraft_testkit::TempDir::new("graph-labels");
-    let path = dir.join("labels.vectorcraft");
+    let path = dir.join("labels.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     assert_eq!(spec(&s, id).label_styles.categories.as_ref().unwrap().size, 14.0);
@@ -8249,7 +8327,7 @@ fn appearance_rows_on_one_label_are_kept_for_its_kind() {
     assert_ne!(kept.paint.stroke.and_then(|p| p.color()).map(|c| c.to_hex()), Some("#0000ff".into()));
     assert_eq!(kept.paint.stroke_width, Some(1.0));
     s.execute("edit.redo", &json!({})).unwrap();
-    let path = vectorcraft_testkit::temp_dir("graph-label-rows").join("labels.vectorcraft");
+    let path = vectorcraft_testkit::temp_dir("graph-label-rows").join("labels.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     let g = spec(&s, id);
@@ -8841,6 +8919,31 @@ fn the_frontmost_label_of_a_kind_sets_what_its_recolor_keeps() {
     s.execute("edit.colors.invert", &json!({"ids": [front.0, back.0]})).unwrap();
     let kept = spec(&s, id).label_styles.legend.unwrap().fill;
     assert_eq!(kept.color().map(|c| c.to_hex()).as_deref(), Some(front_fill));
+}
+
+/// Apply Nearest Swatch and the ink limit of Print Ink Fixes on a label are kept for its kind.
+#[test]
+fn nearest_swatch_and_ink_limit_on_a_label_are_kept_for_its_kind() {
+    let cases = [
+        ("addon.color.applyNearestSwatch", json!({"library": "web-safe-216"})),
+        ("addon.color.printFixes", json!({"scope": "selection", "inkLimit": 200})),
+    ];
+    every_case(cases, |(cmd, params)| {
+        let mut s = Session::new();
+        // Print Ink Fixes works on CMYK documents.
+        s.execute("file.new", &json!({"width": 800, "height": 800, "colorMode": "cmyk"})).unwrap();
+        let id = graph(&mut s, "column");
+        let v = text_id(&s, id, "Axes", "4");
+        s.execute("paint.setFill", &json!({"ids": [v.0], "color": {"c": 90, "m": 80, "y": 70, "k": 60}})).unwrap();
+        let was = label_run_style(&s, id, "Axes", "4").fill;
+        let mut p = params.clone();
+        p["ids"] = json!([v.0]);
+        s.execute(cmd, &p).unwrap();
+        let now = label_run_style(&s, id, "Axes", "4").fill;
+        assert_ne!(now, was, "{cmd} changes the fill");
+        label_looks(&mut s, id);
+        assert_eq!(label_run_style(&s, id, "Axes", "0").fill, now, "{cmd}");
+    });
 }
 
 
@@ -9940,7 +10043,7 @@ fn a_black_fill_set_on_a_wedge_legend_label_stays_black_on_dark_wedges() {
         s.execute("graph.setData", &json!({"id": id.0, "rows": [[1, 2]]})).unwrap();
         assert_eq!((legend_fill(&s, "a"), legend_fill(&s, "b")), ("#000000".into(), "#000000".into()), "{cmd}: black on both wedges");
         let dir = vectorcraft_testkit::TempDir::new("graph-wedge-legend");
-        let path = dir.join("pie.vectorcraft");
+        let path = dir.join("pie.etc");
         s.execute("document.save", &json!({"path": path})).unwrap();
         s.execute("document.open", &json!({"path": path})).unwrap();
         assert!(spec(&s, id).label_styles.legend_fill_set, "{cmd}: kept through save and open");
@@ -10135,7 +10238,7 @@ fn paragraph_formats_are_kept_when_the_graph_is_drawn_again() {
     s.execute("select.set", &json!({"ids": [v.0]})).unwrap();
     s.execute("text.setFormat", &json!({"composer": "singleLine"})).unwrap();
     let dir = vectorcraft_testkit::TempDir::new("graph-label-paras");
-    let path = dir.join("labels.vectorcraft");
+    let path = dir.join("labels.etc");
     s.execute("document.save", &json!({"path": path})).unwrap();
     s.execute("document.open", &json!({"path": path})).unwrap();
     s.execute("select.set", &json!({"ids": [col.0]})).unwrap();
@@ -10463,6 +10566,81 @@ fn graph_commands_refuse_params_of_the_wrong_type() {
     assert_eq!(spec(&s).cells(), vec![vec![Some(1.0), None], vec![Some(2.0), Some(3.0)]]);
 }
 
+/// A `.ai` in PostScript form whose graph's records read whole (version 7 specification, appendix A)
+/// opens as a graph whose data can be edited: Graph Data redraws it on its plot. Saving it as `.ai`,
+/// in either form, writes its records, and the file opens again with the graph's new data.
+#[test]
+fn a_graph_opened_from_ai_keeps_its_data_for_editing() {
+    let graph = "%_Gs\n%_100 200 300 100 Gb\n%_5 0 0 14 0 1 0 0 6 44 Gy\n%_10 2 0 0 90 80 0 Gd\n\
+        %_1 () Ga\n%_0 13 0 0 0 0 0 () GA\n%_2 () Ga\n%_0 14 0 0 0 0 0 () GA\n%_4 () Ga\n%_0 14 0 0 0 0 0 () GA\n\
+        %_2 2 1 1 Gz\n%_() Gc (East) Gc (Q1) Gc 5 Gc GC\n\
+        u\nu\n0.6 0 1 0 k\n110 100 m\n110 150 L\n130 150 L\n130 100 L\nf\nU\n%_2 1 0 0 Go\n\
+        u\n0 0 0 1 K\n100 200 m\n100 100 L\n300 100 L\nS\nU\nU\n%_GS\n";
+    let text = format!(
+        "%!PS-Adobe-3.0\n%%Creator: a script\n%%BoundingBox: 0 0 400 400\n%AI5_FileFormat 3\n%AI3_Cropmarks: 0 0 400 400\n%%EndComments\n\
+         %%BeginProlog\n%%EndProlog\n%%BeginSetup\n%%EndSetup\n%AI5_BeginLayer\n1 1 1 1 0 0 0 79 128 255 Lb\n(Graph) Ln\n0 A\n{graph}LB\n\
+         %AI5_EndLayer--\n%%PageTrailer\n%%Trailer\n%%EOF\n"
+    );
+    let dir = vectorcraft_testkit::temp_dir("graph-ai-open");
+    let path = dir.join("graph.ai");
+    std::fs::write(&path, text).unwrap();
+    let mut s = Session::new();
+    s.execute("document.open", &json!({"path": path})).unwrap();
+    let mut found = vec![];
+    s.doc().unwrap().doc.walk(|n| {
+        if n.extras().graph.is_some() {
+            found.push(n.id);
+        }
+    });
+    assert_eq!(found.len(), 1);
+    let id = found[0];
+    let before = spec(&s, id);
+    assert_eq!(
+        (before.series.as_slice(), before.categories.as_slice(), before.rows.as_slice()),
+        (&["East".to_string()][..], &["Q1".to_string()][..], &[vec![5.0]][..])
+    );
+    // The fill of the series' first mark.
+    let series_fill = |s: &Session| {
+        let mut fill = None;
+        s.doc().unwrap().doc.walk(|n| {
+            if n.extras().series_index == Some(0) && fill.is_none() {
+                let first = n.children().and_then(|c| c.first().cloned());
+                fill = first.and_then(|m| m.appearance.items.iter().find(|i| i.is_fill()).map(|i| i.paint().clone()));
+            }
+        });
+        fill
+    };
+    let painted = series_fill(&s);
+    assert!(painted.is_some());
+    s.execute("select.set", &json!({"ids": [id.0]})).unwrap();
+    s.execute("graph.setData", &json!({"id": id.0, "csv": ",East\nQ1,8\nQ2,2"})).unwrap();
+    let after = spec(&s, id);
+    assert_eq!(after.rows, [[8.0], [2.0]]);
+    assert_eq!(after.rect, before.rect, "the graph is redrawn on its plot");
+    assert_eq!(series_fill(&s), painted, "the series keeps the file's paint");
+    for (name, version) in [("v7.ai", Some("7")), ("pdf.ai", None)] {
+        let mut p = json!({"path": dir.join(name), "format": "ai"});
+        if let Some(v) = version {
+            p["aiVersion"] = json!(v);
+        }
+        let r = s.execute("file.saveAs", &p).unwrap();
+        let notes = r["warnings"].as_array().cloned().unwrap_or_default();
+        assert!(!notes.iter().any(|w| w.as_str().is_some_and(|w| w.starts_with("graphs are written as their art"))), "{name}: {r}");
+        let mut again = Session::new();
+        again.execute("document.open", &json!({"path": dir.join(name)})).unwrap();
+        let mut graphs = vec![];
+        again.doc().unwrap().doc.walk(|n| graphs.extend(n.extras().graph.as_deref().cloned()));
+        assert_eq!(graphs.len(), 1, "{name}");
+        let g = &graphs[0];
+        assert_eq!(
+            (g.series.as_slice(), g.categories.as_slice(), g.rows.as_slice()),
+            (&after.series[..], &after.categories[..], &after.rows[..]),
+            "{name}"
+        );
+        assert_eq!(g.kind, after.kind, "{name}");
+    }
+}
+
 
 
 
@@ -10511,6 +10689,53 @@ fn a_legend_swatch_has_the_stroke_of_its_series_marks() {
             assert!(marks.iter().all(|m| *m == marks[0]) && marks[0].2 == 3.0, "{ty} across top {across_top}, 3 pt: {marks:?}");
         }
     }
+}
+
+/// A graph opened from a `.ai` keeps the bounds of its art without type, so moving one of its labels on its own
+/// leaves the plot where it is at the first redraw.
+#[test]
+fn a_graph_opened_from_ai_measures_moves_without_its_labels() {
+    let graph = "%_Gs\n%_100 200 300 100 Gb\n%_5 0 0 14 0 1 0 0 6 44 Gy\n%_10 2 0 0 90 80 0 Gd\n\
+        %_1 () Ga\n%_0 13 0 0 0 0 0 () GA\n%_2 () Ga\n%_0 14 0 0 0 0 0 () GA\n%_4 () Ga\n%_0 14 0 0 0 0 0 () GA\n\
+        %_2 2 1 1 Gz\n%_() Gc (East) Gc (Q1) Gc 5 Gc GC\n\
+        u\nu\n0.6 0 1 0 k\n110 100 m\n110 150 L\n130 150 L\n130 100 L\nf\nU\n%_2 1 0 0 Go\n\
+        u\n0 0 0 1 K\n100 200 m\n100 100 L\n300 100 L\nS\nU\n\
+        0 To\n1 0 0 1 100 220 0 Tp\nTP\n0 Tr\n0 0 0 1 k\n/_Helvetica 12 Tf\n(Sales) Tx\nTO\nU\n%_GS\n";
+    let text = format!(
+        "%!PS-Adobe-3.0\n%%Creator: a script\n%%BoundingBox: 0 0 400 400\n%AI5_FileFormat 3\n%AI3_Cropmarks: 0 0 400 400\n%%EndComments\n\
+         %%BeginProlog\n%%EndProlog\n%%BeginSetup\n%%EndSetup\n%AI5_BeginLayer\n1 1 1 1 0 0 0 79 128 255 Lb\n(Graph) Ln\n0 A\n{graph}LB\n\
+         %AI5_EndLayer--\n%%PageTrailer\n%%Trailer\n%%EOF\n"
+    );
+    let dir = vectorcraft_testkit::temp_dir("graph-ai-label");
+    let path = dir.join("graph.ai");
+    std::fs::write(&path, text).unwrap();
+    let mut s = Session::new();
+    s.execute("document.open", &json!({"path": path})).unwrap();
+    let (mut graphs, mut labels) = (vec![], vec![]);
+    s.doc().unwrap().doc.walk(|n| {
+        if n.extras().graph.is_some() {
+            graphs.push(n.id);
+        }
+        if matches!(&n.kind, NodeKind::Text(t) if t.plain_text() == "Sales") {
+            labels.push(n.id);
+        }
+    });
+    assert_eq!((graphs.len(), labels.len()), (1, 1));
+    let (id, label) = (graphs[0], labels[0]);
+    let before = spec(&s, id);
+    s.execute("select.set", &json!({"ids": [label.0]})).unwrap();
+    s.execute("text.setStyle", &json!({"size": 30})).unwrap();
+    s.execute("object.move", &json!({"dx": 80, "dy": -40})).unwrap();
+    s.execute("graph.setData", &json!({"id": id.0, "csv": ",East\nQ1,8\nQ2,2"})).unwrap();
+    let rect = spec(&s, id).rect;
+    assert_eq!(rect, before.rect, "after restyling and moving a label");
+    // A move of the whole opened graph is still followed.
+    s.execute("select.set", &json!({"ids": [id.0]})).unwrap();
+    s.execute("object.move", &json!({"dx": 15, "dy": 25})).unwrap();
+    s.execute("graph.setData", &json!({"id": id.0, "csv": ",East\nQ1,8\nQ2,2"})).unwrap();
+    let moved = spec(&s, id).rect;
+    assert!((moved.x0 - (rect.x0 + 15.0)).abs() < 1e-6 && (moved.y0 - (rect.y0 + 25.0)).abs() < 1e-6, "{moved:?}");
+    assert!((moved.width() - rect.width()).abs() < 1e-6 && (moved.height() - rect.height()).abs() < 1e-6, "{moved:?}");
 }
 
 

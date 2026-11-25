@@ -221,7 +221,7 @@ fn image(s: &mut Session) -> NodeId {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    let r = run(s, "file.place", json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [65, 65]}));
+    let r = run(s, "file.place", json!({"name": "red.png", "dataBase64": etcfile::base64::encode(&png), "at": [65, 65]}));
     NodeId(r["ids"][0].as_u64().unwrap())
 }
 
@@ -337,7 +337,7 @@ fn disc_png() -> Vec<u8> {
 fn an_images_stroke_with_outline_object_follows_its_opaque_area() {
     let mut s = session();
     // The frame runs from 50 to 150, the disc from 70 to 130.
-    let r = run(&mut s, "file.place", json!({"name": "disc.png", "dataBase64": vectorcraft_format::base64_encode(&disc_png()), "at": [100, 100]}));
+    let r = run(&mut s, "file.place", json!({"name": "disc.png", "dataBase64": etcfile::base64::encode(&disc_png()), "at": [100, 100]}));
     let im = NodeId(r["ids"][0].as_u64().unwrap());
     run(&mut s, "appearance.addStroke", json!({}));
     run(&mut s, "appearance.setItem", json!({"index": 0, "weight": 8, "color": "#000000"}));
@@ -489,7 +489,7 @@ fn group_appearance_round_trips_and_expands() {
     run(&mut s, "appearance.moveItem", json!({"from": "contents", "to": 1}));
     run(&mut s, "effect.apply", json!({"effect": "distort.transform", "params": {"moveV": 50}}));
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(back.node(g).unwrap().appearance, doc.node(g).unwrap().appearance);
     assert_eq!(back.node(g).unwrap().appearance.contents_index, Some(1));
     // Expand Appearance: the fill and stroke become paths below and above the moved members.

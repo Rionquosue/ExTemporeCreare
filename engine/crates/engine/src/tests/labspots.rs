@@ -134,11 +134,11 @@ fn colour_values_parse_lab() {
 fn spot_options_and_lab_colours_round_trip() {
     let _g = GLOBAL.lock().unwrap_or_else(|e| e.into_inner());
     let (mut s, id) = lab_ink();
-    let saved = vectorcraft_format::save(doc(&s), false);
+    let saved = etcfile::save(doc(&s), false);
     assert!(!String::from_utf8_lossy(&saved).contains("spot_use_lab"), "the default isn't written");
     run(&mut s, "swatch.spotOptions", json!({"useLab": false}));
     let d = doc(&s).clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
     assert!(!back.spot_use_lab);
     assert_eq!(back.swatch("Lab Ink").unwrap().paint.color(), Some(LAB));
     assert_eq!(back.node(id).unwrap().appearance.fill_paint(), d.node(id).unwrap().appearance.fill_paint());

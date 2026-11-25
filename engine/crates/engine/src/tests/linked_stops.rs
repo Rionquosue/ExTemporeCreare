@@ -319,7 +319,7 @@ fn linked_stops_round_trip() {
     let (mut s, id) = setup();
     run(&mut s, "paint.editGradient", ink_to_white(30.0));
     let d = doc(&s).clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
     assert_eq!(back.node(id).unwrap().appearance.fill_paint(), d.node(id).unwrap().appearance.fill_paint());
     // Stops from before links read as unlinked.
     let old: GradientStop = serde_json::from_value(json!({"offset": 0.5, "color": {"model": "rgb", "r": 1, "g": 0, "b": 0}})).unwrap();

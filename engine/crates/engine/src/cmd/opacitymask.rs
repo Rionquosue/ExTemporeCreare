@@ -742,8 +742,8 @@ mod tests {
         select(&mut s, &[a, b]);
         s.execute("transparency.makeOpacityMask", &json!({"invert": true})).unwrap();
         let d = s.doc().unwrap().doc.clone();
-        let bytes = vectorcraft_format::save(&d, false);
-        let back = vectorcraft_format::load(&bytes).unwrap();
+        let bytes = etcfile::save(&d, false);
+        let back = etcfile::load(&bytes).unwrap();
         assert_eq!(back.node(NodeId(a)).unwrap().extras().mask, d.node(NodeId(a)).unwrap().extras().mask);
     }
 }

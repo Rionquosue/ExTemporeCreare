@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use super::*;
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 fn warnings(v: &Value) -> Vec<String> {
@@ -44,5 +44,6 @@ fn export_pdf_create_layers_writes_layers_that_reopen_as_layers() {
     let v = s.execute("document.exportPdf", &json!({"createLayers": true, "compatibility": "1.4"})).unwrap();
     assert!(warnings(&v).iter().any(|w| w.contains("PDF 1.5")), "{:?}", warnings(&v));
 }
+
 
 

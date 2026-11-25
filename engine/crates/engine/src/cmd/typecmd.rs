@@ -1720,7 +1720,7 @@ mod ruby_tests {
         let (mut s, _) = session_with_text();
         let export = |s: &mut Session, format: &str| -> Vec<u8> {
             let r = s.execute("document.export", &json!({"format": format})).unwrap();
-            vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+            etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
         };
         s.execute("type.ruby", &json!({"text": "かんじ", "start": 0, "end": 6})).unwrap();
         let svg_ruby = String::from_utf8(export(&mut s, "svg")).unwrap();
@@ -1740,8 +1740,8 @@ mod ruby_tests {
         let (mut s, id) = session_with_text();
         s.execute("type.ruby", &json!({"text": "かんじ", "start": 0, "end": 6, "position": "below", "size": 40})).unwrap();
         let doc = s.doc().unwrap().doc.clone();
-        let bytes = vectorcraft_format::save(&doc, false);
-        let back = vectorcraft_format::load(&bytes).unwrap();
+        let bytes = etcfile::save(&doc, false);
+        let back = etcfile::load(&bytes).unwrap();
         let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
         assert_eq!(t.ruby.len(), 1);
         assert_eq!((t.ruby[0].start, t.ruby[0].end), (0, 6));

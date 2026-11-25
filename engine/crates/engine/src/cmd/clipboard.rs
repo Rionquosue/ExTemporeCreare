@@ -552,7 +552,7 @@ fn import_svg(s: &mut Session, p: &Value) -> Result<Value> {
     let svg = match (str_param(p, "svg"), str_param(p, "dataBase64")) {
         (Some(svg), _) => std::borrow::Cow::Borrowed(svg),
         (None, Some(b64)) => {
-            let bytes = vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(C, "bad base64"))?;
+            let bytes = etcfile::base64::decode(b64).ok_or_else(|| bad(C, "bad base64"))?;
             vectorcraft_svg::text_of(&bytes).map_err(|e| bad(C, e.to_string()))?.into_owned().into()
         }
         (None, None) => return Err(bad(C, "give svg, or dataBase64 of an SVG or SVGZ file")),

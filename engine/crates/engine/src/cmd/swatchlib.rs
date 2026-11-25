@@ -382,7 +382,7 @@ impl<L: LibraryFile> Libraries<L> {
         } else {
             match data {
                 FileData::Text(text) => out["data"] = json!(text),
-                FileData::Binary(bytes) => out["dataBase64"] = json!(vectorcraft_format::base64_encode(&bytes)),
+                FileData::Binary(bytes) => out["dataBase64"] = json!(etcfile::base64::encode(&bytes)),
             }
         }
         Ok(())
@@ -420,7 +420,7 @@ impl<L: LibraryFile> Libraries<L> {
                 None => read_file(path)?,
             },
             (None, Some(text), _) => text.as_bytes().to_vec(),
-            (None, None, Some(b64)) => vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(cmd, "bad dataBase64"))?,
+            (None, None, Some(b64)) => etcfile::base64::decode(b64).ok_or_else(|| bad(cmd, "bad dataBase64"))?,
             _ => return Err(bad(cmd, "give `path`, `data` or `dataBase64`")),
         };
         let file = name.map(str::to_string).or_else(|| path.map(file_name)).unwrap_or_else(|| "Library".into());

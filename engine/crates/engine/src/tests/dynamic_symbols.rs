@@ -79,7 +79,7 @@ fn a_dynamic_instance_paints_one_object_its_own_way_and_stays_linked() {
     assert!(o.opacity.is_none() && o.fill.is_some());
     // SVG export draws it too.
     let svg = s.execute("document.export", &json!({"format": "svg"})).unwrap();
-    let svg = String::from_utf8(vectorcraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let svg = String::from_utf8(etcfile::base64::decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     assert!(svg.to_ascii_lowercase().contains("#ff0000") || svg.contains("rgb(255,0,0)"), "{svg}");
 }
 
@@ -145,7 +145,7 @@ fn paint_root_red(s: &mut Session, inst: NodeId) {
 /// A 30×30 red image placed with its frame from (50, 20) to (80, 50).
 fn place_image(s: &mut Session) {
     let png = crate::tests_links::png(30, 30, [255, 0, 0]);
-    let data = vectorcraft_format::base64_encode(&png);
+    let data = etcfile::base64::encode(&png);
     s.execute("file.place", &json!({"name": "red.png", "dataBase64": data, "at": [65, 35], "link": false})).unwrap();
 }
 
@@ -159,13 +159,13 @@ fn select_top(s: &mut Session, n: usize) {
 #[test]
 fn objects_that_draw_no_fill_or_stroke_of_their_own_refuse_one() {
     let folder = crate::tests_links::Folder::new("dynamic-symbol-kinds");
-    let source = folder.file("placed.vectorcraft");
+    let source = folder.file("placed.etc");
     let mut doc = vectorcraft_doc::Document::new(40.0, 40.0);
     let layer = doc.layers[0].id;
     let look = vectorcraft_doc::Appearance::basic(Paint::solid(Color::rgb(0.0, 0.0, 1.0)), Paint::None, 0.0);
     let rect = vectorcraft_doc::Node::path(doc.alloc_id(), vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 40.0, 40.0)), look);
     doc.insert(Some(layer), 0, rect).unwrap();
-    crate::tests_links::write(&source, &vectorcraft_format::save_file(&doc));
+    crate::tests_links::write(&source, &etcfile::save_file(&doc));
     type Make = Box<dyn Fn(&mut Session)>;
     let cases: Vec<(&str, &str, Make)> = vec![
         (
@@ -1199,7 +1199,7 @@ fn dynamic_symbols_and_their_changes_round_trip_and_old_documents_save_as_before
     let inst = pair(&mut s, "dynamic");
     s.execute("symbol.instance.setAppearance", &json!({"id": inst.0, "path": [1], "fill": "#ff0000", "opacity": 25})).unwrap();
     let doc = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(doc, false)).unwrap();
     assert!(back.symbols[0].dynamic);
     assert_eq!(back.node(inst).unwrap().extras().symbol_overrides, doc.node(inst).unwrap().extras().symbol_overrides);
     assert_eq!(back.symbols, doc.symbols);
@@ -1304,6 +1304,37 @@ fn a_lent_selection_tool_moves_the_instance_of_a_picked_object() {
     assert!(s.doc().unwrap().selection.symbol_part.is_some());
 }
 
+/// The commands that change nothing in the document read the instance of a picked object, so the
+/// Attributes and CSS Properties panels and the others keep showing it.
+#[test]
+fn read_only_commands_read_the_instance_of_a_picked_object() {
+    let mut failures = Vec::new();
+    for spec in crate::cmd::command_specs().iter().filter(|c| !c.journal) {
+        let mut s = session();
+        let inst = pair(&mut s, "dynamic");
+        s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();
+        let doc = s.doc().unwrap().doc.clone();
+        if let Err(e) = s.execute(spec.id, &json!({}))
+            && e.to_string().contains("symbol instance")
+        {
+            failures.push(format!("{}: {e}", spec.id));
+        }
+        if s.doc().is_ok_and(|st| st.doc != doc) {
+            failures.push(format!("{}: the document changed", spec.id));
+        }
+        // A command run after one of these is refused as before.
+        if s.doc().is_ok_and(|st| st.selection.symbol_part.is_some()) && s.execute("object.hide", &json!({})).is_ok() {
+            failures.push(format!("{}: the refusal stays off afterward", spec.id));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    let mut s = session();
+    let inst = pair(&mut s, "dynamic");
+    s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();
+    s.execute("css.selection", &json!({})).unwrap();
+    s.execute("attributes.info", &json!({})).unwrap();
+}
+
 
 
 /// A drag that moved nothing leaves Transform Again repeating the last real transformation.
@@ -1347,7 +1378,7 @@ fn a_replace_that_finishes_after_an_object_was_picked_selects_the_instance_again
     let inst = pair(&mut s, "dynamic");
     s.execute("select.set", &json!({"ids": [inst.0]})).unwrap();
     let svg = "<svg xmlns='http://www.w3.org/2000/svg' width='9' height='9'><rect width='9' height='9'/></svg>";
-    let p = json!({"name": "a.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes()), "replace": true});
+    let p = json!({"name": "a.svg", "dataBase64": etcfile::base64::encode(svg.as_bytes()), "replace": true});
     let read = s.prepare_place(&p).unwrap().read().unwrap();
     s.execute("symbol.instance.selectPart", &json!({"id": inst.0, "path": [1]})).unwrap();
     s.place_read(read).unwrap();

@@ -26,11 +26,11 @@ fn revolve_commands_keep_profile_live_edit_options_expand_and_undo() {
     let before = effects_for_test(&s, id);
     assert_eq!(node(&s, id).path_data(), Some(&source));
     let doc = &s.doc().unwrap().doc;
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let restored = etcfile::load(&etcfile::save(doc, false)).unwrap();
     assert_eq!(restored.node(id).unwrap().path_data(), Some(&source));
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()).unwrap(), before);
     let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
     assert!(bytes.starts_with(b"%PDF"));
     assert!(s.execute("effect.apply", &json!({"effect":"threeD.revolve","ids":[id.0],"item":null})).is_err());
     assert!(s.execute("effect.duplicate", &json!({"index":0,"ids":[id.0],"item":null})).is_err());
@@ -107,7 +107,7 @@ fn solid_effects_apply_save_edit_export_expand_and_undo() {
         let art = effects::solid_art(&node(&s, id)).unwrap();
         assert_eq!(node(&s, id).path_data(), Some(&source), "{effect}: the source stays editable");
         let doc = &s.doc().unwrap().doc;
-        let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+        let restored = etcfile::load(&etcfile::save(doc, false)).unwrap();
         assert_eq!(effects::solid_art(restored.node(id).unwrap()).unwrap(), art, "{effect}: reopens the same");
         // One 3D effect per object, whichever kind.
         for other in ["threeD.revolve", "threeD.extrude", "threeD.rotate"] {
@@ -295,7 +295,7 @@ fn type_revolves_as_its_glyphs_and_stays_editable() {
     });
     assert!(tinted, "shaded from the characters' red");
     let doc = &s.doc().unwrap().doc;
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let restored = etcfile::load(&etcfile::save(doc, false)).unwrap();
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()).unwrap(), art, "the same art after a save");
     let meshes = effects::three_d_meshes(&n).unwrap();
     assert_eq!(meshes.len(), 1, "one mesh of every contour of the type");
@@ -522,7 +522,7 @@ fn smooth_revolve_commands_validate_save_expand_and_undo() {
     let smooth = node(&s, id);
     assert_eq!(smooth.path_data(), Some(&source));
     assert_ne!(effects_for_test(&s, id), effects::revolve_art(&initial).unwrap());
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let restored = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()), Some(effects_for_test(&s, id)));
     s.execute("effect.expandAppearance", &json!({"ids":[id.0]})).unwrap();
     assert!(!effects::has_revolve(&node(&s, id)));
@@ -556,11 +556,11 @@ fn revolve_caps_save_export_expand_and_undo_without_changing_the_source() {
     assert_eq!(capped.path_data(), Some(&source));
     assert!(s.execute("effect.setParams", &json!({"index":0,"ids":[id.0],"item":null,"params":{"cap":"yes"}})).is_err());
     assert_eq!(node(&s, id), capped, "a bad boolean does not mutate the document");
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let restored = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(restored.node(id).unwrap().appearance.effects[0].params["cap"], json!(true));
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()), Some(art.clone()));
     let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-    assert!(vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap().starts_with(b"%PDF"));
+    assert!(etcfile::base64::decode(pdf["dataBase64"].as_str().unwrap()).unwrap().starts_with(b"%PDF"));
     s.execute("effect.expandAppearance", &json!({"ids":[id.0]})).unwrap();
     assert_eq!(count(&node(&s, id)), count(&art));
     assert!(!effects::has_revolve(&node(&s, id)));
@@ -578,7 +578,7 @@ fn revolve_visibility_parameter_saves_expands_and_undoes_without_other_appearanc
     let id = NodeId(r["id"].as_u64().unwrap());
     s.execute("effect.apply", &json!({"effect":"threeD.revolve","ids":[id.0],"item":null})).unwrap();
     let live = node(&s, id);
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let restored = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(restored.node(id).unwrap().appearance.effects[0].params["expandVisibleOnly"], json!(true));
     let count = |n: &vectorcraft_doc::Node| n.children().unwrap()[0].children().unwrap().len();
     s.execute("effect.expandAppearance", &json!({"ids":[id.0]})).unwrap();
@@ -990,7 +990,7 @@ fn a_3d_shadow_is_one_undo_step_saved_exported_and_expanded() {
     assert!(matches!(shadow.kind, NodeKind::Path { .. }));
     // Saved and opened again, the effect keeps its shadow settings and draws the same shadow.
     let doc = &s.doc().unwrap().doc;
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let restored = etcfile::load(&etcfile::save(doc, false)).unwrap();
     let fx = &restored.node(id).unwrap().appearance.effects[0];
     for (key, value) in params.as_object().unwrap() {
         assert_eq!(fx.params.get(key), Some(value), "{key}");

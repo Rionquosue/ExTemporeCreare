@@ -39,7 +39,7 @@ fn err(s: &mut Session, cmd: &str, p: Value) -> String {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 /// The `roles` query's counts, in role order.
@@ -453,8 +453,8 @@ fn native_save_and_open_keep_the_role_table_and_the_roles() {
     s.execute("swatch.new", &json!({"name": "Die", "color": {"model": "cmyk", "c": 0, "m": 0.8, "y": 0.2, "k": 0}, "spot": true})).unwrap();
     s.execute("addon.packaging.setRoleSwatch", &json!({"role": "cut", "swatch": "Die"})).unwrap();
     set_role(&mut s, json!({"role": "cut", "ids": [a.0]}));
-    let saved = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap();
-    s.execute("document.open", &json!({"name": "box.vectorcraft", "dataBase64": saved["dataBase64"]})).unwrap();
+    let saved = s.execute("document.export", &json!({"format": "etc"})).unwrap();
+    s.execute("document.open", &json!({"name": "box.etc", "dataBase64": saved["dataBase64"]})).unwrap();
     assert_eq!(s.doc().unwrap().doc.unknown.get("packagingRoles").unwrap()["cut"], json!("Die"));
     s.execute("select.none", &json!({})).unwrap();
     assert_eq!(counts(&mut s, json!({})), [1, 0, 0, 0]);

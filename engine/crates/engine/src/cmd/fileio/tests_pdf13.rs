@@ -61,13 +61,13 @@ fn session() -> Session {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    run(&mut s, "file.place", json!({"name": "dots.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [150, 120]}));
+    run(&mut s, "file.place", json!({"name": "dots.png", "dataBase64": etcfile::base64::encode(&png), "at": [150, 120]}));
     s
 }
 
 fn export(s: &mut Session, p: Value) -> (Vec<u8>, Vec<String>) {
     let v = s.execute("document.exportPdf", &p).unwrap_or_else(|e| panic!("{p}: {e}"));
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     (bytes, v["warnings"].as_array().unwrap().iter().map(|w| w.as_str().unwrap().to_string()).collect())
 }
 
@@ -156,7 +156,7 @@ fn the_flattener_preset_and_options_apply() {
     let v = s
         .execute("document.export", &json!({"format": "pdf", "compatibility": "1.3", "flattenerPreset": "All Raster", "preserveEditing": false}))
         .unwrap();
-    assert_eq!(vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap().len(), raster.len());
+    assert_eq!(etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap().len(), raster.len());
     s.execute("pdf.preset.save", &json!({"name": "Old Press", "compatibility": "1.3", "flattenerPreset": "All Raster", "preserveEditing": false}))
         .unwrap();
     assert_eq!(export(&mut s, json!({"preset": "Old Press"})).0.len(), raster.len(), "a PDF preset keeps its flattener preset");
@@ -186,10 +186,10 @@ fn pdf_1_3_files_are_encrypted_with_40_bit_rc4_and_can_be_linearised() {
     assert!(text.contains("/V 1/R 2/Length 40") && text.contains("/Linearized 1") && text.contains("/Thumb "));
     for password in ["open", "owner"] {
         s.execute("document.close", &json!({"force": true})).ok();
-        s.execute("document.open", &json!({"dataBase64": vectorcraft_format::base64_encode(&pdf), "name": "old.pdf", "password": password})).unwrap();
+        s.execute("document.open", &json!({"dataBase64": etcfile::base64::encode(&pdf), "name": "old.pdf", "password": password})).unwrap();
         assert_eq!(s.doc().unwrap().doc.artboards.len(), 1, "{password}");
     }
     assert!(
-        s.execute("document.open", &json!({"dataBase64": vectorcraft_format::base64_encode(&pdf), "name": "old.pdf", "password": "nope"})).is_err()
+        s.execute("document.open", &json!({"dataBase64": etcfile::base64::encode(&pdf), "name": "old.pdf", "password": "nope"})).is_err()
     );
 }

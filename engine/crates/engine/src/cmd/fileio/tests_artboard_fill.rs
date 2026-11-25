@@ -19,7 +19,7 @@ fn session() -> Session {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 fn with(mut p: Value, more: &Value) -> Value {
@@ -60,7 +60,7 @@ fn file(s: &mut Session, p: Value) -> Vec<u8> {
 /// The file `bytes` named `name`, opened in a new session.
 fn opened(name: &str, bytes: &[u8]) -> Session {
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})).unwrap();
     s
 }
 
@@ -134,21 +134,6 @@ fn pdf_and_svg_show_the_color_and_their_editing_data_keeps_it_as_the_artboards()
 }
 
 
-/// Does PostScript `t` paint the only red the document has, the first artboard's color? RGB, or
-/// CMYK PostScript's (its values depend on the color conversion the platform offers, so only its
-/// hue is checked).
-fn red(t: &str) -> bool {
-    t.lines().any(|l| {
-        let mut w: Vec<&str> = l.split_whitespace().collect();
-        let Some(op) = w.pop() else { return false };
-        let v: Vec<f64> = w.iter().filter_map(|n| n.parse().ok()).collect();
-        match (op, v.as_slice()) {
-            ("rg" | "setrgbcolor", [r, g, b]) => *r > 0.9 && *g < 0.1 && *b < 0.1,
-            ("k" | "setcmykcolor", [c, m, y, k]) => *c < 0.1 && *m > 0.8 && *y > 0.8 && *k < 0.1,
-            _ => false,
-        }
-    })
-}
 
 
 
@@ -186,8 +171,8 @@ fn export_for_screens_includes_the_fill_unless_unchecked() {
     assert_eq!(s.execute("document.exportSettings", &json!({})).unwrap()["settings"]["includeArtboardFill"], false, "remembered");
     assert!(s.execute("document.exportForScreens", &json!({"includeArtboardFill": "no", "formats": [{"format": "png"}]})).is_err());
     // A document row's artboard keeps its color, as a color.
-    let r = screens(&mut s, json!({"formats": [{"format": "vectorcraft"}]}));
-    let back = vectorcraft_format::load(&b64(&r["files"][0])).unwrap();
+    let r = screens(&mut s, json!({"formats": [{"format": "etc"}]}));
+    let back = etcfile::load(&b64(&r["files"][0])).unwrap();
     assert_eq!(back.artboards[0].color, s.doc().unwrap().doc.artboards[0].color);
     assert_eq!(back.layers.len(), 1, "not as art");
 }

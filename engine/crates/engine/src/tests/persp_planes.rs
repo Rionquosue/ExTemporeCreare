@@ -171,7 +171,7 @@ fn grid_edits_keep_attached_art_in_place_unless_reprojected() {
 fn plane_offsets_round_trip_and_old_grids_have_none() {
     let (mut s, _) = persp_session();
     s.execute("perspective.grid.set", &json!({"leftOffset": 12, "groundOffset": -8})).unwrap();
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let g = PerspectiveGrid::from_doc(&doc).unwrap();
     assert_eq!((g.left_offset, g.right_offset, g.ground_offset), (12.0, 0.0, -8.0));
     let mut stored = doc.unknown["perspectiveGrid"].clone();

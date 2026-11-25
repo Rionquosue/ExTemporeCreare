@@ -83,7 +83,7 @@ fn stroke_mode_sets_how_the_gradient_lies_with_one_undo_step() {
 #[test]
 fn the_mode_round_trips_through_the_native_format_and_old_files_paint_within() {
     let (s, id) = setup("across");
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(doc(&s))).unwrap();
+    let back = etcfile::load(&etcfile::save_file(doc(&s))).unwrap();
     assert_eq!(back.node(id).unwrap().appearance.stroke().unwrap().gradient_mode, StrokeGradientMode::Across);
     let (s, id) = setup("within");
     let json = serde_json::to_string(doc(&s).node(id).unwrap().appearance.stroke().unwrap()).unwrap();

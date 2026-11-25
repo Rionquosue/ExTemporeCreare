@@ -319,6 +319,8 @@ impl Session {
     /// an undo group with the begun group's name opens in it: here outside a command, and after the
     /// command that adds it otherwise ([`Session::execute`]).
     pub fn add_document(&mut self, mut doc: Document, path: Option<String>) -> usize {
+        // The `.etc` project id every save of this document writes.
+        etcfile::ensure_project_id(&mut doc);
         // Every edit is checked against the document before it, so the first one is within the cap
         // (importers and the native reader have seen to theirs already, with a warning).
         doc.limit_depth();
@@ -353,6 +355,7 @@ impl Session {
         if index >= self.docs.len() {
             return false;
         }
+        etcfile::ensure_project_id(&mut doc);
         doc.limit_depth();
         cmd::compositefonts::filter_loaded(&mut doc);
         doc.resolve_inline_art();

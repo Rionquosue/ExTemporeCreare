@@ -177,7 +177,7 @@ pub fn texture(stored: &str) -> Option<Arc<LoadedTexture>> {
 
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-/// Standard base64 (RFC 4648, with padding), written as `vectorcraft_format::base64_encode`
+/// Standard base64 (RFC 4648, with padding), written as `etcfile::base64::encode`
 /// writes it.
 fn base64_encode(data: &[u8]) -> String {
     let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
@@ -192,7 +192,7 @@ fn base64_encode(data: &[u8]) -> String {
 }
 
 /// Standard base64 (RFC 4648, with padding; whitespace skipped), read as
-/// `vectorcraft_format::base64_decode` reads it; `None` when it isn't base64.
+/// `etcfile::base64::decode` reads it; `None` when it isn't base64.
 fn base64_decode(s: &str) -> Option<Vec<u8>> {
     let val = |c: u8| B64.iter().position(|&b| b == c).map(|p| p as u32);
     let clean: Vec<u8> = s.bytes().filter(|b| !b.is_ascii_whitespace()).collect();

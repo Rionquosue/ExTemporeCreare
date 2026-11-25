@@ -131,7 +131,7 @@ fn arc_image(s: &mut Session) -> NodeId {
 }
 
 fn decoded(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 #[test]

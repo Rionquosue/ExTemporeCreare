@@ -386,6 +386,91 @@ fn outcome(
     (r, (*st.doc).clone(), st.selection.clone(), st.history.undo.len())
 }
 
+/// With the rectangle apart (`d`) selected and with nothing selected, a list with an entry that is
+/// not a non-negative integer (a string, true, an object) is refused with an error naming the key,
+/// the entry and its value, a value that is not a list with an error naming the key, and the
+/// document, the selection and the undo history stay as they were. No entry is dropped. A list of
+/// the rectangle is not refused.
+#[test]
+fn an_ids_entry_that_is_not_an_id_is_refused_and_changes_nothing() {
+    let (_, [.., d], _) = doc_with_type();
+    let mut failures = vec![];
+    for (cmd, key, params, _) in &ids_cases(d) {
+        let bads = [json!(["abc"]), json!([d, true]), json!([{}]), json!("abc")];
+        for (bad, selected) in bads.iter().flat_map(|b| [(b, true), (b, false)]) {
+            // A fresh document each time, so no mode one case enters carries into the next.
+            let (mut s, ..) = doc_with_type();
+            if selected {
+                s.execute("select.set", &json!({ "ids": [d] })).unwrap();
+            }
+            let st = s.doc().unwrap();
+            let before = (st.doc.clone(), st.selection.clone(), st.history.undo.len());
+            let mut p = params.clone();
+            p[*key] = bad.clone();
+            let r = s.execute(cmd, &p);
+            let want = match bad.as_array() {
+                Some(a) => {
+                    let (index, value) = a.iter().enumerate().find(|(_, v)| !v.is_u64()).unwrap();
+                    format!("`{key}` entry {index} is {value}, not a non-negative integer object id")
+                }
+                None => format!("{key} must be an array of non-negative integer object ids"),
+            };
+            match &r {
+                Err(EngineError::BadParams { cmd: c, msg }) if c == cmd && *msg == want => {}
+                r => failures.push(format!("{cmd} {key}: {bad} (selected: {selected}): {r:.160?}")),
+            }
+            let st = s.doc().unwrap();
+            if (st.doc.clone(), st.selection.clone(), st.history.undo.len()) != before {
+                failures.push(format!("{cmd} {key}: {bad} (selected: {selected}): the document, the selection or the undo history changed"));
+            }
+        }
+        let (mut s, ..) = doc_with_type();
+        s.execute("select.set", &json!({ "ids": [d] })).unwrap();
+        let mut p = params.clone();
+        p[*key] = json!([d]);
+        if let Err(EngineError::BadParams { msg, .. }) = s.execute(cmd, &p)
+            && (msg.starts_with(&format!("`{key}` entry ")) || msg.starts_with(&format!("{key} must be an array")))
+        {
+            failures.push(format!("{cmd} {key}: [{d}] is refused: {msg}"));
+        }
+    }
+    assert!(failures.is_empty(), "{} fail:\n{}", failures.len(), failures.join("\n"));
+}
+
+/// With the rectangle apart (`d`) selected, the same commands with `ids` (or `slices`) left out and
+/// with it null do the same: what the selection's list does for the commands that take the
+/// selection, and the command's own default for the others (`object.slice.select` deselects the
+/// slices).
+#[test]
+fn ids_left_out_or_null_take_the_selection_or_the_default() {
+    let (_, [.., d], _) = doc_with_type();
+    let mut failures = vec![];
+    for (cmd, key, params, unset) in ids_cases(d) {
+        // The commands on `slices` act on the selected object once it is an object slice.
+        let slice = key == "slices";
+        let left_out = outcome(cmd, &params, &[d], slice);
+        let mut null = params.clone();
+        null[key] = serde_json::Value::Null;
+        let with_null = outcome(cmd, &null, &[d], slice);
+        if with_null != left_out {
+            failures.push(format!("{cmd} {key}: null does not do what leaving it out does ({:.160?})", left_out.0));
+        }
+        let mut listed = params.clone();
+        listed[key] = json!([d]);
+        let listed = outcome(cmd, &listed, &[d], slice);
+        let ok = match &unset {
+            Unset::Selected => left_out.0.is_ok() && listed == left_out,
+            Unset::SelectionRefused(want) => left_out.0.as_ref().is_err_and(|e| e.ends_with(want)) && listed == left_out,
+            Unset::Fails(want) => left_out.0.as_ref().is_err_and(|e| e.ends_with(want)) && listed.0 != left_out.0,
+            Unset::Gives(want) => left_out.0.as_ref() == Ok(want) && listed.0 != left_out.0,
+        };
+        if !ok {
+            failures.push(format!("{cmd} {key}: left out: {:.200?}; listed: {:.200?}", left_out.0, listed.0));
+        }
+    }
+    assert!(failures.is_empty(), "{} fail:\n{}", failures.len(), failures.join("\n"));
+}
+
 
 
 /// The commands that read `ids` through [`cmd::checked_ids_or_selection`] take `ids: null` as left

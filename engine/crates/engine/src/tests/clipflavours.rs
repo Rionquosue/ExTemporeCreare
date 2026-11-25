@@ -36,7 +36,7 @@ fn copy_text(s: &mut Session, texts: &[&str]) {
 }
 
 fn decode(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 /// The pasted objects (the selection after a paste).
@@ -110,7 +110,7 @@ fn exported_pdf_pastes_back_as_vectors() {
         n.walk(&mut |c| red |= c.appearance.fill_paint().color().is_some_and(|c| c.to_hex() == "#ff0000"));
     }
     assert!(red, "the square keeps its red fill");
-    assert!(t.execute("clipboard.importPdf", &json!({"dataBase64": vectorcraft_format::base64_encode(b"not a pdf")})).is_err());
+    assert!(t.execute("clipboard.importPdf", &json!({"dataBase64": etcfile::base64::encode(b"not a pdf")})).is_err());
     assert!(t.execute("clipboard.importPdf", &json!({})).is_err());
 }
 
@@ -163,7 +163,7 @@ fn import_image_then_paste_gives_an_image() {
     assert!((b.center().x - 300.0).abs() < 1e-6 && (b.center().y - 200.0).abs() < 1e-6 && (b.width() - 40.0).abs() < 1e-6, "{b:?}");
     // Not a bitmap.
     assert!(s.execute("clipboard.importImage", &json!({"dataBase64": png["dataBase64"], "mime": "image/svg+xml"})).is_err());
-    assert!(s.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(b"hello")})).is_err());
+    assert!(s.execute("clipboard.importImage", &json!({"dataBase64": etcfile::base64::encode(b"hello")})).is_err());
     assert!(s.execute("clipboard.importImage", &json!({"dataBase64": "!!"})).is_err());
 }
 
@@ -210,14 +210,14 @@ fn an_image_read_apart_loads_as_import_image_loads_it() {
     let (mut at_once, mut apart) = (session(), session());
     let p = json!({"mime": "image/bmp", "center": [100, 80]});
     let mut with_data = p.clone();
-    with_data["dataBase64"] = json!(vectorcraft_format::base64_encode(&bmp));
+    with_data["dataBase64"] = json!(etcfile::base64::encode(&bmp));
     let r = run(&mut at_once, "clipboard.importImage", with_data);
     let read = crate::cmd::clipboard::read_image(&bmp).unwrap();
     assert_eq!(apart.import_image_read(read, &p).unwrap(), r);
     assert_eq!(apart.clipboard, at_once.clipboard);
     assert!(apart.image_hand_off.is_none());
     // Errors: bytes that aren't a picture, and a type that isn't a bitmap.
-    let not_a_picture = at_once.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(b"hello")})).unwrap_err();
+    let not_a_picture = at_once.execute("clipboard.importImage", &json!({"dataBase64": etcfile::base64::encode(b"hello")})).unwrap_err();
     assert_eq!(crate::cmd::clipboard::read_image(b"hello").err().map(|e| e.to_string()), Some(not_a_picture.to_string()));
     let read = crate::cmd::clipboard::read_image(&bmp).unwrap();
     let svg = apart.import_image_read(read, &json!({"mime": SVG})).unwrap_err();
@@ -233,7 +233,7 @@ fn a_bitmap_whose_pixels_cant_be_read_is_not_pasted() {
     copy_red_square(&mut s);
     let held = s.clipboard.clone();
     let cut = crate::tests_links::cut_png(600, 300);
-    let e = s.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(&cut), "mime": "image/png"})).unwrap_err();
+    let e = s.execute("clipboard.importImage", &json!({"dataBase64": etcfile::base64::encode(&cut), "mime": "image/png"})).unwrap_err();
     assert!(e.to_string().ends_with("the image's pixels can't be read"), "{e}");
     assert_eq!(crate::cmd::clipboard::read_image(&cut).err().map(|e| e.to_string()), Some(e.to_string()));
     assert_eq!(s.clipboard.nodes, held.nodes);
@@ -282,7 +282,7 @@ fn a_pasted_bitmap_is_drawn_without_decoding_it_again() {
     }
     .unwrap();
     let mut s = session();
-    run(&mut s, "clipboard.importImage", json!({"dataBase64": vectorcraft_format::base64_encode(&png), "mime": "image/png"}));
+    run(&mut s, "clipboard.importImage", json!({"dataBase64": etcfile::base64::encode(&png), "mime": "image/png"}));
     run(&mut s, "edit.paste", json!({}));
     let n = &pasted(&s)[0];
     let NodeKind::Image(im) = &n.kind else { panic!("not an image: {:?}", n.kind) };
@@ -347,7 +347,7 @@ fn copied_svgz_files_paste_as_svg() {
     }
     // The SVG flavor's command reads the SVGZ bytes: the red square pastes.
     let mut s = session();
-    let r = run(&mut s, "clipboard.importSvg", json!({"dataBase64": vectorcraft_format::base64_encode(&svgz), "center": [200, 150]}));
+    let r = run(&mut s, "clipboard.importSvg", json!({"dataBase64": etcfile::base64::encode(&svgz), "center": [200, 150]}));
     assert_eq!(r["count"], 1, "{r}");
     run(&mut s, "edit.paste", json!({}));
     let n = &pasted(&s)[0];
@@ -607,7 +607,7 @@ fn a_copy_with_a_large_image_offers_no_svg_text() {
     for (side, text) in [(700, false), (64, true)] {
         let png = noise_png(side);
         assert_eq!(png.len() > 1 << 20, !text, "{} bytes", png.len());
-        run(&mut s, "clipboard.importImage", json!({"dataBase64": vectorcraft_format::base64_encode(&png)}));
+        run(&mut s, "clipboard.importImage", json!({"dataBase64": etcfile::base64::encode(&png)}));
         run(&mut s, "edit.paste", json!({}));
         run(&mut s, "edit.copy", json!({}));
         let want: &[&str] = if text { &[TEXT, SVG, PNG] } else { &[SVG, PNG] };

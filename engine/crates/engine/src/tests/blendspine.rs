@@ -394,7 +394,7 @@ fn key_anchors_round_trip() {
     let (_, _, g) = blend(&mut s);
     s.execute("object.blend.spine.addAnchor", &json!({"id": g.0, "x": 55, "y": 5})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     let old: BlendSpec = serde_json::from_value(json!({"spine": {"subpaths": []}})).unwrap();
     assert!(old.key_anchors.is_empty());

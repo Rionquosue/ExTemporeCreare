@@ -68,7 +68,7 @@ fn hide_white() -> Value {
 /// A session with `bytes` opened as a document, its image selected.
 fn open(bytes: &[u8]) -> (Session, NodeId) {
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "art.png", "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": "art.png", "dataBase64": etcfile::base64::encode(bytes)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let id = s.doc().unwrap().selection.objects[0];
     (s, id)
@@ -198,7 +198,7 @@ fn applying_the_mask_makes_it_part_of_the_pixels() {
 fn svg_image(svg: &str) -> DynamicImage {
     let at = svg.find("data:image/png;base64,").expect("an embedded PNG") + "data:image/png;base64,".len();
     let end = at + svg[at..].find('"').unwrap();
-    craft_image_codecs::decode(&vectorcraft_format::base64_decode(&svg[at..end]).unwrap())
+    craft_image_codecs::decode(&etcfile::base64::decode(&svg[at..end]).unwrap())
         .map(|__cimg| {
             let (__w, __h) = __cimg.dimensions();
             match (__cimg.layout(), __cimg.sample_type()) {
@@ -217,13 +217,50 @@ fn svg_image(svg: &str) -> DynamicImage {
         .unwrap()
 }
 
+#[test]
+fn outputs_write_the_masked_pixels() {
+    let (mut s, _) = open(&framed());
+    let export =
+        |s: &Session, format: &str| crate::cmd::fileio::encode_all(doc(s), format, &json!({"useArtboards": true})).unwrap().files.remove(0).1;
+    let (png0, svg0, pdf0, eps0) = (export(&s, "png"), export(&s, "svg"), export(&s, "pdf"), export(&s, "eps"));
+    s.execute(COLOR_MASK, &hide_white()).unwrap();
+    let alpha = |bytes: &[u8]| {
+        craft_image_codecs::decode(bytes)
+            .map(|__cimg| {
+                let (__w, __h) = __cimg.dimensions();
+                match (__cimg.layout(), __cimg.sample_type()) {
+                    (craft_image_codecs::ChannelLayout::Gray, craft_image_codecs::SampleType::U8) => {
+                        image::DynamicImage::ImageLuma8(image::GrayImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
+                    }
+                    (craft_image_codecs::ChannelLayout::GrayA, craft_image_codecs::SampleType::U8) => {
+                        image::DynamicImage::ImageLumaA8(image::GrayAlphaImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
+                    }
+                    (craft_image_codecs::ChannelLayout::Rgb, craft_image_codecs::SampleType::U8) => {
+                        image::DynamicImage::ImageRgb8(image::RgbImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
+                    }
+                    _ => image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(__w, __h, __cimg.to_rgba8()).unwrap()),
+                }
+            })
+            .unwrap()
+            .to_rgba8()
+            .get_pixel(0, 0)
+            .0[3]
+    };
+    assert_eq!((alpha(&png0), alpha(&export(&s, "png"))), (255, 0), "PNG");
+    let svg_alpha = |bytes: &[u8]| svg_image(std::str::from_utf8(bytes).unwrap()).to_rgba8().get_pixel(0, 0).0[3];
+    assert_eq!((svg_alpha(&svg0), svg_alpha(&export(&s, "svg"))), (255, 0), "SVG");
+    let has = |bytes: &[u8], what: &[u8]| bytes.windows(what.len()).any(|w| w == what);
+    assert!(!has(&pdf0, b"/SMask") && has(&export(&s, "pdf"), b"/SMask"), "PDF: the image with an alpha channel");
+    assert!(!has(&eps0, b"/MaskColor") && has(&export(&s, "eps"), b"/MaskColor"), "EPS: the hidden pixels masked out");
+}
+
 
 #[test]
 fn the_mask_saves_and_opens_again() {
     let (mut s, id) = open(&framed());
     s.execute(COLOR_MASK, &hide_white()).unwrap();
-    let saved = vectorcraft_format::save_file(doc(&s));
-    let back = vectorcraft_format::load(&saved).unwrap();
+    let saved = etcfile::save_file(doc(&s));
+    let back = etcfile::load(&saved).unwrap();
     assert_eq!(mask_of(&back, id), mask_of(doc(&s), id));
     let m = mask_of(&back, id).unwrap();
     assert_eq!(back.images[&m.key].bytes, doc(&s).images[&m.key].bytes, "the masked pixels are saved with it");
@@ -801,7 +838,7 @@ fn a_linked_file_read_again_on_open_takes_the_mask_again() {
     let mut s = crate::tests_links::session();
     let id = crate::tests_links::place(&mut s, &pic);
     s.execute(COLOR_MASK, &hide_white()).unwrap();
-    let saved = dir.file("art.vectorcraft");
+    let saved = dir.file("art.etc");
     crate::tests_links::save(&mut s, &saved);
     // New pixels in the file: blue where the block was red.
     let blue = png(DynamicImage::ImageRgba8(image::RgbaImage::from_fn(12, 10, |x, y| {
@@ -835,24 +872,7 @@ fn a_linked_file_read_again_on_open_takes_the_mask_again() {
     assert_eq!((px.get_pixel(0, 0).0[3], px.get_pixel(4, 4).0), (0, [0, 0, 200, 255]));
 }
 
-/// The bytes of every file `format` writes for `d` with `p`.
-fn written(d: &Document, format: &str, p: Value) -> Vec<Vec<u8>> {
-    crate::cmd::fileio::encode_all(d, format, &p).unwrap().files.into_iter().map(|f| f.1).collect()
-}
 
-/// `out` for the opened image without a mask, with one hiding its red block, and with the mask
-/// removed again: the mask changes what is written, and removing it gives the same output as
-/// before. (Outputs that flatten see-through pixels over the white page show the hidden block as
-/// white.)
-fn written_with_the_mask<T: PartialEq + std::fmt::Debug>(out: impl Fn(&Document) -> T) {
-    let (mut s, _) = open(&framed());
-    let plain = out(doc(&s));
-    s.execute(COLOR_MASK, &json!({"background": "colors", "colors": "#c80000", "contiguous": false, "tolerance": 0, "softness": 0})).unwrap();
-    let masked = out(doc(&s));
-    s.execute(REMOVE_COLOR_MASK, &json!({})).unwrap();
-    assert_ne!(plain, masked, "the masked pixels are written");
-    assert_eq!(out(doc(&s)), plain, "without the mask, the image's own");
-}
 
 
 
@@ -866,7 +886,7 @@ fn pdf_x1a_and_x3_flatten_the_hidden_pixels() {
         let (mut s, _) = open(&framed());
         let export = |s: &mut Session| {
             let v = s.execute("document.exportPdf", &json!({"standard": standard, "compression": {"compressText": false}})).unwrap();
-            let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+            let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
             (String::from_utf8_lossy(&bytes).into_owned(), v["warnings"].to_string())
         };
         let (_, warnings) = export(&mut s);
@@ -967,12 +987,12 @@ fn a_transform_effect_keeps_the_mask() {
 /// without transparency expand it before they flatten.
 #[test]
 fn a_pattern_tile_with_a_masked_image_counts_as_see_through() {
-    let href = format!("data:image/png;base64,{}", vectorcraft_format::base64_encode(&framed()));
+    let href = format!("data:image/png;base64,{}", etcfile::base64::encode(&framed()));
     let svg = format!(
         r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100" height="100" viewBox="0 0 100 100"><defs><pattern id="p" patternUnits="userSpaceOnUse" width="12" height="10"><image width="12" height="10" xlink:href="{href}"/></pattern></defs><rect width="100" height="100" fill="url(#p)"/></svg>"##
     );
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "p.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())})).unwrap();
+    s.execute("document.open", &json!({"name": "p.svg", "dataBase64": etcfile::base64::encode(svg.as_bytes())})).unwrap();
     let mut d = doc(&s).clone();
     let see_through =
         |d: &Document| crate::cmd::expand::has_transparent_image_patterns(d, &crate::cmd::flatten::see_through_images(d), &|_, _| false);
@@ -1098,7 +1118,7 @@ fn placing_a_document_brings_the_masked_pixels() {
     let (mut s, id) = open(&framed());
     s.execute(COLOR_MASK, &hide_white()).unwrap();
     let m = mask_of(doc(&s), id).unwrap();
-    let file = vectorcraft_format::save_file(doc(&s));
+    let file = etcfile::save_file(doc(&s));
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     let other = ImageBlob::png(png(DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(2, 2, image::Rgba(RED)))));
     s.edit("Taken names", |d, _| {
@@ -1108,7 +1128,7 @@ fn placing_a_document_brings_the_masked_pixels() {
     .unwrap();
     super::super::DECODES.with(|c| c.set(0));
     let r =
-        s.execute("file.place", &json!({"name": "art.vectorcraft", "dataBase64": vectorcraft_format::base64_encode(&file), "link": false})).unwrap();
+        s.execute("file.place", &json!({"name": "art.etc", "dataBase64": etcfile::base64::encode(&file), "link": false})).unwrap();
     assert_eq!(super::super::DECODES.with(|c| c.get()), 0, "nothing is decoded to make the mask again: {r}");
     let d = doc(&s);
     let mut found = vec![];

@@ -100,7 +100,7 @@ fn every_colour_mode_and_depth_reads() {
 #[test]
 fn cmyk_psd_place_keeps_the_native_ink_samples() {
     let f = psd(1, 4, (2, 1), 8, 4, &[], &[], &[], &raw(&[&[191, 255], &[127, 0], &[63, 127], &[223, 0]]));
-    let p = json!({"name": "inks.psd", "dataBase64": vectorcraft_format::base64_encode(&f)});
+    let p = json!({"name": "inks.psd", "dataBase64": etcfile::base64::encode(&f)});
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 40, "height": 20})).unwrap();
     let info = s.execute("file.place.info", &p).unwrap();
@@ -259,7 +259,7 @@ fn packbits_zip_and_psb_files_read() {
     let big = psd(2, 4, (3, 1), 8, 3, &[], &[], &layer_count(-1, true), &rle);
     assert_eq!(pixels(&big), [[200, 100, 50, 255]; 3]);
     let mut s = Session::new();
-    let r = s.execute("document.open", &json!({"name": "big.psb", "dataBase64": vectorcraft_format::base64_encode(&big)})).unwrap();
+    let r = s.execute("document.open", &json!({"name": "big.psb", "dataBase64": etcfile::base64::encode(&big)})).unwrap();
     assert_eq!(r["format"], "psb");
     // Zipped with prediction, 16 bits: each sample is the difference from the one before.
     let deltas: Vec<u8> = [0x1000u16, 0x1000, 0x1000].iter().flat_map(|d| d.to_be_bytes()).collect();
@@ -312,7 +312,7 @@ fn the_resolution_resource_sizes_the_placed_image() {
     assert!((x - 300.0).abs() < 1e-9 && (y - 300.0).abs() < 0.01, "{x} {y}");
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
-    let r = s.execute("file.place", &json!({"name": "photo.psd", "dataBase64": vectorcraft_format::base64_encode(&f)})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "photo.psd", "dataBase64": etcfile::base64::encode(&f)})).unwrap();
     assert!(
         (r["width"].as_f64().unwrap() - 72.0).abs() < 0.01 && (r["height"].as_f64().unwrap() - 36.0).abs() < 0.01,
         "an inch by half an inch: {r}"
@@ -335,7 +335,7 @@ fn art() -> Session {
 
 fn exported(s: &mut Session, p: Value) -> Vec<u8> {
     let r = s.execute("document.export", &p).unwrap();
-    vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 #[test]
@@ -373,7 +373,7 @@ fn psd_exports_open_and_place_again() {
             assert!(red[0] == red[1] && red[3] == 255, "{what}: {red:?}");
         }
         // Open and Place take it by its content, whatever its name.
-        let r = s.execute("document.open", &json!({"name": "back.bin", "dataBase64": vectorcraft_format::base64_encode(&f)})).unwrap();
+        let r = s.execute("document.open", &json!({"name": "back.bin", "dataBase64": etcfile::base64::encode(&f)})).unwrap();
         assert_eq!(r["format"], "psd", "{what}");
         let d = &s.doc().unwrap().doc;
         assert!((d.artboards[0].rect.width() - 60.0).abs() < 1e-6, "{what}");
@@ -391,11 +391,11 @@ fn pdd_files_open_and_place() {
     let f = exported(&mut s, json!({"format": "psd"}));
     for name in ["art.pdd", "ART.PDD"] {
         assert_eq!(readable_format_for_name(name).map(|f| f.id), Some("psd"), "{name}");
-        let r = s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&f)})).unwrap();
+        let r = s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&f)})).unwrap();
         assert_eq!((&r["format"], &r["warnings"]), (&json!("psd"), &json!([])), "{name}: {r}");
         assert!((s.doc().unwrap().doc.artboards[0].rect.width() - 60.0).abs() < 1e-6, "{name}");
         s.execute("file.new", &json!({"width": 600, "height": 600})).unwrap();
-        let r = s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&f)})).unwrap();
+        let r = s.execute("file.place", &json!({"name": name, "dataBase64": etcfile::base64::encode(&f)})).unwrap();
         assert_eq!((&r["format"], r["ids"].as_array().map(Vec::len)), (&json!("psd"), Some(1)), "{name}: {r}");
     }
     assert!(OPEN_EXTS.contains(&"pdd") && PLACE_EXTS.contains(&"pdd") && UNASSOCIATED_EXTS.contains(&"pdd"));
@@ -486,7 +486,7 @@ fn clip_group(d: &Document, id: NodeId) -> (Vec<[f64; 2]>, bool, NodeId) {
 fn the_clipping_path_clips_the_merged_image_on_place_and_open() {
     let f = red_psd(&triangle_resources());
     let triangle = vec![[50.0, 0.0], [100.0, 50.0], [0.0, 50.0]];
-    let data = vectorcraft_format::base64_encode(&f);
+    let data = etcfile::base64::encode(&f);
     // Place: one clip group of the named path, not the other, at 100 % (72 ppi: a pixel a point).
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
@@ -520,7 +520,7 @@ fn the_clipping_path_clips_the_merged_image_on_place_and_open() {
 /// Replace keeps a clipped PSD file's scale, as it keeps an image's.
 #[test]
 fn replacing_a_clipped_psd_keeps_its_scale() {
-    let data = vectorcraft_format::base64_encode(&red_psd(&triangle_resources()));
+    let data = etcfile::base64::encode(&red_psd(&triangle_resources()));
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
     s.execute("file.place", &json!({"name": "cut.psd", "dataBase64": data, "at": [200, 200]})).unwrap();
@@ -530,7 +530,7 @@ fn replacing_a_clipped_psd_keeps_its_scale() {
     let (anchors, _, _) = clip_group(&s.doc().unwrap().doc, NodeId(r["ids"][0].as_u64().unwrap()));
     assert_eq!(anchors, [[200.0, 150.0], [300.0, 250.0], [100.0, 250.0]]);
     // A plain image replacing the clip group keeps its scale too.
-    let plain = vectorcraft_format::base64_encode(&red_psd(&[]));
+    let plain = etcfile::base64::encode(&red_psd(&[]));
     let r = s.execute("file.place", &json!({"name": "plain.psd", "dataBase64": plain, "replace": true})).unwrap();
     assert_eq!((r["width"].as_f64(), r["height"].as_f64()), (Some(200.0), Some(100.0)), "{r}");
 }
@@ -538,8 +538,8 @@ fn replacing_a_clipped_psd_keeps_its_scale() {
 /// A plain image replacing a clipped PSD file takes the clipped image's scale and rotation.
 #[test]
 fn a_plain_image_replacing_a_clipped_psd_keeps_its_rotation() {
-    let data = vectorcraft_format::base64_encode(&red_psd(&triangle_resources()));
-    let plain = vectorcraft_format::base64_encode(&red_psd(&[]));
+    let data = etcfile::base64::encode(&red_psd(&triangle_resources()));
+    let plain = etcfile::base64::encode(&red_psd(&[]));
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
     let r = s.execute("file.place", &json!({"name": "cut.psd", "dataBase64": data, "at": [200, 200]})).unwrap();
@@ -704,7 +704,7 @@ fn update_links_after_reopening_from_the_preview_replaces_the_files_clipping_pat
         }
         let node = |s: &Session| s.doc().unwrap().doc.node(image).unwrap().clone();
         let corners = node(&s).image_corners().unwrap();
-        let doc_path = dir.join("poster.vectorcraft").to_string_lossy().into_owned();
+        let doc_path = dir.join("poster.etc").to_string_lossy().into_owned();
         s.execute("document.save", &json!({"path": doc_path})).unwrap();
         std::fs::write(&cut, big(&square_resources())).unwrap();
         s.execute("document.open", &json!({"path": doc_path})).unwrap();
@@ -742,12 +742,12 @@ fn unembed_keeps_the_clipping_path_of_a_distorted_psd() {
         let file = if kind == "rgb" { red_psd(&square_resources()) } else { cmyk(&square_resources()) };
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
-        let r = s.execute("file.place", &json!({"name": "square.psd", "dataBase64": vectorcraft_format::base64_encode(&file)})).unwrap();
+        let r = s.execute("file.place", &json!({"name": "square.psd", "dataBase64": etcfile::base64::encode(&file)})).unwrap();
         let r = s.execute("links.unembed", &json!({"id": r["image"]})).unwrap();
-        vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
     };
     for ((kind, file), folder) in files.iter().flat_map(|f| [(f, false), (f, true)]) {
-        let data = vectorcraft_format::base64_encode(file);
+        let data = etcfile::base64::encode(file);
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
         let r = s.execute("file.place", &json!({"name": "cut.psd", "dataBase64": data, "at": [50, 25]})).unwrap();
@@ -800,7 +800,7 @@ fn unembed_keeps_the_clipping_path_of_a_distorted_psd() {
     // becomes a plain group of the image, as Relink to any file without one leaves it.
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
-    let data = vectorcraft_format::base64_encode(&red_psd(&triangle_resources()));
+    let data = etcfile::base64::encode(&red_psd(&triangle_resources()));
     let r = s.execute("file.place", &json!({"name": "cut.psd", "dataBase64": data, "at": [50, 25]})).unwrap();
     let (group, image) = (NodeId(r["ids"][0].as_u64().unwrap()), NodeId(r["image"].as_u64().unwrap()));
     s.execute("select.set", &json!({"ids": [group.0]})).unwrap();
@@ -822,7 +822,7 @@ fn unembed_keeps_the_clipping_path_of_an_embedded_psd() {
     let cmyk = psd(1, 4, (100, 50), 8, 4, &[], &triangle_resources(), &[], &raw(&[&[0; 5000], &[255; 5000], &[255; 5000], &[0; 5000]]));
     let files = [("rgb", red_psd(&triangle_resources())), ("cmyk", cmyk)];
     for ((kind, file), folder) in files.iter().flat_map(|f| [(f, false), (f, true)]) {
-        let data = vectorcraft_format::base64_encode(file);
+        let data = etcfile::base64::encode(file);
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
         let r = s.execute("file.place", &json!({"name": "cut.psd", "dataBase64": data, "at": [50, 25]})).unwrap();
@@ -918,7 +918,7 @@ fn a_fill_that_starts_with_all_pixels_puts_the_image_around_the_path() {
     let starts: Vec<_> = path.subpaths.iter().map(|s| (s.anchors[0].p.x, s.anchors[0].p.y, s.closed)).collect();
     assert_eq!(starts, [(0.0, 0.0, true), (25.0, 12.5, true)], "the image's edges, then the hole");
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "hole.psd", "dataBase64": vectorcraft_format::base64_encode(&f), "layers": false})).unwrap();
+    s.execute("document.open", &json!({"name": "hole.psd", "dataBase64": etcfile::base64::encode(&f), "layers": false})).unwrap();
     let png = image::load_from_memory(&exported(&mut s, json!({"format": "png"}))).unwrap().to_rgba8();
     assert_eq!((png.get_pixel(2, 2).0, png.get_pixel(50, 25).0[3]), ([255, 0, 0, 255], 0));
 }
@@ -939,7 +939,7 @@ fn files_naming_no_clipping_path_or_a_missing_one_place_a_plain_image() {
         assert!(clipping_path(&f).is_none(), "{what}");
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
-        let r = s.execute("file.place", &json!({"name": "a.psd", "dataBase64": vectorcraft_format::base64_encode(&f)})).unwrap();
+        let r = s.execute("file.place", &json!({"name": "a.psd", "dataBase64": etcfile::base64::encode(&f)})).unwrap();
         let id = NodeId(r["ids"][0].as_u64().unwrap());
         assert!(matches!(s.doc().unwrap().doc.node(id).map(|n| &n.kind), Some(NodeKind::Image(_))), "{what}");
         assert!(r.get("image").is_none(), "{what}: {r}");
@@ -1000,5 +1000,5 @@ fn damaged_and_unsupported_files_are_refused_without_a_panic() {
     let mut s = Session::new();
     s.execute("file.new", &json!({})).unwrap();
     let cut = &good[..good.len() - 3];
-    assert!(s.execute("file.place", &json!({"name": "cut.psd", "dataBase64": vectorcraft_format::base64_encode(cut)})).is_err());
+    assert!(s.execute("file.place", &json!({"name": "cut.psd", "dataBase64": etcfile::base64::encode(cut)})).is_err());
 }

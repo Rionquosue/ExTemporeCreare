@@ -47,7 +47,7 @@ fn has_edit_layer(d: &Document) -> bool {
 }
 
 fn data(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 /// #2727: the canvas passes `isolation` while mask art is edited; the editing layer is not drawn on
@@ -619,7 +619,7 @@ fn saving_while_editing_writes_no_editing_layer() {
     let obj = editing_mask(&mut s);
     s.execute("object.move", &json!({"dx": 50, "dy": 0})).unwrap();
     let bytes = data(&s.execute("document.save", &json!({})).unwrap());
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert!(back.mask_edit.is_none() && !has_edit_layer(&back));
     assert_eq!(back.layers.len(), 1);
     // The edit made while editing is in the saved mask.
@@ -627,11 +627,11 @@ fn saving_while_editing_writes_no_editing_layer() {
     // Still editing in the session.
     assert!(doc(&s).mask_edit.is_some() && has_edit_layer(doc(&s)));
     // A file saved mid-edit by an older version (editing record and layer written) opens clean.
-    let mut v: Value = serde_json::from_slice(&vectorcraft_format::save(doc(&s), false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::save(doc(&s), false)).unwrap();
     let full = serde_json::to_value(doc(&s)).unwrap();
     v["document"]["layers"] = full["layers"].clone();
     v["document"]["mask_edit"] = json!({"object": obj.0, "layer": doc(&s).mask_edit.unwrap().layer.0});
-    let old = vectorcraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let old = etcfile::load(&serde_json::to_vec(&v).unwrap()).unwrap();
     assert!(old.mask_edit.is_none() && !has_edit_layer(&old) && old.layers.len() == 1);
 }
 

@@ -2252,7 +2252,7 @@ fn copy_into_folder(from: &str, bytes: &[u8], dir: &Path) -> Result<(String, boo
             let e = fileio::naming_in_error(EngineError::Other(e), &to_text);
             std::io::Error::new(std::io::ErrorKind::PermissionDenied, e.to_string())
         })?;
-        vectorcraft_format::write_new_with(to, |f| f.write_all(bytes))
+        etcfile::write_new_with(to, |f| f.write_all(bytes))
     };
     // A file there that automation may not read isn't taken for the same file.
     let same = |to: &Path, m: &std::fs::Metadata| {
@@ -2702,7 +2702,7 @@ fn unembed(s: &mut Session, p: &Value) -> Result<Value> {
     let Some(path) = path else {
         let name = n.display_name();
         let stem = Path::new(&name).file_stem().map_or_else(|| name.clone(), |s| s.to_string_lossy().into_owned());
-        return Ok(json!({ "name": format!("{stem}.{ext}"), "dataBase64": vectorcraft_format::base64_encode(&bytes) }));
+        return Ok(json!({ "name": format!("{stem}.{ext}"), "dataBase64": etcfile::base64::encode(&bytes) }));
     };
     let path = absolute_path(&if fileio::extension(path).is_empty() { format!("{path}.{ext}") } else { path.to_string() });
     // Read before writing: pixels that can't be read leave no file behind.
@@ -2834,7 +2834,7 @@ fn write_numbered(dir: &str, name: &str, bytes: &[u8]) -> Result<String> {
     use std::io::Write as _;
     let create = |to: &Path| {
         crate::file_access::check_write(&to.to_string_lossy()).map_err(|e| std::io::Error::new(std::io::ErrorKind::PermissionDenied, e))?;
-        vectorcraft_format::write_new_with(to, |f| f.write_all(bytes))
+        etcfile::write_new_with(to, |f| f.write_all(bytes))
     };
     match fileio::copy_new(Path::new(name), Path::new(dir), create, |_, _| false) {
         Ok(Some(fileio::Placed::Copied(to) | fileio::Placed::Kept(to))) => Ok(to.to_string_lossy().into_owned()),

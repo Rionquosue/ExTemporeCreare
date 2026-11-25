@@ -490,7 +490,7 @@ fn library_gradients_and_patterns_round_trip_and_damaged_ones_fail_cleanly() {
     let stop = |o: f64| json!({"offset": o, "color": {"model": "rgb", "r": 1, "g": 0, "b": 0}});
     let paint = |stops: Vec<Value>| json!({"gradient": {"kind": "Linear", "stops": stops}, "angle": 30});
     let doc = s.doc().unwrap().doc.clone();
-    let empty = vectorcraft_format::base64_encode(&vectorcraft_format::save(&doc, false));
+    let empty = etcfile::base64::encode(&etcfile::save(&doc, false));
     let messy = json!({
         "name": "Messy",
         "gradients": [
@@ -1127,7 +1127,7 @@ fn a_library_is_exported_and_imported() {
         assert_eq!(a[k], b[k], "{k}");
     }
     // Again: the next number; given a name, that name.
-    let b64 = vectorcraft_format::base64_encode(data.as_bytes());
+    let b64 = etcfile::base64::encode(data.as_bytes());
     assert_eq!(run(&mut s, "library.import", json!({"dataBase64": b64}))["name"], "Brand (3)");
     assert_eq!(run(&mut s, "library.import", json!({"data": data, "name": "Client"}))["name"], "Client");
     // Its graphic places in another document.
@@ -1158,7 +1158,7 @@ fn imported_libraries_are_made_consistent() {
         "name": "  ",
         "colors": [{"name": "Red", "color": {"model": "rgb", "r": 1, "g": 0, "b": 0}}, {"name": "Red", "color": {"model": "rgb", "r": 0, "g": 1, "b": 0}}, {"name": "", "color": {"model": "rgb", "r": 0, "g": 0, "b": 1}}],
         "graphics": [
-            {"id": "g", "name": "A", "width": 1, "height": 1, "data": "", "thumbnail": vectorcraft_format::base64_encode(&png)},
+            {"id": "g", "name": "A", "width": 1, "height": 1, "data": "", "thumbnail": etcfile::base64::encode(&png)},
             {"id": "g", "name": "B", "width": -5, "height": 1, "data": ""}
         ],
         "groups": [

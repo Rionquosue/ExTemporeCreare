@@ -143,8 +143,8 @@ fn affinity3_all_artboards_survive_native_save_and_export() {
         assert!(!loaded.preview_only, "{name}: preview-only import: {:?}", loaded.warnings);
         let doc = &loaded.doc;
         assert!(!doc.artboards.is_empty(), "{name}: no artboards");
-        let native = vectorcraft_format::save(doc, false);
-        let reloaded = vectorcraft_format::load(&native).unwrap();
+        let native = etcfile::save(doc, false);
+        let reloaded = etcfile::load(&native).unwrap();
         assert_eq!(serde_json::to_value(&reloaded).unwrap(), serde_json::to_value(doc).unwrap(), "{name}: native save/reload lost document data");
         if doc.artboards.len() > 1 {
             let params = serde_json::json!({"range": "all", "useArtboards": true, "preserveEditing": false});

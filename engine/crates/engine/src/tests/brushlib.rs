@@ -271,8 +271,8 @@ fn artistic_library_strokes_are_editable_and_reopen_from_a_saved_library() {
         assert_eq!(undo_len(&s), before + 1);
     }
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -313,8 +313,8 @@ fn vector_packs_marks_are_editable_and_survive_a_saved_library() {
         assert_eq!(doc(&s).node(NodeId(line)).unwrap().appearance.stroke().unwrap().brush.as_deref(), Some(b.name.as_str()));
     }
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -343,8 +343,8 @@ fn image_brush_stamps_draw_and_carry_their_pixels_when_added_and_saved() {
         assert!(doc(&s).images.contains_key(&image.key), "{} pixels were not copied", b.name);
     }
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     let mut saved_brushes = vectorcraft_brush::library(&reopened);
     for brush in &mut saved_brushes {
         if let BrushKind::Scatter(sc) = &mut brush.kind {
@@ -359,16 +359,16 @@ fn image_brush_stamps_draw_and_carry_their_pixels_when_added_and_saved() {
 fn a_loaded_library_named_artistic_keeps_its_name_ahead_of_the_builtin_alias() {
     let mut file = vectorcraft_doc::Document::new(100.0, 100.0);
     vectorcraft_brush::store(&mut file, &[vectorcraft_brush::defaults()[0].clone()]);
-    let b64 = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&file));
+    let b64 = etcfile::base64::encode(&etcfile::save_file(&file));
     let mut s = session();
-    let loaded = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Artistic.vectorcraft"}));
+    let loaded = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Artistic.etc"}));
     assert_eq!(loaded["name"], "Artistic");
     let id = loaded["library"].as_str().unwrap();
     assert_eq!(run(&mut s, "brush.library", json!({"library": "Artistic"}))["id"], id);
     assert_eq!(run(&mut s, "brush.library", json!({"library": "ARTISTIC"}))["id"], id);
     assert_eq!(run(&mut s, "brush.library", json!({"library": "artistic"}))["id"], "artistic", "exact built-in id still works");
     // A name a built-in library has selects the built-in, as for every built-in; the loaded one keeps its id.
-    let full = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Artistic Brushes.vectorcraft"}));
+    let full = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Artistic Brushes.etc"}));
     assert_eq!(full["name"], "Artistic Brushes");
     let full_id = full["library"].as_str().unwrap();
     assert_eq!(run(&mut s, "brush.library", json!({"library": "Artistic Brushes"}))["id"], "artistic");
@@ -422,8 +422,8 @@ fn engraving_library_draws_fine_parallel_strokes_and_survives_save() {
     assert_eq!(strs(&added["added"]), ["Fine Hatching"]);
     assert_eq!(added["applied"], json!([path]));
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": ["Fine Hatching"]}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::find(&reopened, "Fine Hatching").unwrap(), lib.brushes[0]);
 }
 
@@ -470,8 +470,8 @@ fn stipple_library_draws_dot_textures_and_survives_save() {
         assert_eq!(doc(&s).node(NodeId(path)).unwrap().appearance.stroke().unwrap().brush.as_deref(), Some(b.name.as_str()));
     }
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -542,8 +542,8 @@ fn dashed_arrow_keeps_separate_dashes_and_survives_library_save() {
     assert!(bounds.windows(2).all(|p| p[0].x1 < p[1].x0), "the dashes and head remain separated");
     run(&mut s, "brush.addFromLibrary", json!({"library": "arrows", "name": "Dashed Arrow"}));
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": ["Dashed Arrow"]}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::find(&reopened, "Dashed Arrow").unwrap(), *b);
 }
 
@@ -623,8 +623,8 @@ fn the_tech_circuit_library_constructs_adds_and_applies_each_brush() {
     }
     let names: Vec<&str> = expected.iter().map(|(name, _)| *name).collect();
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -658,8 +658,8 @@ fn decorative_brushes_repeat_distinct_art_and_survive_a_saved_library() {
     }
     assert_eq!(signatures.len(), names.len(), "each design produces a different repeating shape");
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -689,8 +689,8 @@ fn ornamental_brushes_draw_flourishes_and_survive_a_saved_library() {
         assert_eq!(doc(&s).node(NodeId(path)).unwrap().appearance.stroke().unwrap().brush.as_deref(), Some(b.name.as_str()));
     }
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -755,8 +755,8 @@ fn pressure_sensitive_brushes_widen_with_pen_pressure_and_survive_a_saved_librar
         assert_eq!(doc(&s).node(NodeId(path)).unwrap().appearance.stroke().unwrap().brush.as_deref(), Some(b.name.as_str()));
     }
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -786,8 +786,8 @@ fn paint_brushes_draw_distinct_marks_and_survive_a_saved_library() {
         assert_eq!(doc(&s).node(NodeId(path)).unwrap().appearance.stroke().unwrap().brush.as_deref(), Some(b.name.as_str()));
     }
     let saved = run(&mut s, "brush.saveLibrary", json!({"names": names}));
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::base64::decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    let reopened = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&reopened), lib.brushes);
 }
 
@@ -898,7 +898,7 @@ fn ink_and_wash_brushes_add_apply_undo_and_survive_a_saved_document() {
 
     // Saved and opened again, the document keeps the definitions and the brushed stroke.
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let reopened = vectorcraft_format::load(&vectorcraft_format::base64_decode(&b64).unwrap()).unwrap();
+    let reopened = etcfile::load(&etcfile::base64::decode(&b64).unwrap()).unwrap();
     for n in names {
         assert_eq!(vectorcraft_brush::find(&reopened, n).as_ref(), inks.brush(n), "{n}");
     }
@@ -1033,7 +1033,7 @@ fn the_dry_media_library_holds_grainy_art_brushes_with_bounded_art() {
     // Saved as a library and loaded back: the same brushes, in the document's order.
     let saved = run(&mut s, "brush.saveLibrary", json!({ "names": names, "name": "Dry" }));
     let b64 = saved["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Dry.vectorcraft"}));
+    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Dry.etc"}));
     let (_, reopened) = cmd::brushlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert_eq!(reopened.len(), lib.len());
     for b in &lib.brushes {
@@ -1107,7 +1107,7 @@ fn the_bristle_brushes_library_covers_every_tip_shape_within_the_bristle_ranges(
     // Saved as a library and loaded back: the same brushes, in the same order.
     let saved = run(&mut s, "brush.saveLibrary", json!({ "names": names, "name": "Bristles" }));
     let b64 = saved["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Bristles.vectorcraft"}));
+    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Bristles.etc"}));
     let (_, reopened) = cmd::brushlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert_eq!(reopened.brushes, lib.brushes);
 }
@@ -1118,21 +1118,21 @@ fn a_saved_library_reopens_and_its_brushes_join_another_document_in_one_step() {
     let mut s = kit();
     s.brush_libraries.set_user_dir(Some(dir.to_string_lossy().to_string()));
     let r = run(&mut s, "brush.saveLibrary", json!({"user": true, "name": "Inks", "names": ["My Nib", "Dotted Band"]}));
-    assert_eq!((r["library"].as_str(), r["count"].as_u64()), (Some("user/Inks.vectorcraft"), Some(2)));
+    assert_eq!((r["library"].as_str(), r["count"].as_u64()), (Some("user/Inks.etc"), Some(2)));
     let path = r["path"].as_str().unwrap().to_string();
     let list = run(&mut s, "brush.libraries", json!({}));
     let user: Vec<&Value> = list["libraries"].as_array().unwrap().iter().filter(|l| l["category"] == "user").collect();
     assert_eq!(user.len(), 1);
     assert_eq!((user[0]["name"].as_str(), user[0]["count"].as_u64()), (Some("Inks"), Some(2)));
     // The file is a document: the two brushes and the pattern their art uses, no art.
-    let saved = vectorcraft_format::load(&std::fs::read(&path).unwrap()).unwrap();
+    let saved = etcfile::load(&std::fs::read(&path).unwrap()).unwrap();
     let names: Vec<String> = vectorcraft_brush::library(&saved).into_iter().map(|b| b.name).collect();
     assert_eq!(names, ["My Nib", "Dotted Band"]);
     assert_eq!(saved.patterns.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(), ["Dots"]);
     assert!(saved.layers.iter().all(|l| l.children().is_none_or(|c| c.is_empty())));
     // Loading the file gives that User Defined library.
     let r = run(&mut s, "brush.loadLibrary", json!({ "path": path }));
-    assert_eq!((r["library"].as_str(), r["name"].as_str()), (Some("user/Inks.vectorcraft"), Some("Inks")));
+    assert_eq!((r["library"].as_str(), r["name"].as_str()), (Some("user/Inks.etc"), Some("Inks")));
 
     // Into a new document: Dotted Band and its pattern, as one step.
     run(&mut s, "file.new", json!({"width": 100, "height": 100}));
@@ -1154,7 +1154,7 @@ fn a_saved_library_reopens_and_its_brushes_join_another_document_in_one_step() {
     run(&mut s, "edit.redo", json!({}));
     // Again: already there, so no step and no copy.
     let before = undo_len(&s);
-    let r = run(&mut s, "brush.addFromLibrary", json!({"library": "user/Inks.vectorcraft", "names": ["Dotted Band", "My Nib", "Dotted Band"]}));
+    let r = run(&mut s, "brush.addFromLibrary", json!({"library": "user/Inks.etc", "names": ["Dotted Band", "My Nib", "Dotted Band"]}));
     assert_eq!((strs(&r["names"]), strs(&r["existing"]), strs(&r["added"])), (vec!["Dotted Band", "My Nib"], vec!["Dotted Band"], vec!["My Nib"]));
     assert_eq!(undo_len(&s), before + 1, "My Nib was new");
     let before = undo_len(&s);
@@ -1259,7 +1259,7 @@ fn other_documents_brushes_load_and_unreadable_files_are_errors() {
     // Another document's brushes load as a library, without its art.
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
     let count = brushes(&s).len();
-    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Poster.vectorcraft"}));
+    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Poster.etc"}));
     assert_eq!((r["name"].as_str(), r["count"].as_u64()), (Some("Poster"), Some(count as u64)));
     let (_, lib) = cmd::brushlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert!(lib.doc.layers.iter().all(|l| l.children().is_none_or(|c| c.is_empty())));
@@ -1270,10 +1270,10 @@ fn other_documents_brushes_load_and_unreadable_files_are_errors() {
     assert_eq!(r["count"].as_u64(), Some(vectorcraft_brush::defaults().len() as u64), "{r}");
     // Files that aren't documents, missing files and damaged native files are errors.
     assert!(s.execute("brush.loadLibrary", &json!({"data": "hello", "name": "x.txt"})).is_err());
-    assert!(s.execute("brush.loadLibrary", &json!({"path": "/no/such/Library.vectorcraft"})).is_err());
+    assert!(s.execute("brush.loadLibrary", &json!({"path": "/no/such/Library.etc"})).is_err());
     let dir = folder("bad");
     std::fs::create_dir_all(&dir).unwrap();
-    let bad = dir.join("Broken.vectorcraft");
+    let bad = dir.join("Broken.etc");
     std::fs::write(&bad, b"{\"format\": \"vectorcraft\", \"doc\": 7").unwrap();
     assert!(s.execute("brush.loadLibrary", &json!({"path": bad.to_string_lossy()})).is_err());
     // A damaged file in the user folder isn't listed.
@@ -1292,8 +1292,8 @@ fn other_documents_brushes_load_and_unreadable_files_are_errors() {
     // Without a path the library comes back as the file's bytes.
     let mut s = kit();
     let r = run(&mut s, "brush.saveLibrary", json!({"names": ["My Nib"]}));
-    let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
-    assert_eq!(vectorcraft_brush::library(&vectorcraft_format::load(&bytes).unwrap()).len(), 1);
+    let bytes = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
+    assert_eq!(vectorcraft_brush::library(&etcfile::load(&bytes).unwrap()).len(), 1);
 }
 
 /// A library file whose brushes repeat a name loads with the later brush numbered, and each one
@@ -1304,9 +1304,9 @@ fn a_library_file_that_repeats_a_brush_name_loads_with_the_later_one_numbered() 
     let nib = |size: f64| Brush { name: "Nib".into(), kind: BrushKind::Calligraphic(Calligraphic { size, ..Default::default() }) };
     let mut file = vectorcraft_doc::Document::new(100.0, 100.0);
     vectorcraft_brush::store(&mut file, &[nib(1.0), nib(2.0)]);
-    let b64 = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&file));
+    let b64 = etcfile::base64::encode(&etcfile::save_file(&file));
     let mut s = session();
-    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Nibs.vectorcraft"}));
+    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Nibs.etc"}));
     let library = r["library"].as_str().unwrap().to_string();
     let listed = run(&mut s, "brush.library", json!({ "library": library }));
     let names: Vec<&str> = listed["brushes"].as_array().unwrap().iter().map(|b| b["name"].as_str().unwrap()).collect();

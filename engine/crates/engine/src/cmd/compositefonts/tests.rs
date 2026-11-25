@@ -60,7 +60,7 @@ fn composite_fonts_are_set_as_one_undo_step_and_saved() {
     let listed = s.execute("type.compositeFonts.list", &json!({})).unwrap();
     assert_eq!(listed["fonts"].as_array().map(Vec::len), Some(2));
     // They travel with the file.
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(&s.doc().unwrap().doc)).unwrap();
+    let back = etcfile::load(&etcfile::save_file(&s.doc().unwrap().doc)).unwrap();
     assert_eq!(*back.composite_fonts, *s.doc().unwrap().doc.composite_fonts);
     s.execute("edit.undo", &json!({})).unwrap();
     assert!(names(&s).is_empty());
@@ -353,7 +353,7 @@ fn full_roman_file(name: &str) -> (Vec<u8>, u64, f64) {
     s.execute("type.compositeFonts.set", &json!({"fonts": [full]})).unwrap();
     let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "Ab12", "size": 20, "font": name})).unwrap()["id"].as_u64().unwrap();
     let width = text(&s, id).cached_bounds.unwrap().width();
-    (vectorcraft_format::save_file(&s.doc().unwrap().doc), id, width)
+    (etcfile::save_file(&s.doc().unwrap().doc), id, width)
 }
 
 /// Type in a missing font that no composite font is named after keeps the bounds it was measured
@@ -386,10 +386,10 @@ fn opening_measures_inline_graphics_of_composite_type_in_its_own_definition() {
     let id = s.execute("text.create", &json!({"x": 10, "y": 150, "text": "x", "size": 20})).unwrap()["id"].as_u64().unwrap();
     s.execute("text.insertInline", &json!({"id": id, "at": 0, "symbol": "CF Inline Mark"})).unwrap();
     let width = text(&s, id).cached_bounds.unwrap().width();
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
+    let bytes = etcfile::save_file(&s.doc().unwrap().doc);
     let mut s = session();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Inline")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("inline.vectorcraft", &bytes, None, &json!({}), false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("inline.etc", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     assert!((text(&s, id).cached_bounds.unwrap().width() - width).abs() < 1e-6);
 }
@@ -400,10 +400,10 @@ fn opening_measures_inline_graphics_of_composite_type_in_its_own_definition() {
 fn opening_measures_type_read_in_a_composite_font_closed_since() {
     let mut s = session();
     let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "Ab12", "size": 20, "font": "CF Gone"})).unwrap()["id"].as_u64().unwrap();
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
+    let bytes = etcfile::save_file(&s.doc().unwrap().doc);
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Gone")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("gone.vectorcraft", &bytes, None, &json!({}), false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("gone.etc", &bytes, None, &json!({}), false).unwrap();
     assert!(s.close_document(1));
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     let actual = text(&s, id);
@@ -419,7 +419,7 @@ fn an_opened_file_measures_its_type_in_its_own_composite_fonts() {
     let (bytes, id, width) = full_roman_file("CF Opened");
     let mut s = session();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Opened")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("opened.vectorcraft", &bytes, None, &json!({}), false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("opened.etc", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     let actual = text(&s, id);
     assert!((actual.cached_bounds.unwrap().width() - width).abs() < 1e-6);
@@ -478,7 +478,7 @@ fn dimension_file(name: &str) -> (Vec<u8>, u64, vectorcraft_geom::Point) {
             r.style.fill = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb8(0, 0, 0));
         }
     }
-    (vectorcraft_format::save_file(&doc), id, center)
+    (etcfile::save_file(&doc), id, center)
 }
 
 /// A file whose dimensions are drawn again when it opens (their art is not in the document's color
@@ -489,7 +489,7 @@ fn an_opened_file_draws_its_dimension_labels_in_its_own_composite_fonts() {
     let (bytes, id, center) = dimension_file("CF Dimension");
     let mut s = session();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Dimension")]})).unwrap();
-    let file = crate::cmd::fileio::read_for_open("dimension.vectorcraft", &bytes, None, &json!({}), false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("dimension.etc", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     let opened = label(&s.doc().unwrap().doc, id);
     assert!(label_in_cmyk(&opened));
@@ -513,11 +513,11 @@ fn an_opened_file_flows_its_threads_in_its_own_composite_fonts() {
     s.execute("text.thread.create", &json!({})).unwrap();
     let first = text(&s, a).plain_text();
     assert!(!first.is_empty() && first.len() < story.len());
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
+    let bytes = etcfile::save_file(&s.doc().unwrap().doc);
     // A new front document without the font: the font database no longer holds it.
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     assert!(vectorcraft_text::FontDb::global().composite_font("CF Threaded").is_none());
-    let file = crate::cmd::fileio::read_for_open("threaded.vectorcraft", &bytes, None, &json!({}), false).unwrap();
+    let file = crate::cmd::fileio::read_for_open("threaded.etc", &bytes, None, &json!({}), false).unwrap();
     crate::cmd::fileio::open_read(&mut s, file).unwrap();
     assert_eq!(text(&s, a).plain_text(), first);
 }
@@ -531,7 +531,7 @@ fn a_document_replaced_in_the_back_is_measured_in_its_own_composite_fonts() {
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Replaced")]})).unwrap();
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Replaced")]})).unwrap();
-    assert!(s.replace_document(0, vectorcraft_format::load(&bytes).unwrap()));
+    assert!(s.replace_document(0, etcfile::load(&bytes).unwrap()));
     assert!(s.set_active(0));
     let actual = text(&s, id);
     assert!((actual.cached_bounds.unwrap().width() - width).abs() < 1e-6);
@@ -546,7 +546,7 @@ fn a_document_replaced_in_the_back_is_measured_when_the_front_one_closes() {
     let mut s = session();
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Closed")]})).unwrap();
-    assert!(s.replace_document(0, vectorcraft_format::load(&bytes).unwrap()));
+    assert!(s.replace_document(0, etcfile::load(&bytes).unwrap()));
     assert!(s.close_document(1));
     let actual = text(&s, id);
     assert!((actual.cached_bounds.unwrap().width() - width).abs() < 1e-6);
@@ -561,7 +561,7 @@ fn a_document_replaced_in_front_draws_its_dimension_labels_in_its_own_composite_
     let (bytes, id, center) = dimension_file("CF Reverted");
     let mut s = session();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Reverted")]})).unwrap();
-    assert!(s.replace_document(0, vectorcraft_format::load(&bytes).unwrap()));
+    assert!(s.replace_document(0, etcfile::load(&bytes).unwrap()));
     let replaced = label(&s.doc().unwrap().doc, id);
     assert!(label_in_cmyk(&replaced));
     assert!((label_center(&replaced) - center).hypot() < 1e-6, "{:?} vs {center:?}", label_center(&replaced));
@@ -576,7 +576,7 @@ fn a_document_replaced_in_the_back_draws_its_dimension_labels_in_its_own_composi
     let mut s = session();
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Back Dimension")]})).unwrap();
-    assert!(s.replace_document(0, vectorcraft_format::load(&bytes).unwrap()));
+    assert!(s.replace_document(0, etcfile::load(&bytes).unwrap()));
     assert_eq!(s.active_index(), Some(1));
     let front = vectorcraft_text::FontDb::global().composite_font("CF Back Dimension").unwrap();
     assert_eq!(front.parts.get(vectorcraft_doc::CharClass::Roman).size, 50.0);
@@ -605,7 +605,7 @@ fn a_document_replaced_in_the_back_is_measured_before_it_comes_to_the_front() {
     let mut s = session();
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Pane")]})).unwrap();
-    assert!(s.replace_document(0, vectorcraft_format::load(&bytes).unwrap()));
+    assert!(s.replace_document(0, etcfile::load(&bytes).unwrap()));
     assert_eq!(s.active_index(), Some(1));
     let front = vectorcraft_text::FontDb::global().composite_font("CF Pane").unwrap();
     assert_eq!(front.parts.get(vectorcraft_doc::CharClass::Roman).size, 50.0);
@@ -627,10 +627,10 @@ fn a_document_replaced_in_the_back_measures_a_font_it_lacks_as_missing() {
     let db = vectorcraft_text::FontDb::global();
     let mut s = session();
     let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "Ab12", "size": 20, "font": "CF Lacked"})).unwrap()["id"].as_u64().unwrap();
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
+    let bytes = etcfile::save_file(&s.doc().unwrap().doc);
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Lacked")]})).unwrap();
-    assert!(s.replace_document(0, vectorcraft_format::load(&bytes).unwrap()));
+    assert!(s.replace_document(0, etcfile::load(&bytes).unwrap()));
     let back = text_in(&s, 0, id);
     assert!(s.documents()[0].doc.composite_fonts.is_empty());
     let in_front = vectorcraft_text::layout(db, &back).bounds;
@@ -664,10 +664,10 @@ fn a_document_replaced_in_the_back_measures_inline_graphics_in_its_own_definitio
     let id = s.execute("text.create", &json!({"x": 10, "y": 150, "text": "x", "size": 20})).unwrap()["id"].as_u64().unwrap();
     s.execute("text.insertInline", &json!({"id": id, "at": 0, "symbol": "CF Back Inline Mark"})).unwrap();
     let width = text(&s, id).cached_bounds.unwrap().width();
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
+    let bytes = etcfile::save_file(&s.doc().unwrap().doc);
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     s.execute("type.compositeFonts.set", &json!({"fonts": [font("CF Back Inline")]})).unwrap();
-    assert!(s.replace_document(0, vectorcraft_format::load(&bytes).unwrap()));
+    assert!(s.replace_document(0, etcfile::load(&bytes).unwrap()));
     assert!((text_in(&s, 0, id).cached_bounds.unwrap().width() - width).abs() < 1e-6);
 }
 
@@ -834,7 +834,7 @@ fn custom_character_sets_set_their_characters() {
     // The same sets again change nothing.
     s.execute("type.compositeFonts.set", &json!({"fonts": [font_with_sets("CF Sets")]})).unwrap();
     assert_eq!(steps(&s), before + 1);
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(&s.doc().unwrap().doc)).unwrap();
+    let back = etcfile::load(&etcfile::save_file(&s.doc().unwrap().doc)).unwrap();
     assert_eq!(*back.composite_fonts, *s.doc().unwrap().doc.composite_fonts);
 
     let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "xAB", "size": 20})).unwrap()["id"].as_u64().unwrap();

@@ -300,8 +300,8 @@ fn scaled_type_pick_preserves_affines_and_document_dimensions() {
         assert_sampled_dimensions(&after.effective_char_style(&after.first_style()).unwrap(), &expected);
         assert_eq!(after.xf, before.xf);
         assert_eq!(sampled_type(&s, src), src_text);
-        let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
-        let reopened = vectorcraft_format::load(&bytes).unwrap();
+        let bytes = etcfile::save_file(&s.doc().unwrap().doc);
+        let reopened = etcfile::load(&bytes).unwrap();
         let NodeKind::Text(t) = &reopened.node(dst).unwrap().kind else { panic!("not text") };
         assert_sampled_dimensions(&t.effective_char_style(&t.first_style()).unwrap(), &expected);
     }

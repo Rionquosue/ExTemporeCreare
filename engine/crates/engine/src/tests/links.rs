@@ -146,7 +146,7 @@ fn a_placed_link_records_the_file_and_the_document_saves_only_a_preview() {
     assert!(link.modified.is_some_and(|m| m > 1_600_000_000_000), "{link:?}");
     let blob = &s.doc().unwrap().doc.images[&im.key];
     assert!(blob.proxy.is_some() && !blob.is_proxy(), "full pixels, with a preview to save");
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     let mut saved: Value = serde_json::from_slice(&std::fs::read(&doc_path).unwrap()).unwrap();
     let entry = &saved["images"][&im.key];
@@ -297,11 +297,11 @@ fn the_relative_path_finds_the_file_after_the_folder_moves() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     let id = place(&mut s, &pic);
-    save(&mut s, &a.file("poster.vectorcraft"));
+    save(&mut s, &a.file("poster.etc"));
     // Move the document with its links: the old folder is gone.
     std::fs::remove_dir_all(&b.0).unwrap();
     std::fs::rename(&a.0, &b.0).unwrap();
-    let r = open(&mut s, &b.file("poster.vectorcraft"));
+    let r = open(&mut s, &b.file("poster.etc"));
     assert_eq!((r["missingLinks"].clone(), r["modifiedLinks"].clone()), (json!([]), json!([])), "{r}");
     let moved = b.file("art/photo.png");
     let im = image(&s, id);
@@ -324,29 +324,29 @@ fn a_missing_link_keeps_its_relative_path_when_the_moved_document_is_saved() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     let id = place(&mut s, &pic);
-    save(&mut s, &a.file("poster.vectorcraft"));
+    save(&mut s, &a.file("poster.etc"));
     // Move the document and its links, then take the links away.
     std::fs::remove_dir_all(&b.0).unwrap();
     std::fs::rename(&a.0, &b.0).unwrap();
     std::fs::rename(b.0.join("art"), away.0.join("art")).unwrap();
-    let r = open(&mut s, &b.file("poster.vectorcraft"));
+    let r = open(&mut s, &b.file("poster.etc"));
     assert_eq!(r["missingLinks"][0]["name"].as_str(), Some("photo.png"), "{r}");
-    save(&mut s, &b.file("poster.vectorcraft"));
+    save(&mut s, &b.file("poster.etc"));
     std::fs::create_dir_all(b.0.join("copies")).unwrap();
-    save(&mut s, &b.file("copies/poster.vectorcraft"));
+    save(&mut s, &b.file("copies/poster.etc"));
     let relative = |path: &str| {
         let mut saved: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
         saved_image(&mut saved)["link"]["relative"].as_str().map(str::to_string)
     };
-    assert_eq!(relative(&b.file("poster.vectorcraft")).as_deref(), Some("art/photo.png"));
-    assert_eq!(relative(&b.file("copies/poster.vectorcraft")).as_deref(), Some("../art/photo.png"));
+    assert_eq!(relative(&b.file("poster.etc")).as_deref(), Some("art/photo.png"));
+    assert_eq!(relative(&b.file("copies/poster.etc")).as_deref(), Some("../art/photo.png"));
     // Saved again where the last save put it, the file is still named from the folder it was read from.
     s.execute("document.save", &json!({})).unwrap();
-    assert_eq!(relative(&b.file("copies/poster.vectorcraft")).as_deref(), Some("../art/photo.png"));
+    assert_eq!(relative(&b.file("copies/poster.etc")).as_deref(), Some("../art/photo.png"));
     // The links come back: both saved documents find the file.
     std::fs::rename(away.0.join("art"), b.0.join("art")).unwrap();
     let moved = b.file("art/photo.png");
-    for doc in [b.file("poster.vectorcraft"), b.file("copies/poster.vectorcraft")] {
+    for doc in [b.file("poster.etc"), b.file("copies/poster.etc")] {
         let r = open(&mut s, &doc);
         assert_eq!(&r["missingLinks"], &json!([]), "{doc}: {r}");
         assert_eq!(Path::new(&image(&s, id).link.unwrap().path), Path::new(&moved), "{doc}");
@@ -363,7 +363,7 @@ fn a_file_found_elsewhere_then_missing_keeps_the_place_it_was_found() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     let id = place(&mut s, &pic);
-    let doc = dir.file("poster.vectorcraft");
+    let doc = dir.file("poster.etc");
     save(&mut s, &doc);
     let beside = dir.file("photo.png");
     std::fs::rename(&pic, &beside).unwrap();
@@ -387,9 +387,9 @@ fn a_file_update_links_finds_after_a_save_elsewhere_keeps_its_place() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     let id = place(&mut s, &pic);
-    save(&mut s, &a.file("poster.vectorcraft"));
-    open(&mut s, &a.file("poster.vectorcraft"));
-    let doc = b.file("poster.vectorcraft");
+    save(&mut s, &a.file("poster.etc"));
+    open(&mut s, &a.file("poster.etc"));
+    let doc = b.file("poster.etc");
     save(&mut s, &doc);
     let beside = b.file("photo.png");
     std::fs::rename(&pic, &beside).unwrap();
@@ -412,12 +412,12 @@ fn a_file_found_beside_the_last_save_is_written_where_it_was_found() {
     write(&a.file("art/photo.png"), &png(600, 300, RED));
     let mut s = session();
     place(&mut s, &a.file("art/photo.png"));
-    save(&mut s, &a.file("poster.vectorcraft"));
-    open(&mut s, &a.file("poster.vectorcraft"));
-    save(&mut s, &b.file("poster.vectorcraft"));
+    save(&mut s, &a.file("poster.etc"));
+    open(&mut s, &a.file("poster.etc"));
+    save(&mut s, &b.file("poster.etc"));
     std::fs::rename(a.0.join("art"), b.0.join("art")).unwrap();
-    save(&mut s, &c.file("poster.vectorcraft"));
-    let r = open(&mut s, &c.file("poster.vectorcraft"));
+    save(&mut s, &c.file("poster.etc"));
+    let r = open(&mut s, &c.file("poster.etc"));
     assert_eq!(&r["missingLinks"], &json!([]), "{r}");
 }
 
@@ -433,17 +433,17 @@ fn a_missing_link_comes_back_where_the_document_saved_elsewhere_looks_for_it() {
     write(&a.file("art/photo.png"), &png(600, 300, RED));
     let mut s = session();
     place(&mut s, &a.file("art/photo.png"));
-    save(&mut s, &a.file("poster.vectorcraft"));
+    save(&mut s, &a.file("poster.etc"));
     std::fs::remove_dir_all(&b.0).unwrap();
     std::fs::rename(&a.0, &b.0).unwrap();
     std::fs::rename(b.0.join("art"), away.0.join("art")).unwrap();
-    open(&mut s, &b.file("poster.vectorcraft"));
-    save(&mut s, &c.file("poster.vectorcraft"));
+    open(&mut s, &b.file("poster.etc"));
+    save(&mut s, &c.file("poster.etc"));
     std::fs::rename(away.0.join("art"), b.0.join("art")).unwrap();
     let r = s.execute("links.check", &json!({})).unwrap();
     let found = r["links"][0]["found"].as_str().map(Path::new);
     assert_eq!((r["missing"].as_u64(), found), (Some(0), Some(Path::new(&b.file("art/photo.png")))), "{r}");
-    let r = open(&mut s, &c.file("poster.vectorcraft"));
+    let r = open(&mut s, &c.file("poster.etc"));
     assert_eq!(&r["missingLinks"], &json!([]), "{r}");
 }
 
@@ -497,18 +497,18 @@ fn links_outside_the_layers_find_their_files_after_the_folder_moves() {
         out
     };
     assert_eq!(paths(&s), files(&a));
-    save(&mut s, &a.file("poster.vectorcraft"));
+    save(&mut s, &a.file("poster.etc"));
     // Move the document with its links: the old folder is gone.
     std::fs::remove_dir_all(&b.0).unwrap();
     std::fs::rename(&a.0, &b.0).unwrap();
-    let r = open(&mut s, &b.file("poster.vectorcraft"));
+    let r = open(&mut s, &b.file("poster.etc"));
     assert_eq!((r["missingLinks"].clone(), r["modifiedLinks"].clone()), (json!([]), json!([])), "{r}");
     assert_eq!(paths(&s), files(&b), "the links follow the files");
     // Saved again and moved again.
-    save(&mut s, &b.file("poster.vectorcraft"));
+    save(&mut s, &b.file("poster.etc"));
     std::fs::remove_dir_all(&c.0).unwrap();
     std::fs::rename(&b.0, &c.0).unwrap();
-    let r = open(&mut s, &c.file("poster.vectorcraft"));
+    let r = open(&mut s, &c.file("poster.etc"));
     assert_eq!((r["missingLinks"].clone(), r["modifiedLinks"].clone()), (json!([]), json!([])), "{r}");
     assert_eq!(paths(&s), files(&c));
 }
@@ -528,11 +528,11 @@ fn a_symbols_link_to_a_moved_and_modified_file_takes_its_new_path() {
     s.execute("symbol.new", &json!({"name": "Mark", "ids": [id.0]})).unwrap();
     let in_symbol = stored_image_in(&s, StoredRoot::Symbol(0));
     let id = place(&mut s, &pic);
-    save(&mut s, &a.file("poster.vectorcraft"));
+    save(&mut s, &a.file("poster.etc"));
     write(&pic, &png(30, 30, BLUE));
     std::fs::remove_dir_all(&b.0).unwrap();
     std::fs::rename(&a.0, &b.0).unwrap();
-    let r = open(&mut s, &b.file("poster.vectorcraft"));
+    let r = open(&mut s, &b.file("poster.etc"));
     assert_eq!((r["modifiedLinks"].clone(), r["updatedLinks"][0]["ids"].clone()), (json!([]), json!([id.0, in_symbol.0])), "{r}");
     let moved = PathBuf::from(b.file("art/photo.png"));
     let blue = png(30, 30, BLUE);
@@ -558,7 +558,7 @@ fn a_symbols_link_without_a_relative_path_follows_the_moved_file() {
     let id = place(&mut s, &pic);
     s.execute("symbol.new", &json!({"name": "Mark", "ids": [id.0]})).unwrap();
     place(&mut s, &pic);
-    let doc_path = a.file("poster.vectorcraft");
+    let doc_path = a.file("poster.etc");
     save(&mut s, &doc_path);
     // Removes the relative path of every link under `v` → how many it removed.
     fn unrelative(v: &mut Value) -> usize {
@@ -580,7 +580,7 @@ fn a_symbols_link_without_a_relative_path_follows_the_moved_file() {
     std::fs::write(&doc_path, serde_json::to_vec(&saved).unwrap()).unwrap();
     std::fs::remove_dir_all(&b.0).unwrap();
     std::fs::rename(&a.0, &b.0).unwrap();
-    let r = open(&mut s, &b.file("poster.vectorcraft"));
+    let r = open(&mut s, &b.file("poster.etc"));
     assert_eq!((r["missingLinks"].clone(), r["modifiedLinks"].clone()), (json!([]), json!([])), "{r}");
     let mut paths = vec![];
     s.doc().unwrap().doc.visit_images(|_, im| paths.push(PathBuf::from(&im.link.as_ref().unwrap().path)));
@@ -850,7 +850,7 @@ fn embed_reads_a_distorted_images_file_between_its_corners() {
     s.execute("object.distort", &json!({"corners": [[150, 100], [250, 110], [260, 200], [140, 190]]})).unwrap();
     let corners = |s: &Session| s.doc().unwrap().doc.node(id).unwrap().image_corners().unwrap();
     let before = corners(&s);
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     std::fs::remove_file(&photo).unwrap();
     open(&mut s, &doc_path);
@@ -1075,7 +1075,7 @@ fn links_commands_act_on_images_outside_the_layers_by_id() {
 fn open_reports_links_outside_the_layers_by_id() {
     let dir = Folder::new("nested-open");
     let mut s = nested_links(&dir);
-    let path = dir.file("poster.vectorcraft");
+    let path = dir.file("poster.etc");
     save(&mut s, &path);
     let ids: Vec<u64> = NESTED.iter().map(|name| row_id(&mut s, name)).collect();
     std::fs::remove_file(dir.file("symbol.png")).unwrap();
@@ -1095,7 +1095,7 @@ fn nested_objects_that_repeat_ids_open_with_ids_of_their_own() {
     let dir = Folder::new("nested-repeat");
     let mut s = nested_links(&dir);
     let layer_image = place(&mut s, &dir.file("symbol.png"));
-    let path = dir.file("poster.vectorcraft");
+    let path = dir.file("poster.etc");
     save(&mut s, &path);
     // The symbol's image takes the id of the image in the layers, the mask's image none.
     let mut saved: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
@@ -1291,7 +1291,7 @@ fn links_in_stored_brush_art_open_by_id_and_unreadable_entries_stay() {
         Ok(())
     })
     .unwrap();
-    let path = dir.file("poster.vectorcraft");
+    let path = dir.file("poster.etc");
     save(&mut s, &path);
     std::fs::remove_file(dir.file("scatter.png")).unwrap();
     let r = open(&mut s, &path);
@@ -1379,7 +1379,7 @@ fn a_missing_link_renders_its_preview_and_relinks() {
     let mut s = session();
     let id = place(&mut s, &pic);
     let placed = bounds(&s, id);
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     std::fs::remove_file(&pic).unwrap();
     let r = open(&mut s, &doc_path);
@@ -1457,7 +1457,7 @@ fn relink_missing_links_from_this_folder_finds_the_others_by_name() {
             place(&mut s, &dir.file(n))
         })
         .collect();
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     // d.png stays where it was: it isn't missing.
     for n in &names[..3] {
@@ -1513,7 +1513,7 @@ fn relink_each_with_copy_copies_nothing_when_a_file_cant_be_read() {
     write(&two, &png(60, 30, RED));
     let mut s = session();
     let (a, c) = (place(&mut s, &one), place(&mut s, &two));
-    save(&mut s, &dir.file("doc/poster.vectorcraft"));
+    save(&mut s, &dir.file("doc/poster.etc"));
     let (x, bad) = (dir.file("new/x.png"), dir.file("new/broken.png"));
     write(&x, &png(60, 30, BLUE));
     write(&bad, b"not an image");
@@ -1535,7 +1535,7 @@ fn relink_with_copy_names_the_documents_folder_by_its_name_outside_the_read_root
     write(&one, &png(60, 30, RED));
     let mut s = session();
     let a = place(&mut s, &one);
-    save(&mut s, &dir.file("doc/poster.vectorcraft"));
+    save(&mut s, &dir.file("doc/poster.etc"));
     let x = dir.file("new/x.png");
     write(&x, &png(60, 30, BLUE));
     let (new, doc) = (Path::new(&x).parent().unwrap().to_path_buf(), Path::new(&one).parent().unwrap().to_path_buf());
@@ -1616,9 +1616,9 @@ fn a_classic_mac_path_is_found_by_its_file_name() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     place(&mut s, &pic);
-    let mut v: Value = serde_json::from_slice(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     saved_image(&mut v)["link"] = json!({ "path": CLASSIC });
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     write(&doc_path, &serde_json::to_vec(&v).unwrap());
     let r = open(&mut s, &doc_path);
     let id = s.doc().unwrap().doc.layers[0].children().unwrap()[0].id;
@@ -1700,7 +1700,7 @@ fn a_linked_file_whose_pixels_cant_be_read_is_not_shown() {
     let mut s = session();
     let id = place(&mut s, &pic);
     let shown = image(&s, id);
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     let cut = dir.file("cut.png");
     write(&cut, &cut_png(300, 100));
@@ -1724,7 +1724,7 @@ fn a_modified_link_follows_the_update_links_preference() {
     let mut s = session();
     let id = place(&mut s, &pic);
     let placed = bounds(&s, id);
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     write(&pic, &png(400, 400, BLUE));
     let c = s.execute("links.check", &json!({})).unwrap();
@@ -1792,7 +1792,7 @@ fn export_reads_a_changed_svg_link_into_its_own_images_only() {
     write(&dir.file("b.png"), &png(600, 300, RED));
     let mut s = session();
     open(&mut s, &svg_path);
-    let doc_path = dir.file("art.vectorcraft");
+    let doc_path = dir.file("art.etc");
     save(&mut s, &doc_path);
     std::fs::remove_file(dir.file("a.png")).unwrap();
     let blue = png(600, 300, BLUE);
@@ -1824,7 +1824,7 @@ fn links_from_older_files_load_and_keep_their_pixels() {
     let mut s = session();
     s.execute("file.place", &json!({"path": pic, "at": [200, 150], "link": false})).unwrap();
     // As older versions saved a link: the path alone, the pixels embedded.
-    let mut v: Value = serde_json::from_slice(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     saved_image(&mut v)["link"] = json!(pic);
     v["format"] = json!("drawcraft");
     let legacy = serde_json::to_vec(&v).unwrap();
@@ -1854,12 +1854,12 @@ fn without_a_file_system_the_saved_preview_shows() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     let id = place(&mut s, &pic);
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = etcfile::save(&s.doc().unwrap().doc, false);
     std::fs::remove_file(&pic).unwrap();
-    let doc = vectorcraft_format::load(&saved).unwrap();
+    let doc = etcfile::load(&saved).unwrap();
     assert!(doc.images.values().all(|b| b.is_proxy()));
     assert!(near(centre_colour(&doc), RED), "the preview renders");
-    let r = s.execute("document.open", &json!({"name": "poster.vectorcraft", "dataBase64": vectorcraft_format::base64_encode(&saved)})).unwrap();
+    let r = s.execute("document.open", &json!({"name": "poster.etc", "dataBase64": etcfile::base64::encode(&saved)})).unwrap();
     assert_eq!(r["missingLinks"][0]["ids"], json!([id.0]));
     assert!(near(centre_colour(&s.doc().unwrap().doc), RED));
     // Exports carry the preview.
@@ -1890,12 +1890,12 @@ fn relative_paths_are_written_against_the_saved_file() {
             _ => None,
         }
     };
-    assert_eq!(rel(format!("{root}{sep}doc.vectorcraft")).as_deref(), Some("art/a.png"));
-    assert_eq!(rel(format!("{root}{sep}docs{sep}deep{sep}doc.vectorcraft")).as_deref(), Some("../../art/a.png"));
-    assert_eq!(rel(format!("{root}{sep}art{sep}doc.vectorcraft")).as_deref(), Some("a.png"));
+    assert_eq!(rel(format!("{root}{sep}doc.etc")).as_deref(), Some("art/a.png"));
+    assert_eq!(rel(format!("{root}{sep}docs{sep}deep{sep}doc.etc")).as_deref(), Some("../../art/a.png"));
+    assert_eq!(rel(format!("{root}{sep}art{sep}doc.etc")).as_deref(), Some("a.png"));
     if cfg!(windows) {
-        assert_eq!(rel("D:\\other\\doc.vectorcraft".into()), None, "another drive");
-        assert_eq!(rel("c:\\WORK\\doc.vectorcraft".into()).as_deref(), Some("art/a.png"), "without case");
+        assert_eq!(rel("D:\\other\\doc.etc".into()), None, "another drive");
+        assert_eq!(rel("c:\\WORK\\doc.etc".into()).as_deref(), Some("art/a.png"), "without case");
     }
 }
 
@@ -1906,7 +1906,7 @@ fn a_placed_document_brings_its_links_with_the_files_pixels() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     place(&mut s, &pic);
-    let doc_path = dir.file("part.vectorcraft");
+    let doc_path = dir.file("part.etc");
     save(&mut s, &doc_path);
     let mut s = session();
     // As an editable copy (placed linked, it stays one locked object).
@@ -2002,7 +2002,7 @@ fn links_of_an_imported_file_are_found_by_their_relative_folder() {
     assert_eq!((l.path.as_str(), l.relative.as_deref()), ("/no/such/folder/src/photo.png", Some("src/photo.png")));
     assert!(proxy && l.size.is_none() && l.modified.is_none() && l.hash.is_none(), "{l:?}");
     // Saved beside it while the file is missing, the document keeps the folder the file is in.
-    let native = dir.file("poster.vectorcraft");
+    let native = dir.file("poster.etc");
     save(&mut s, &native);
     let mut saved: Value = serde_json::from_slice(&std::fs::read(&native).unwrap()).unwrap();
     assert_eq!(saved_image(&mut saved)["link"]["relative"].as_str(), Some("src/photo.png"));
@@ -2038,7 +2038,7 @@ fn a_recovered_copy_of_an_imported_file_keeps_its_links_folder() {
     s.recovery.set_store(store);
     let r = s.execute("file.recovery.restore", &json!({})).unwrap();
     assert_eq!(r["restored"].as_array().map(Vec::len), Some(1), "{r}");
-    let native = dir.file("poster.vectorcraft");
+    let native = dir.file("poster.etc");
     save(&mut s, &native);
     let mut saved: Value = serde_json::from_slice(&std::fs::read(&native).unwrap()).unwrap();
     assert_eq!(saved_image(&mut saved)["link"]["relative"].as_str(), Some("src/photo.png"));
@@ -2056,7 +2056,7 @@ fn svg_text(r: &Value) -> String {
     match r["text"].as_str() {
         Some(text) => text.to_string(),
         None => {
-            let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+            let bytes = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
             vectorcraft_svg::text_of(&bytes).unwrap().into_owned()
         }
     }
@@ -2288,7 +2288,7 @@ fn svg_output_names_linked_image_files_a_caller_may_read() {
     place(&mut s, &inside);
     place(&mut s, &nested);
     place(&mut s, &web);
-    save(&mut s, &home.file("doc.vectorcraft"));
+    save(&mut s, &home.file("doc.etc"));
     let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
     doc.update_links_where(|l| l.path == nested, |l| l.path = "lib/photo.png".into());
     doc.update_links_where(|l| l.path == web, |l| l.path = url.into());
@@ -2443,7 +2443,7 @@ fn confined_preserve_editing_svg_leaves_out_an_export_folder_outside_the_read_ro
     // The native document an SVG's text carries.
     let attached = |text: &str| {
         let data = vectorcraft_svg::editing_data(text).expect("editing data");
-        vectorcraft_format::load(&vectorcraft_format::base64_decode(&data).unwrap()).unwrap()
+        etcfile::load(&etcfile::base64::decode(&data).unwrap()).unwrap()
     };
     let check = |d: &Document, folder: Option<&str>, what: &str| {
         assert_eq!(d.export_settings.get("folder").and_then(Value::as_str), folder, "{what}");
@@ -2476,6 +2476,96 @@ fn confined_preserve_editing_svg_leaves_out_an_export_folder_outside_the_read_ro
     assert!(vectorcraft_svg::editing_data(&svg_text(&r)).is_none(), "{r}");
     set_folder(&mut s, &inside);
     every(&mut s, true, Some(&inside));
+}
+
+/// A confined caller: every output that carries the native document (a native file or template, a
+/// `.ai` or EPS file, a PDF with Preserve Editing) of a document that links an image
+/// file outside the read roots is refused before a file or folder is written, with an error that
+/// names no file or folder, and the document keeps the link.
+#[test]
+fn confined_native_output_refuses_a_linked_image_file_outside_the_read_roots() {
+    use crate::file_access::{AutomationRoots, confine};
+
+    let away = Folder::new("native-image-away");
+    let home = Folder::new("native-image-home");
+    let photo = away.file("photo.png");
+    write(&photo, &png(60, 30, RED));
+    let mut s = session();
+    let a = place(&mut s, &photo);
+    s.execute("select.set", &json!({"ids": [a.0]})).unwrap();
+    s.execute("assets.add", &json!({"ids": [a.0]})).unwrap();
+    let own = home.file("own.etc");
+    s.execute("file.saveAs", &json!({"path": own})).unwrap();
+    let before = std::fs::read(&own).unwrap();
+    let roots = AutomationRoots::new(&[home.0.as_path()], &[home.0.as_path()]).unwrap();
+    let hidden = [away.0.to_string_lossy().into_owned(), home.0.to_string_lossy().into_owned(), "photo.png".to_string()];
+    let refused = |s: &mut Session, cmd: &str, p: Value| {
+        let e = confine(roots.as_ref(), || s.execute(cmd, &p)).expect_err(cmd);
+        assert!(matches!(e, EngineError::BadParams { .. }), "{cmd} {p}: {e:?}");
+        let e = e.to_string();
+        assert!(e.contains("a linked image file is outside the read roots"), "{cmd} {p}: {e}");
+        for h in &hidden {
+            assert!(!e.contains(h.as_str()), "{cmd} {p} names {h}: {e}");
+        }
+    };
+    let file = |name: &str| home.file(name);
+    let out = file("out");
+    refused(&mut s, "document.serialize", json!({}));
+    for format in ["etc", "template", "pdf", "ai", "eps"] {
+        refused(&mut s, "document.serialize", json!({"format": format}));
+        refused(&mut s, "document.export", json!({"format": format}));
+        refused(&mut s, "document.export", json!({"format": format, "selectedOnly": true}));
+        refused(&mut s, "document.exportSelection", json!({"format": format}));
+    }
+    refused(&mut s, "document.export", json!({"format": "pdf", "path": file("export.pdf")}));
+    refused(&mut s, "document.export", json!({"format": "ai", "path": file("export.ai")}));
+    refused(&mut s, "document.export", json!({"format": "eps", "path": file("export.eps")}));
+    refused(&mut s, "document.export", json!({"format": "etc", "path": file("export.etc")}));
+    refused(&mut s, "document.exportPdf", json!({}));
+    refused(&mut s, "document.exportPdf", json!({"path": file("direct.pdf")}));
+    refused(&mut s, "document.exportEps", json!({"path": file("direct.eps")}));
+    refused(&mut s, "document.save", json!({}));
+    refused(&mut s, "document.save", json!({"path": file("save.pdf")}));
+    refused(&mut s, "file.saveAs", json!({"path": file("save-as.ai")}));
+    // A saved `.ai` file has the artboards as its pages, whatever `useArtboards` says.
+    refused(&mut s, "file.saveAs", json!({"path": file("save-as-art.ai"), "useArtboards": false}));
+    refused(&mut s, "file.saveAs", json!({"path": file("save-as.eps")}));
+    refused(&mut s, "file.saveCopy", json!({"path": file("copy.etc")}));
+    refused(&mut s, "file.saveAsTemplate", json!({}));
+    refused(&mut s, "file.saveAsTemplate", json!({"format": "ait"}));
+    refused(&mut s, "document.exportForScreens", json!({"folder": out, "formats": [{"format": "png"}, {"format": "etc"}]}));
+    refused(&mut s, "document.exportForScreens", json!({"zip": true, "formats": [{"format": "pdf", "preserveEditing": true}]}));
+    refused(&mut s, "assets.export", json!({"folder": out, "formats": [{"format": "ai"}]}));
+    refused(&mut s, "assets.export", json!({"folder": out, "formats": [{"format": "eps"}]}));
+    assert_eq!(std::fs::read(&own).unwrap(), before, "the document's own file is left as it was");
+    let written: Vec<_> = std::fs::read_dir(&home.0).unwrap().map(|e| e.unwrap().file_name()).collect();
+    assert_eq!(written, ["own.etc"]);
+    assert_eq!(image(&s, a).link.map(|l| l.path), Some(photo));
+}
+
+/// A confined caller's Export for Screens rows that write an artboard alone (native, `.ai` and EPS
+/// files) are checked against that artboard's document: an image linked outside the read roots
+/// on another artboard does not refuse them, and one on the artboard does.
+#[test]
+fn confined_screens_rows_check_the_artboard_each_file_holds() {
+    use crate::file_access::{AutomationRoots, confine};
+
+    let away = Folder::new("screens-board-away");
+    let home = Folder::new("screens-board-home");
+    let photo = away.file("photo.png");
+    write(&photo, &png(60, 30, RED));
+    let mut s = session();
+    place(&mut s, &photo);
+    s.execute("artboard.new", &json!({"x": 2000, "y": 0, "width": 100, "height": 100})).unwrap();
+    s.execute("shape.rectangle", &json!({"x": 2010, "y": 10, "width": 50, "height": 20})).unwrap();
+    let roots = AutomationRoots::new(&[home.0.as_path()], &[home.0.as_path()]).unwrap();
+    for format in ["etc", "ai", "eps"] {
+        let p = |range: &str| json!({"range": range, "formats": [{"format": format}]});
+        let r = confine(roots.as_ref(), || s.execute("document.exportForScreens", &p("2"))).unwrap_or_else(|e| panic!("{format}: {e}"));
+        assert_eq!(r["files"].as_array().map(Vec::len), Some(1), "{format}: {r}");
+        let e = confine(roots.as_ref(), || s.execute("document.exportForScreens", &p("1"))).expect_err(format).to_string();
+        assert!(e.contains("a linked image file is outside the read roots"), "{format}: {e}");
+    }
 }
 
 
@@ -2526,7 +2616,7 @@ fn confined_svg_output_checks_the_images_of_placed_documents() {
     let roots = AutomationRoots::new(&[home.0.as_path()], &[home.0.as_path()]).unwrap();
     for (photo, outside) in [(away.file("photo.png"), true), (home.file("photo.png"), false)] {
         write(&photo, &png(60, 30, RED));
-        let src = home.file("src.vectorcraft");
+        let src = home.file("src.etc");
         let mut inner = session();
         place(&mut inner, &photo);
         save(&mut inner, &src);

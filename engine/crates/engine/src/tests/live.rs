@@ -1449,8 +1449,8 @@ fn live_doc() -> Session {
 fn live_objects_round_trip_through_native_format() {
     let s = live_doc();
     let d = &s.doc().unwrap().doc;
-    let bytes = vectorcraft_format::save(d, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(d, false);
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(&back.layers, &d.layers);
     let mut kinds = vec![];
     back.walk(|n| kinds.push(n.kind_label()));
@@ -1481,7 +1481,7 @@ fn pdf_export_expands_live_objects() {
 fn old_documents_still_load() {
     let s = session();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, true)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, true)).unwrap();
     assert_eq!(back.layers.len(), d.layers.len());
 }
 
@@ -1634,7 +1634,7 @@ fn cmyk_mesh(create: Value) -> (Session, NodeId) {
 /// as PDF import reads them back), and its warnings.
 fn pdf_fill_colours(s: &mut Session) -> (Vec<Vec<f32>>, Vec<String>) {
     let v = s.execute("document.exportPdf", &json!({"standard": "pdfX4", "compression": {"compressText": false}})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     let text = String::from_utf8_lossy(&bytes).into_owned();
     let mut out = vec![];
     for line in text.lines() {

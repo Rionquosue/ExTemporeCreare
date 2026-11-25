@@ -45,7 +45,7 @@ fn gltf_holds_its_buffer_and_every_accessor_fits_it() {
     let g: Value = serde_json::from_str(&text(&files, "Box.gltf")).unwrap();
     assert_eq!(g["asset"]["version"], "2.0");
     let uri = g["buffers"][0]["uri"].as_str().unwrap();
-    let data = vectorcraft_format::base64_decode(uri.strip_prefix("data:application/octet-stream;base64,").unwrap()).unwrap();
+    let data = etcfile::base64::decode(uri.strip_prefix("data:application/octet-stream;base64,").unwrap()).unwrap();
     assert_eq!(g["buffers"][0]["byteLength"].as_u64(), Some(data.len() as u64));
     for v in g["bufferViews"].as_array().unwrap() {
         assert!(v["byteOffset"].as_u64().unwrap() + v["byteLength"].as_u64().unwrap() <= data.len() as u64);
@@ -167,7 +167,7 @@ fn each_format_carries_a_textured_part_with_its_coordinates_and_picture() {
     let uv = &g["accessors"][prims[1]["attributes"]["TEXCOORD_0"].as_u64().unwrap() as usize];
     assert_eq!((uv["type"].as_str(), uv["count"].as_u64(), uv["componentType"].as_u64()), (Some("VEC2"), Some(6), Some(5126)));
     let view = &g["bufferViews"][uv["bufferView"].as_u64().unwrap() as usize];
-    let data = vectorcraft_format::base64_decode(g["buffers"][0]["uri"].as_str().unwrap().split(',').nth(1).unwrap()).unwrap();
+    let data = etcfile::base64::decode(g["buffers"][0]["uri"].as_str().unwrap().split(',').nth(1).unwrap()).unwrap();
     let at = view["byteOffset"].as_u64().unwrap() as usize;
     let first: Vec<f32> = (0..2).map(|k| f32::from_le_bytes(data[at + 4 * k..at + 4 * k + 4].try_into().unwrap())).collect();
     assert_eq!(first, [0.0, 1.0]);
@@ -177,7 +177,7 @@ fn each_format_carries_a_textured_part_with_its_coordinates_and_picture() {
     assert_eq!(g["textures"][0]["source"], 0);
     assert_eq!(g["samplers"][0]["wrapS"], 33071);
     let image = g["images"][0]["uri"].as_str().unwrap().strip_prefix("data:image/png;base64,").unwrap();
-    assert_eq!(vectorcraft_format::base64_decode(image).unwrap(), png);
+    assert_eq!(etcfile::base64::decode(image).unwrap(), png);
     // USDA: st up from the bottom, read by a primvar reader into a UV texture of the PNG beside it.
     let files = mesh_files("Box", "usda", &parts, &pictures).unwrap();
     assert_eq!(files.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>(), ["Box.usda", "Box-texture-1.png"]);

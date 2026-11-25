@@ -1,40 +1,21 @@
-//! The native format's options: compression, the version to write (older apps read older
-//! versions), an embedded preview, and the save options native and `.ai` files share: each
-//! artboard to a separate file, Include Linked Files, Embed ICC Profiles and Create
-//! PDF-Compatible File.
+//! The native `.etc` format's save options (`docs/Standardsdocs/filestandard.md`): path precision,
+//! each artboard to a separate file, Include Linked Files and Embed ICC Profiles. Every native save
+//! carries `mergedimage.png` and `Thumbnails/thumbnail.png`, which the format requires.
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 
+use etcfile::SaveOptions;
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 use vectorcraft_color::cms;
 use vectorcraft_doc::Document;
-use vectorcraft_format::{PREVIEW_MAX, SaveOptions};
 
 use super::super::{EngineError, Result, bad};
 use super::{Format, FormatOption};
 
 /// The options `document.save` and the native encoder read.
 pub const OPTIONS: &[FormatOption] = &[
-    FormatOption {
-        name: "compress",
-        ty: "boolean",
-        default: "false",
-        description: "gzip the file: smaller, not readable as text (saves default to Preferences → File Handling → Use Compression)",
-    },
-    FormatOption {
-        name: "version",
-        ty: "integer",
-        default: "4",
-        description: "the format version to write: 4 (current), or 3, 2 or 1 for older VectorCraft versions (1 and 2 are never compressed; newer features they don't know are lost there)",
-    },
-    FormatOption {
-        name: "preview",
-        ty: "boolean",
-        default: "false",
-        description: "embed a PNG preview of the first artboard (at most 256 pixels on its longer side) for file browsers",
-    },
     FormatOption {
         name: "precision",
         ty: "integer",
@@ -45,12 +26,6 @@ pub const OPTIONS: &[FormatOption] = &[
     SEPARATE_RANGE,
     INCLUDE_LINKED,
     EMBED_PROFILES,
-    FormatOption {
-        name: "pdfCompatible",
-        ty: "boolean",
-        default: "true",
-        description: "also carry a PDF of every artboard, for apps that read PDF (a larger file)",
-    },
 ];
 
 const SEPARATE_ARTBOARDS: FormatOption = FormatOption {
@@ -78,33 +53,20 @@ const EMBED_PROFILES: FormatOption = FormatOption {
     description: "carry the ICC profiles the document is tagged with that were loaded from files (Edit → Assign Profile), so the document keeps them where they aren't installed",
 };
 
-
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 struct NativeOptions {
-    compress: Option<bool>,
-    version: Option<u32>,
-    preview: bool,
     precision: Option<Value>,
     include_linked: bool,
     embed_profiles: Option<bool>,
-    pdf_compatible: Option<bool>,
 }
 
-/// What [`save_options`] leaves to [`encode`] (rendering and encoding take time).
-pub(super) struct Extras {
-    preview: bool,
-    pdf: bool,
-}
-
-/// The options in `p` for saving `doc`, checked, with the profiles to embed (the preview and PDF
-/// are left to [`encode`]).
-pub(super) fn save_options(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<(SaveOptions, Extras)> {
+/// The options in `p` for saving `doc`, checked, with the profiles to embed (the previews are
+/// left to [`encode`]).
+pub(super) fn save_options(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<SaveOptions> {
     let o: NativeOptions = super::encode::options(f, p)?;
-    // Pretty or compact is decided by [`encode_to`] on the document it writes.
+    // Indented or compact is decided by [`encode_to`] on the document it writes.
     let mut so = SaveOptions {
-        compress: o.compress.unwrap_or(false),
-        version: o.version.unwrap_or(vectorcraft_format::VERSION),
         include_linked: o.include_linked,
         precision: o.precision.map(|v| precision(cmd, &v)).transpose()?,
         ..SaveOptions::default()
@@ -112,16 +74,13 @@ pub(super) fn save_options(cmd: &str, f: &Format, doc: &Document, p: &Value) -> 
     if o.embed_profiles.unwrap_or(true) {
         so.profiles = embedded_profiles(doc);
     }
-    so.check().map_err(|e| bad(cmd, e.to_string()))?;
-    let pdf = o.pdf_compatible.unwrap_or(true);
-    so.pdf_compatible = Some(pdf);
-    Ok((so, Extras { preview: o.preview, pdf }))
+    Ok(so)
 }
 
 /// The `precision` option `v`: a whole number of decimal places, 0 to
-/// [`vectorcraft_format::MAX_PRECISION`]. Any other value, a string included, gets the range message.
+/// [`etcfile::MAX_PRECISION`]. Any other value, a string included, gets the range message.
 fn precision(cmd: &str, v: &Value) -> Result<u8> {
-    let (key, min, max) = ("precision", 0u8, vectorcraft_format::MAX_PRECISION);
+    let (key, min, max) = ("precision", 0u8, etcfile::MAX_PRECISION);
     if let Some(x) = v.as_f64()
         && x.fract() == 0.0
         && (f64::from(min)..=f64::from(max)).contains(&x)
@@ -132,40 +91,28 @@ fn precision(cmd: &str, v: &Value) -> Result<u8> {
     Err(bad(cmd, format!("`{key}` must be a whole number between {min} and {max} (got {x})")))
 }
 
-/// The `.vectorcraft` file of `doc` with the options in `p`.
+/// The `.etc` file of `doc` with the options in `p`.
 pub(super) fn encode(cmd: &str, f: &Format, doc: &Document, p: &Value) -> Result<Vec<u8>> {
     let mut out = Vec::new();
     encode_to(cmd, f, doc, p, &mut out)?;
     Ok(out)
 }
 
-/// [`encode`], written to `w` as it is made ([`vectorcraft_format::save_to`]: give it a buffered
-/// writer).
+/// [`encode`], written to `w` ([`etcfile::save_to`]: give it a buffered writer).
 pub(super) fn encode_to(cmd: &str, f: &Format, doc: &Document, p: &Value, w: impl std::io::Write) -> Result<()> {
-    let (mut so, extras) = save_options(cmd, f, doc, p)?;
-    // Include Linked Files keeps placed documents' files; older versions get their art.
-    let full = if so.include_linked || so.version < vectorcraft_format::VERSION {
-        crate::cmd::place::document::full_documents(doc).0
-    } else {
-        std::borrow::Cow::Borrowed(doc)
-    };
-    // With a precision, the preview and PDF show the rounded art the file holds.
+    let mut so = save_options(cmd, f, doc, p)?;
+    // Include Linked Files keeps placed documents' files.
+    let full = if so.include_linked { crate::cmd::place::document::full_documents(doc).0 } else { Cow::Borrowed(doc) };
+    // With a precision, the previews show the rounded art the file holds.
     let drawn = match so.precision {
-        Some(decimals) if extras.preview || extras.pdf => Cow::Owned(rounded(&full, so.version, decimals)),
-        _ => Cow::Borrowed(full.as_ref()),
+        Some(decimals) => Cow::Owned(rounded(&full, decimals)),
+        None => Cow::Borrowed(full.as_ref()),
     };
-    if extras.preview {
-        so.preview = preview_png(&drawn)?;
-    }
-    if extras.pdf && !drawn.artboards.is_empty() {
-        // Every artboard as PDF pages (no editing data: the file is the native document), dated by
-        // the document's File Info, so the same document and dates give the same bytes.
-        let at = drawn.metadata.modified.or(drawn.metadata.created);
-        so.pdf = Some(super::pdf::encode_at(cmd, &drawn, &json!({ "range": "all", "preserveEditing": false }), at)?.0);
-    }
+    so.merged_image = merged_png(&drawn)?;
+    so.thumbnail = preview_png(&drawn)?;
     drop(drawn);
     let native = match full {
-        Cow::Owned(full) if so.include_linked && so.version >= vectorcraft_format::VERSION => {
+        Cow::Owned(full) if so.include_linked => {
             // Include available bytes without replacing missing, relinkable placed objects.
             let mut original = doc.clone();
             original.images = full.images;
@@ -176,18 +123,13 @@ pub(super) fn encode_to(cmd: &str, f: &Format, doc: &Document, p: &Value, w: imp
     // Without an Export for Screens folder outside the read roots.
     let native = super::access::with_readable_settings_folder(&native);
     so.pretty = so.pretty_fits(&native);
-    vectorcraft_format::save_to(&native, &so, w).map_err(|e| bad(cmd, e.to_string()))
+    etcfile::save_to(&native, &so, w).map_err(|e| bad(cmd, e.to_string()))
 }
 
-/// `doc` with its path geometry rounded to `decimals` places, as [`vectorcraft_format::save_to`]
-/// writes it for `version`: placed documents, those in the stored brushes' art included, become
-/// groups of their art for older versions.
-fn rounded(doc: &Document, version: u32, decimals: u8) -> Document {
+/// `doc` with its path geometry rounded to `decimals` places, as [`etcfile::save_to`] writes it.
+fn rounded(doc: &Document, decimals: u8) -> Document {
     let mut d = doc.clone();
-    if version < vectorcraft_format::VERSION {
-        vectorcraft_format::placed_as_groups(&mut d);
-    }
-    d.round_geometry(decimals.min(vectorcraft_format::MAX_PRECISION));
+    d.round_geometry(decimals.min(etcfile::MAX_PRECISION));
     d
 }
 
@@ -221,27 +163,31 @@ pub(super) fn install_profiles(profiles: BTreeMap<String, Vec<u8>>) -> Vec<Strin
 
 
 
-/// The first artboard (else the art) as a PNG fitted into [`PREVIEW_MAX`] pixels (`None`: nothing
-/// to show).
-pub(crate) fn preview_png(doc: &Document) -> Result<Option<Vec<u8>>> {
-    let Some(r) = doc.artboards.first().map(|a| a.rect).or_else(|| vectorcraft_render::encode::art_bounds(doc)) else { return Ok(None) };
-    let scale = f64::from(PREVIEW_MAX) / r.width().max(r.height());
+/// The longest side of `mergedimage.png`, in pixels: larger documents are scaled down to it.
+const MERGED_MAX: f64 = 8192.0;
+
+/// The region the previews show: every artboard together, else the art.
+fn preview_region(doc: &Document) -> Option<vectorcraft_doc::geom::Rect> {
+    etcfile::manifest::artboard_bounds(doc).or_else(|| vectorcraft_render::encode::art_bounds(doc))
+}
+
+/// `doc`'s preview region as a PNG at `scale` (`None`: nothing to show, or too large to render).
+fn region_png(doc: &Document, scale: impl FnOnce(vectorcraft_doc::geom::Rect) -> f64) -> Result<Option<Vec<u8>>> {
+    let Some(r) = preview_region(doc) else { return Ok(None) };
+    let scale = scale(r);
     if vectorcraft_render::raster_size(r, scale).is_err() {
         return Ok(None);
     }
     vectorcraft_render::Renderer::new().render_region(doc, r, scale, false).to_png().map(Some).map_err(EngineError::Other)
 }
 
-/// `p` with `compress` from the Use Compression preference when it doesn't say (saves only;
-/// exports and serializing write what they're told).
-pub fn with_compression_pref(prefs: &crate::Prefs, p: &Value) -> Value {
-    let mut q = if p.is_object() { p.clone() } else { Value::Object(Default::default()) };
-    if let Some(o) = q.as_object_mut()
-        && o.get("compress").is_none_or(Value::is_null)
-        // Older versions can't read compressed files: those saves stay plain.
-        && o.get("version").and_then(Value::as_u64).is_none_or(|v| v >= u64::from(vectorcraft_format::COMPRESSED_SINCE))
-    {
-        o.insert("compress".into(), Value::Bool(prefs.use_compression));
-    }
-    q
+/// `mergedimage.png`: the preview region at one pixel per point, at most [`MERGED_MAX`] pixels on
+/// its longer side.
+pub(crate) fn merged_png(doc: &Document) -> Result<Option<Vec<u8>>> {
+    region_png(doc, |r| (MERGED_MAX / r.width().max(r.height())).min(1.0))
+}
+
+/// The thumbnail: the preview region fitted into [`etcfile::THUMBNAIL_MAX`] pixels.
+pub(crate) fn preview_png(doc: &Document) -> Result<Option<Vec<u8>>> {
+    region_png(doc, |r| f64::from(etcfile::THUMBNAIL_MAX) / r.width().max(r.height()))
 }

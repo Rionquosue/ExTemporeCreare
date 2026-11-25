@@ -220,7 +220,7 @@ const SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height
 #[test]
 fn imported_multi_shape_and_even_odd_clip_paths_clip() {
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "clips.svg", "dataBase64": vectorcraft_format::base64_encode(SVG.as_bytes())})).unwrap();
+    s.execute("document.open", &json!({"name": "clips.svg", "dataBase64": etcfile::base64::encode(SVG.as_bytes())})).unwrap();
     let d = &s.doc().unwrap().doc;
     let mut kinds = vec![];
     d.walk(|n| {

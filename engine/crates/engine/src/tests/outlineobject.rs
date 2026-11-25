@@ -60,7 +60,7 @@ fn type_with_outline_object_stays_editable_type_and_keeps_its_geometric_bounds()
     assert_eq!(s.transform_bounds(&[id]), glyphs);
     s.prefs.use_preview_bounds = false;
     // A native save keeps the effect.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let ids: Vec<String> = back.node(id).unwrap().appearance.effects.iter().map(|e| e.id.clone()).collect();
     assert_eq!(ids, ["path.outlineObject"]);
     // The type is still type, drawn as its outlines, and a text edit changes them.

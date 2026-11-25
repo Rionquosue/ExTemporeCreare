@@ -38,7 +38,7 @@ fn file_of(objects: Vec<TextObject>) -> Vec<u8> {
         let id = doc.alloc_id();
         doc.insert(Some(layer), usize::MAX, Node::new(id, NodeKind::Text(Box::new(t)))).unwrap();
     }
-    vectorcraft_format::save_file(&doc)
+    etcfile::save_file(&doc)
 }
 
 fn latin() -> Vec<u8> {
@@ -79,7 +79,7 @@ fn threaded_story() -> Vec<u8> {
         &json!({"x": 10, "y": 300, "text": "Area type on its own. ".repeat(20), "size": 12, "area": {"width": 300, "height": 200}}),
     )
     .unwrap();
-    vectorcraft_format::save_file(&s.doc().unwrap().doc)
+    etcfile::save_file(&s.doc().unwrap().doc)
 }
 
 fn documents() -> Vec<(&'static str, Vec<u8>)> {
@@ -88,7 +88,7 @@ fn documents() -> Vec<(&'static str, Vec<u8>)> {
 
 /// The session `bytes` opened in, as `document.open` reads a file and then opens it.
 fn open(bytes: &[u8]) -> Session {
-    let name = "layouts.vectorcraft";
+    let name = "layouts.etc";
     let mut s = Session::new();
     let read = fileio::read_for_open(name, bytes, Some(name.into()), &Value::Null, false).unwrap();
     fileio::open_read(&mut s, read).unwrap();

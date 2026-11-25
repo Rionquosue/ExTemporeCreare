@@ -39,7 +39,7 @@ proptest! {
                 "removeParagraphReturns": paras,
                 "replaceSpaces": spaces,
             });
-            let p = json!({"name": "fuzz.txt", "dataBase64": vectorcraft_format::base64_encode(&data), "text": text, "thumbnail": 8});
+            let p = json!({"name": "fuzz.txt", "dataBase64": etcfile::base64::encode(&data), "text": text, "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });
@@ -56,7 +56,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&data), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&data), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });
@@ -87,7 +87,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&data), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&data), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });
@@ -123,7 +123,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&data), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&data), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });
@@ -151,7 +151,7 @@ proptest! {
         let mut data = compound_file(&wd, &table, if v3 { cfb::Version::V3 } else { cfb::Version::V4 });
         let mut s = vectorcraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-        let p = json!({"name": "fuzz.doc", "dataBase64": vectorcraft_format::base64_encode(&data)});
+        let p = json!({"name": "fuzz.doc", "dataBase64": etcfile::base64::encode(&data)});
         let placed = s.execute("file.place", &p);
         prop_assert!(placed.is_ok(), "the undamaged document doesn't place: {:?}", placed.err());
         let layout = CfbLayout::of(&data);
@@ -161,7 +161,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&data), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&data), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });

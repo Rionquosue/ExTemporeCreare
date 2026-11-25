@@ -68,7 +68,7 @@ fn legacy_profile_name_resolves_in_commands_and_files() {
     // A document saved by an older version names the profile the old way.
     let mut d = (*s.doc().unwrap().doc).clone();
     d.unknown.insert(PROFILES_KEY.into(), json!({"rgb": old, "cmyk": null}));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
     assert_eq!(doc_profiles(&back), (Some(cms::WIDE_GAMUT_RGB.to_string()), None));
     cms::set_active(&before).unwrap();
 }
@@ -234,7 +234,7 @@ fn assigned_profiles_follow_the_front_document() {
     let dir = fresh_dir("front-profiles");
     let _reset = ColorSettingsReset { profile: None, paths: vec![dir.clone()] };
     std::fs::create_dir_all(&dir).unwrap();
-    let tagged = dir.join("tagged.vectorcraft");
+    let tagged = dir.join("tagged.etc");
     let mut s = session();
     let working = cms::working_settings();
     assert_ne!(working.cmyk, cms::DEVICE_CMYK);
@@ -262,7 +262,7 @@ fn undo_redo_and_revert_put_the_document_profiles_in_use() {
     let dir = fresh_dir("undo-profiles");
     let _reset = ColorSettingsReset { profile: None, paths: vec![dir.clone()] };
     std::fs::create_dir_all(&dir).unwrap();
-    let untagged = dir.join("untagged.vectorcraft");
+    let untagged = dir.join("untagged.etc");
     let mut s = session();
     let working = cms::working_settings();
     exec(&mut s, "file.saveAs", json!({"path": untagged.to_str().unwrap()}));
@@ -662,7 +662,7 @@ fn freeform_rgb_points_mix_in_the_working_rgb_space() {
     let canvas = Renderer::new().render(&d, 100, 100, Affine::IDENTITY, &opts).pixel(50, 50);
     let svg = vectorcraft_svg::export_full(&d, &vectorcraft_svg::ExportOptions::default(), None).svg;
     let data = svg.split("data:image/png;base64,").nth(1).unwrap().split('"').next().unwrap();
-    let png = craft_image_codecs::decode(&vectorcraft_testkit::format::base64_decode(data).unwrap())
+    let png = craft_image_codecs::decode(&vectorcraft_testkit::etcfile::base64::decode(data).unwrap())
         .map(|__cimg| {
             let (__w, __h) = __cimg.dimensions();
             match (__cimg.layout(), __cimg.sample_type()) {
@@ -1019,7 +1019,7 @@ fn color_management_policies_keep_take_off_or_convert_a_tagged_profile() {
     let dir = fresh_dir("policies");
     let _reset = ColorSettingsReset { profile: None, paths: vec![dir.clone()] };
     std::fs::create_dir_all(&dir).unwrap();
-    let tagged = dir.join("tagged.vectorcraft");
+    let tagged = dir.join("tagged.etc");
     let mut s = session();
     let (blue, ink) = (rect(&mut s, 0.0, 0.0, 10.0, 10.0), rect(&mut s, 20.0, 0.0, 10.0, 10.0));
     exec(&mut s, "paint.setFill", json!({"ids": [blue.0], "color": "#3366cc"}));
@@ -1211,7 +1211,7 @@ fn profile_files(tag: &str) -> ProfileFiles {
     let dir = fresh_dir(tag);
     let reset = ColorSettingsReset { profile: None, paths: vec![dir.clone()] };
     std::fs::create_dir_all(&dir).unwrap();
-    let (tagged, plain) = (dir.join("tagged.vectorcraft"), dir.join("plain.vectorcraft"));
+    let (tagged, plain) = (dir.join("tagged.etc"), dir.join("plain.etc"));
     let mut s = session();
     let blue = rect(&mut s, 0.0, 0.0, 10.0, 10.0);
     exec(&mut s, "paint.setFill", json!({"ids": [blue.0], "color": "#3366cc"}));
@@ -1339,7 +1339,7 @@ fn a_read_waits_for_the_profile_answer() {
     let mut waiting = read(true);
     let q = waiting.question().unwrap();
     assert_eq!((q.issue, q.profile.as_deref(), q.default.id()), (ProfileIssue::Mismatch, Some(cms::WIDE_GAMUT_RGB), "convert"));
-    assert_eq!(waiting.name(), "tagged.vectorcraft");
+    assert_eq!(waiting.name(), "tagged.etc");
     waiting.answer(ProfileChoice::Discard).unwrap();
     assert!(waiting.question().is_none(), "answered");
     let mut opened = session();
@@ -1362,7 +1362,7 @@ fn a_read_waits_for_the_profile_answer() {
     assert!(read(true).question().is_none(), "the mismatch box is off now");
     let plain_bytes = std::fs::read(plain).unwrap();
     let mut waiting =
-        vectorcraft_engine::cmd::fileio::read_for_open_asking("plain.vectorcraft", &plain_bytes, None, &json!({}), false, true).unwrap();
+        vectorcraft_engine::cmd::fileio::read_for_open_asking("plain.etc", &plain_bytes, None, &json!({}), false, true).unwrap();
     let q = waiting.question().unwrap();
     assert_eq!((q.issue, q.profile.as_deref(), q.default.id()), (ProfileIssue::Missing, None, "assignWorking"));
     assert!(waiting.answer(ProfileChoice::Assign(cms::DEVICE_CMYK.into())).is_err(), "not an RGB profile");

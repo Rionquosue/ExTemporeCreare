@@ -7,7 +7,7 @@ use super::*;
 
 fn pdf(s: &mut Session, p: Value) -> (String, Value) {
     let v = s.execute("document.exportPdf", &p).unwrap();
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     (String::from_utf8_lossy(&bytes).into_owned(), v["warnings"].clone())
 }
 

@@ -82,7 +82,7 @@ fn the_focal_point_round_trips_through_params_and_the_native_format() {
     s.execute("paint.setFill", &json!({"gradient": {"kind": "linear"}})).unwrap();
     s.execute("paint.setFill", &json!({ "gradient": params })).unwrap();
     assert_eq!(geom(&s, id), want);
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(g) = back.node(id).unwrap().appearance.fill_paint() else { panic!("gradient lost") };
     assert_eq!(g.geom, Some(want));
 }

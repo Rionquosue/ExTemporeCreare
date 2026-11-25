@@ -417,8 +417,8 @@ fn copy_one(from: &Path, dir: &Path, total: &mut u64) -> std::result::Result<sup
 /// resource fork is `fork`; never in place of a file.
 #[cfg(not(target_arch = "wasm32"))]
 fn create_copy(from: &Path, to: &Path, fork: Option<&[u8]>) -> std::io::Result<()> {
-    let Some(fork) = fork else { return vectorcraft_format::write_new_with(to, |f| copy_capped(from, f)) };
-    vectorcraft_format::write_new_with(to, |_| Ok(()))?;
+    let Some(fork) = fork else { return etcfile::write_new_with(to, |f| copy_capped(from, f)) };
+    etcfile::write_new_with(to, |_| Ok(()))?;
     std::fs::write(fork_path(to), fork).inspect_err(|_| {
         // Best effort: the empty file just made is all there is to clean up.
         let _ = std::fs::remove_file(to);

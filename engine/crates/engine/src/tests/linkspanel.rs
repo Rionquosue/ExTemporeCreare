@@ -123,7 +123,7 @@ fn embed_keeps_the_pixels_without_the_file() {
     assert!(image(&s, id).link.is_some(), "one undo step");
     run(&mut s, "edit.redo", json!({}));
     // Saved and reopened without the file: the full pixels, nothing missing.
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     std::fs::remove_file(&pic).unwrap();
     let r = open(&mut s, &doc_path);
@@ -140,7 +140,7 @@ fn a_missing_file_showing_its_preview_stays_linked() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     let id = place(&mut s, &pic);
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     std::fs::remove_file(&pic).unwrap();
     open(&mut s, &doc_path);
@@ -161,7 +161,7 @@ fn unembed_writes_the_bytes_and_links_to_them() {
     // No path: the file's bytes come back and nothing changes.
     let r = run(&mut s, "links.unembed", json!({"id": id.0}));
     assert_eq!(r["name"], "photo.png");
-    assert_eq!(vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap(), bytes);
+    assert_eq!(etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap(), bytes);
     assert!(image(&s, id).link.is_none());
     // To a path: written there, and the image links to it.
     let out = dir.file("out/photo.png");
@@ -502,7 +502,7 @@ fn link_paths_outside_the_read_roots_are_left_out() {
     let i = run(&mut s, "links.info", json!({"id": id.0}));
     assert_eq!((&i["path"], &i["link"], i["fileSize"].as_u64()), (&json!(pic), &json!(pic), Some(bytes.len() as u64)), "{i}");
     // Saved inside the roots next to a copy of the file: the copy is found by name and shown.
-    save(&mut s, &home.file("poster.vectorcraft"));
+    save(&mut s, &home.file("poster.etc"));
     let copy = home.file("photo.png");
     write(&copy, &bytes);
     let check = ask(&mut s, "links.check", json!({}));
@@ -513,7 +513,7 @@ fn link_paths_outside_the_read_roots_are_left_out() {
     assert_eq!(list["links"][0]["found"], json!(copy), "{list}");
     // Opened again without the copy: the missing link's row has no path.
     std::fs::remove_file(&copy).unwrap();
-    let opened = ask(&mut Session::new(), "document.open", json!({"path": home.file("poster.vectorcraft")}));
+    let opened = ask(&mut Session::new(), "document.open", json!({"path": home.file("poster.etc")}));
     hidden(&opened);
     assert_eq!(opened["missingLinks"][0]["name"], "photo.png", "{opened}");
 }
@@ -584,7 +584,7 @@ fn placement_options_read_set_and_round_trip() {
     assert!(s.execute("links.placementOptions", &json!({"preserve": "stretch"})).is_err());
     assert!(s.execute("links.placementOptions", &json!({"align": "middle"})).is_err());
     // Saved and opened again.
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     let saved: Value = serde_json::from_slice(&std::fs::read(&doc_path).unwrap()).unwrap();
     assert_eq!(

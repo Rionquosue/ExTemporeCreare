@@ -228,7 +228,7 @@ fn a_replay_draws_the_custom_bevel_the_command_recorded() {
     let (_, set_recorded) = s.journal.last().unwrap().clone();
     assert_eq!(set_recorded[bevels::SAVED_BEVEL], applied[effects::BEVEL_PROFILE]);
     // The bevels file no longer has the bevel: by name it is refused, and the replays draw it.
-    s.attach_bevels_file(dir.join("Other.vectorcraft").to_string_lossy().to_string());
+    s.attach_bevels_file(dir.join("Other.etc").to_string_lossy().to_string());
     assert!(s.execute("effect.apply", &apply).is_err());
     s.execute("edit.undo", &json!({})).unwrap();
     s.execute("edit.undo", &json!({})).unwrap();
@@ -259,9 +259,9 @@ fn a_document_keeps_its_custom_bevels_without_the_bevels_file() {
     };
     let with_bevel = ink(&s);
     // Saved and opened in a session that has no bevels file: the bevel is drawn the same.
-    let saved = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
+    let saved = s.execute("document.export", &json!({"format": "etc"})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "a.vectorcraft", "dataBase64": saved})).unwrap();
+    o.execute("document.open", &json!({"name": "a.etc", "dataBase64": saved})).unwrap();
     assert_eq!(params(&o, id)[effects::BEVEL_PROFILE], params(&s, id)[effects::BEVEL_PROFILE]);
     assert_eq!(ink(&o).pixels, with_bevel.pixels);
     // The classic chamfer draws differently.
@@ -336,7 +336,7 @@ fn an_agent_outside_the_bevels_files_folder_sees_its_file_name_alone_and_cannot_
     assert_eq!(list["file"].as_str(), Some(file.as_str()));
     assert!(list["error"].as_str().unwrap().starts_with(&file), "{list}");
     // A good file now: an agent outside the folder cannot have it read.
-    std::fs::write(&file, vectorcraft_format::save_file(&bevels::starter())).unwrap();
+    std::fs::write(&file, etcfile::save_file(&bevels::starter())).unwrap();
     let e = crate::file_access::confine(Some(&outside), || s.execute("threeD.bevels.reload", &json!({}))).unwrap_err().to_string();
     assert!(e.contains("outside the read root") && e.ends_with(bevels::FILE_NAME) && !e.contains(&prefs_text), "{e}");
     let list = s.execute("threeD.bevels.list", &json!({})).unwrap();

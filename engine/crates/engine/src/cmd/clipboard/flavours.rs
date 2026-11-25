@@ -379,7 +379,7 @@ impl Session {
 /// The bytes of `p`'s `dataBase64`.
 fn data_param(p: &Value, cmd: &str) -> Result<Vec<u8>> {
     let b64 = str_param(p, "dataBase64").ok_or_else(|| bad(cmd, "give dataBase64"))?;
-    vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(cmd, "bad base64"))
+    etcfile::base64::decode(b64).ok_or_else(|| bad(cmd, "bad base64"))
 }
 
 fn export_png(s: &mut Session, p: &Value) -> Result<Value> {
@@ -389,7 +389,7 @@ fn export_png(s: &mut Session, p: &Value) -> Result<Value> {
     }
     Ok(match s.clipboard_png(scale)? {
         Some((png, w, h, warnings)) => {
-            json!({ "dataBase64": vectorcraft_format::base64_encode(&png), "width": w, "height": h, "warnings": warnings })
+            json!({ "dataBase64": etcfile::base64::encode(&png), "width": w, "height": h, "warnings": warnings })
         }
         None => json!({ "dataBase64": null }),
     })
@@ -397,7 +397,7 @@ fn export_png(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn export_pdf(s: &mut Session, _: &Value) -> Result<Value> {
     Ok(match s.clipboard_pdf()? {
-        Some((pdf, warnings)) => json!({ "dataBase64": vectorcraft_format::base64_encode(&pdf), "warnings": warnings }),
+        Some((pdf, warnings)) => json!({ "dataBase64": etcfile::base64::encode(&pdf), "warnings": warnings }),
         None => json!({ "dataBase64": null }),
     })
 }

@@ -469,7 +469,7 @@ fn dither_is_a_fill_gradient_option_that_saves_and_loads() {
     let Some(Paint::Gradient(sw)) = s.doc().unwrap().doc.swatch("Smooth").map(|w| w.paint.clone()) else { panic!("a gradient swatch") };
     assert!(sw.gradient.dither);
     // Saved and opened again.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(saved) = back.node(id).unwrap().appearance.fill_paint() else { panic!("a gradient fill") };
     assert!(saved.gradient.dither, "the native file keeps dither");
     // Written only when on, so files without it (older ones) open with it off.
@@ -536,7 +536,7 @@ fn method_is_a_gradient_option_that_saves_and_loads() {
     let Some(Paint::Gradient(sw)) = s.doc().unwrap().doc.swatch("Even").map(|w| w.paint.clone()) else { panic!("a gradient swatch") };
     assert_eq!(sw.gradient.method, GradientMethod::Perceptual);
     // Saved and opened again.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(saved) = back.node(id).unwrap().appearance.fill_paint() else { panic!("a gradient fill") };
     assert_eq!(saved.gradient.method, GradientMethod::Perceptual, "the native file keeps the method");
     // Strokes take it too.
@@ -603,7 +603,7 @@ fn the_hue_methods_are_set_saved_and_loaded() {
         s.execute("gradient.presets.apply", &json!({"name": format!("Preset {name}")})).unwrap();
         assert_eq!(fill_gradient(&s, id).gradient.method, method, "{name}: the preset");
         // Saved and opened again.
-        let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+        let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
         let Paint::Gradient(saved) = back.node(id).unwrap().appearance.fill_paint() else { panic!("a gradient fill") };
         assert_eq!(saved.gradient.method, method, "{name}: the native file keeps the method");
     }
@@ -692,7 +692,7 @@ fn a_conic_gradient_is_set_edited_transformed_and_saved() {
     s.execute("paint.setFill", &json!({ "gradient": params })).unwrap();
     let got = fill_gradient(&s, id);
     assert_eq!((&got.gradient, got.geom), (&want.gradient, want.geom));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(g) = back.node(id).unwrap().appearance.fill_paint() else { panic!("the gradient is lost") };
     assert_eq!((g.gradient.kind, g.geom), (GradientKind::Conic, want.geom));
 }
@@ -771,6 +771,42 @@ fn a_negative_aspect_mirrors_only_a_conic() {
     assert_eq!(fill_gradient(&s, b).geom.unwrap().focal, None);
 }
 
+/// Saved as `.ai`, as PDF with its editing data and as SVG with its editing data, then opened, a
+/// mirrored, squashed conic comes back as it was; a PDF without editing data gives it back from
+/// its sweep shading.
+#[test]
+fn a_conic_survives_saving_as_ai_pdf_and_svg() {
+    let mut s = session();
+    let id = rect(&mut s, 100.0, 100.0, 200.0, 100.0);
+    s.execute("paint.setFill", &json!({"gradient": {"kind": "conic", "start": [180, 140], "end": [240, 110], "aspect": -60}})).unwrap();
+    let want = fill_gradient(&s, id);
+    let reopened = |s: &mut Session, format: &str, p: Value| {
+        let mut p = p;
+        p["format"] = json!(format);
+        let r = s.execute("file.saveCopy", &p).unwrap();
+        let mut back = session();
+        back.execute("document.open", &json!({"name": format!("t.{format}"), "dataBase64": r["dataBase64"]})).unwrap();
+        let mut found = None;
+        back.doc().unwrap().doc.walk(|n| {
+            if let (None, Paint::Gradient(g)) = (&found, n.appearance.fill_paint()) {
+                found = Some(*g.clone());
+            }
+        });
+        found.unwrap_or_else(|| panic!("{format}: the gradient is lost"))
+    };
+    for (format, p) in [("ai", json!({})), ("pdf", json!({"preserveEditing": true})), ("svg", json!({"preserveEditing": true}))] {
+        let got = reopened(&mut s, format, p);
+        assert_eq!((got.gradient.kind, got.geom), (GradientKind::Conic, want.geom), "{format}");
+    }
+    let got = reopened(&mut s, "pdf", json!({"preserveEditing": false}));
+    assert_eq!(got.gradient.kind, GradientKind::Conic);
+    let (g, w) = (got.geom.unwrap(), want.geom.unwrap());
+    assert!(g.is_mirrored() && g.start.distance(w.start) < 0.05, "{g:?}");
+    for p in [Point::new(120.0, 120.0), Point::new(280.0, 180.0), Point::new(200.0, 105.0)] {
+        assert!((g.param_at(GradientKind::Conic, p) - w.param_at(GradientKind::Conic, p)).abs() < 2e-3, "{p:?}: {g:?}");
+    }
+}
+
 
 /// Turning a gradient conic is one undo step, and undoing it gives the gradient back as it was.
 #[test]
@@ -838,7 +874,7 @@ fn a_diamond_gradient_is_set_edited_transformed_and_saved() {
     s.execute("paint.setFill", &json!({ "gradient": params })).unwrap();
     let got = fill_gradient(&s, id);
     assert_eq!((&got.gradient, got.geom), (&want.gradient, want.geom));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(g) = back.node(id).unwrap().appearance.fill_paint() else { panic!("the gradient is lost") };
     assert_eq!((g.gradient.kind, g.geom), (GradientKind::Diamond, want.geom));
 }
@@ -881,6 +917,29 @@ fn a_warp_moves_a_diamond_by_its_center() {
     };
     let (diamond, radial) = (warped("diamond"), warped("radial"));
     assert!(diamond.start.distance(radial.start) < 1e-9, "{diamond:?} vs {radial:?}");
+}
+
+/// Saved as `.ai`, as PDF with its editing data and as SVG with its editing data, then opened, a
+/// turned, squashed diamond comes back as it was.
+#[test]
+fn a_diamond_survives_saving_as_ai_pdf_and_svg() {
+    let mut s = session();
+    let id = rect(&mut s, 100.0, 100.0, 200.0, 100.0);
+    s.execute("paint.setFill", &json!({"gradient": {"kind": "diamond", "start": [180, 140], "end": [240, 110], "aspect": 60}})).unwrap();
+    let want = fill_gradient(&s, id);
+    for format in ["ai", "pdf", "svg"] {
+        let r = s.execute("file.saveCopy", &json!({"format": format, "preserveEditing": true})).unwrap();
+        let mut back = session();
+        back.execute("document.open", &json!({"name": format!("t.{format}"), "dataBase64": r["dataBase64"]})).unwrap();
+        let mut found = None;
+        back.doc().unwrap().doc.walk(|n| {
+            if let (None, Paint::Gradient(g)) = (&found, n.appearance.fill_paint()) {
+                found = Some(*g.clone());
+            }
+        });
+        let got = found.unwrap_or_else(|| panic!("{format}: the gradient is lost"));
+        assert_eq!((got.gradient.kind, got.geom), (GradientKind::Diamond, want.geom), "{format}");
+    }
 }
 
 
@@ -927,7 +986,7 @@ fn a_gradient_takes_a_spread_and_a_count() {
     assert_eq!(fill_gradient(&s, id).gradient.repeats, 2, "Pad keeps the count for later");
     s.execute("edit.undo", &json!({})).unwrap();
     assert_eq!(fill_gradient(&s, id), g);
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(saved) = back.node(id).unwrap().appearance.fill_paint() else { panic!("the gradient is lost") };
     assert_eq!((saved.gradient.spread, saved.gradient.repeats), (GradientSpread::Repeat, 2));
     // The params of a gradient that pads give back the count it keeps.

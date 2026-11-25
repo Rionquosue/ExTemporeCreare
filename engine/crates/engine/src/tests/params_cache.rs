@@ -56,6 +56,22 @@ fn a_built_in_description_is_not_parsed_again() {
     assert!(PARSES.get() > command_specs().len());
 }
 
+/// A description that isn't a built-in command's, even with the same words (a plug-in's), is parsed
+/// where it is used, and so is one that names a plug-in command, whose keys change as plug-ins are
+/// installed and removed.
+#[test]
+fn other_descriptions_are_parsed_where_they_are_used() {
+    let spec = command_specs().iter().find(|c| id_stands_for_ids(c.params)).unwrap();
+    let copy: &'static str = String::from(spec.params).leak();
+    assert_eq!(answers(spec.id, copy), answers(spec.id, spec.params));
+    PARSES.set(0);
+    assert!(takes_key(copy, "ids") && id_stands_for_ids(copy));
+    assert!(PARSES.get() > 0);
+    assert!(read_once("{a, …settings as file.new}"));
+    assert!(!read_once("{a, …settings as plugin.some.command}"));
+    assert!(!read_once("{a, …the options of `plugin.some.command`}"));
+}
+
 
 /// This thread's CPU time in ns where Linux reports it, else the time since `start`.
 fn now(start: std::time::Instant) -> (u128, bool) {

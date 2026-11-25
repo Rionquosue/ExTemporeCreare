@@ -157,7 +157,7 @@ pub(crate) fn names_linked_scripts(cmd: &str, format: &str, p: &Value, artboards
     };
     let art_page = || super::encode::use_artboards(cmd, p).is_ok_and(|u| u == Some(false));
     match format {
-        "svg" | "svgz" | "vectorcraft" | "template" => true,
+        "svg" | "svgz" | "etc" => true,
         "pdf" => {
             let editing = super::pdf::settings(cmd, p).ok().is_none_or(|s| s.preserve_editing);
             editing && !art_page() && every_artboard()
@@ -294,7 +294,7 @@ pub(crate) fn write_file(path: &str, bytes: &[u8]) -> Result<()> {
 }
 
 /// The error writing `path` failed with: [`EngineError::Cancelled`] for work canceled before the
-/// file was put in place ([`vectorcraft_format::write_atomic_with`]), otherwise the path and the reason.
+/// file was put in place ([`etcfile::write_atomic_with`]), otherwise the path and the reason.
 #[cfg(not(target_arch = "wasm32"))]
 fn write_error(path: &str, error: std::io::Error) -> EngineError {
     if error.get_ref().is_some_and(|e| e.is::<vectorcraft_doc::cancel::Cancelled>()) {
@@ -308,7 +308,7 @@ fn write_error(path: &str, error: std::io::Error) -> EngineError {
 pub fn write_file_with(path: &str, fill: &mut dyn FnMut(&mut dyn std::io::Write) -> std::io::Result<()>) -> Result<()> {
     vectorcraft_doc::cancel::check()?;
     may_write(path)?;
-    vectorcraft_format::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| write_error(path, e))
+    etcfile::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| write_error(path, e))
 }
 
 /// The save commands' writer: preserves a filesystem location refusal as a typed error. Other
@@ -322,12 +322,12 @@ pub fn write_save_file(path: &str, bytes: &[u8]) -> Result<()> {
 pub fn write_save_file_with(path: &str, fill: &mut dyn FnMut(&mut dyn std::io::Write) -> std::io::Result<()>) -> Result<()> {
     vectorcraft_doc::cancel::check()?;
     may_write(path)?;
-    vectorcraft_format::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| save_write_error(path, e))
+    etcfile::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| save_write_error(path, e))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(super) fn save_write_error(path: &str, error: std::io::Error) -> EngineError {
-    if !vectorcraft_format::read_only_location(&error) {
+    if !etcfile::read_only_location(&error) {
         return write_error(path, error);
     }
     EngineError::ReadOnlyLocation(format!("{path}: {error}"))
@@ -352,7 +352,7 @@ pub(crate) fn write_new_file(path: &str, bytes: &[u8]) -> Result<()> {
     may_write(path)?;
     let err = |e: std::io::Error| EngineError::Other(format!("{path}: {e}"));
     let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(path).map_err(err)?;
-    let written = f.write_all(bytes).and_then(|()| vectorcraft_format::sync_file(&f));
+    let written = f.write_all(bytes).and_then(|()| etcfile::sync_file(&f));
     drop(f);
     written.map_err(|e| {
         // Best effort: the partly written file is all there is to clean up.
@@ -582,8 +582,8 @@ pub(crate) fn drive_share_of(path: &str, final_path: impl FnOnce(&str) -> Option
     })
 }
 
-/// The path of `document` (on a drive, `Z:\jobs\doc.vectorcraft`) on the network share the drive is
-/// mapped to (`\\server\share\jobs\doc.vectorcraft`), when its folder is on one and automation may
+/// The path of `document` (on a drive, `Z:\jobs\doc.etc`) on the network share the drive is
+/// mapped to (`\\server\share\jobs\doc.etc`), when its folder is on one and automation may
 /// read the folder. The folder's final path ([`std::fs::canonicalize`]) names the share as
 /// `\\?\UNC\server\share\…`.
 #[cfg(windows)]

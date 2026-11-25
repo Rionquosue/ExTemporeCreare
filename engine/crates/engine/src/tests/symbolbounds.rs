@@ -32,7 +32,7 @@ fn run(s: &mut Session, id: &str, p: Value) -> Value {
 /// `svg` opened, and its symbol instance.
 fn open(svg: &str) -> (Session, NodeId) {
     let mut s = Session::new();
-    run(&mut s, "document.open", json!({"name": "symbols.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())}));
+    run(&mut s, "document.open", json!({"name": "symbols.svg", "dataBase64": etcfile::base64::encode(svg.as_bytes())}));
     let mut found = None;
     s.doc().unwrap().doc.walk(|n| {
         if matches!(n.kind, NodeKind::SymbolInstance { .. }) {
@@ -494,7 +494,7 @@ fn a_copied_instances_png_is_cropped_to_its_art() {
     run(&mut s, "edit.copy", json!({}));
     let r = run(&mut s, "clipboard.exportPng", json!({}));
     assert_eq!((r["width"].as_u64(), r["height"].as_u64()), (Some(40), Some(20)));
-    let png = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+    let png = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
     let img = craft_image_codecs::decode(&png)
         .map(|__cimg| {
             let (__w, __h) = __cimg.dimensions();
@@ -529,7 +529,7 @@ fn an_instance_pasted_at_a_point_has_its_art_centered_there() {
 fn svg_markup_on_the_clipboard_is_centered_by_the_instances_art() {
     let mut s = Session::new();
     run(&mut s, "file.new", json!({"width": 400, "height": 300}));
-    run(&mut s, "clipboard.importSvg", json!({"dataBase64": vectorcraft_format::base64_encode(FAR.as_bytes()), "center": [200, 150]}));
+    run(&mut s, "clipboard.importSvg", json!({"dataBase64": etcfile::base64::encode(FAR.as_bytes()), "center": [200, 150]}));
     let pasted = ids(&run(&mut s, "edit.pasteInPlace", json!({})));
     assert!(close(bounds(&s, &pasted), Rect::new(180.0, 140.0, 220.0, 160.0)), "{:?}", bounds(&s, &pasted));
 }

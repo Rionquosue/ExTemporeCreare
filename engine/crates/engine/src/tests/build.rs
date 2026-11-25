@@ -693,6 +693,208 @@ fn shape_builder_merges_a_large_selection_on_another_thread() {
     assert_eq!(layer_children(&s), 40, "one undo step");
 }
 
+/// What comes after a click whose merge is being computed on another thread waits for the merge
+/// and runs on the merged art, as when the merge ran on the calling thread: a command (an edit,
+/// an undo, a selection, a save, a batch, Lock Guides, the proof views, a preference, Add Font
+/// Files), an option change, another tool, a save made outside a command, preferences applied
+/// outside a command, a dialog's preview, a scrubbed field's undo scope, a Cmd-click or Cmd-drag
+/// with the selection tool. The merge is the one computed on the other thread.
+#[test]
+fn shape_builder_applies_a_merge_before_what_comes_next() {
+    use vectorcraft_tools::builder::merges_computed;
+    type Next = (&'static str, fn(&mut Session, &[NodeId], &std::path::Path));
+    let v = ViewInfo::default();
+    let next: Vec<Next> = vec![
+        ("Select All Instances", |s, _, _| {
+            s.execute("symbol.selectInstances", &json!({"name": "S"})).unwrap();
+            assert_eq!(s.doc().unwrap().selection.objects.len(), 1);
+        }),
+        ("an edit", |s, _, _| {
+            s.execute("object.move", &json!({"dx": 0, "dy": 100})).unwrap();
+        }),
+        ("an undo", |s, _, _| {
+            s.execute("edit.undo", &json!({})).unwrap();
+            assert_eq!(layer_children(s), 40, "the undo takes the merge back");
+            s.execute("edit.redo", &json!({})).unwrap();
+        }),
+        ("another selection", |s, _, _| {
+            s.execute("select.inverse", &json!({})).unwrap();
+        }),
+        ("Select All", |s, _, _| {
+            s.execute("select.all", &json!({})).unwrap();
+            assert_eq!(s.doc().unwrap().selection.objects.len(), 41);
+        }),
+        ("a save", |s, _, dir| {
+            s.execute("file.saveAs", &json!({"path": dir.join("a.etc").to_string_lossy()})).unwrap();
+            assert!(!s.doc().unwrap().is_dirty(), "the file holds the merge");
+        }),
+        ("a save outside a command", |s, _, dir| {
+            let p = json!({"path": dir.join("b.etc").to_string_lossy()});
+            let plan = cmd::fileio::save_plan(s, cmd::fileio::SaveMode::SaveAs, &p).unwrap();
+            assert_eq!(layer_children(s), 40, "planning a save leaves the document");
+            let job = cmd::fileio::save_job(s, plan).unwrap();
+            assert_eq!(layer_children(s), 41, "the snapshot is taken after the merge");
+            drop(job);
+        }),
+        ("a batch", |s, _, _| {
+            s.execute("command.batch", &json!({"commands": [{"command": "object.move", "params": {"dx": 0, "dy": 50}}]})).unwrap();
+        }),
+        ("an option change", |s, _, _| {
+            s.set_tool_option_cmd(&json!({"key": "gapDetection", "value": true})).unwrap();
+        }),
+        ("another tool", |s, _, _| {
+            s.select_tool("selection", ViewInfo::default()).unwrap();
+        }),
+        ("a closed document", |s, _, _| {
+            s.execute("file.close", &json!({})).unwrap();
+        }),
+        ("Lock Guides", |s, _, _| {
+            s.execute("view.guides.lock", &json!({"locked": true})).unwrap();
+        }),
+        ("an option set from a panel", |s, _, _| {
+            s.set_tool_option("gapDetection", &json!(true));
+        }),
+        ("a dialog's preview, canceled", |s, _, _| {
+            s.begin_interaction("Move").unwrap();
+            s.preview("object.move", &json!({"dx": 7, "dy": 0})).unwrap();
+            s.preview("object.move", &json!({"dx": 9, "dy": 0})).unwrap();
+            s.cancel_interaction().unwrap();
+            assert_eq!(layer_children(s), 41, "canceling the preview keeps the merge");
+        }),
+        ("a dialog's preview, kept", |s, _, _| {
+            s.begin_interaction("Move").unwrap();
+            s.preview("object.move", &json!({"dx": 7, "dy": 0})).unwrap();
+            s.commit_interaction().unwrap();
+            let labels: Vec<&str> = s.doc().unwrap().history.undo.iter().rev().take(2).map(|e| e.label.as_str()).collect();
+            assert_eq!(labels, ["Move", "Shape Builder"]);
+        }),
+        ("a scrubbed field, canceled", |s, _, _| {
+            let scope = s.begin_undo_scope().unwrap();
+            s.execute("object.move", &json!({"dx": 5, "dy": 0})).unwrap();
+            s.end_undo_scope(scope, true);
+            assert_eq!(
+                s.doc().unwrap().history.undo.last().map(|e| e.label.as_str()),
+                Some("Shape Builder"),
+                "the scrub's step is undone, not the merge"
+            );
+        }),
+        ("a held click, then another tool", |s, _, _| {
+            let v = ViewInfo::default();
+            for kind in [PointerKind::Down, PointerKind::Up] {
+                s.pointer(&PointerEvent::new(kind, 55.0, 10.0), v).unwrap();
+            }
+            assert!(s.tool_editing(), "the click is held");
+            s.select_tool("selection", v).unwrap();
+            let labels: Vec<&str> = s.doc().unwrap().history.undo.iter().rev().take(2).map(|e| e.label.as_str()).collect();
+            assert_eq!(labels, ["Shape Builder", "Shape Builder"], "the held click merges with the Shape Builder first");
+        }),
+        ("a held click, then another document", |s, _, _| {
+            let v = ViewInfo::default();
+            for kind in [PointerKind::Down, PointerKind::Up] {
+                s.pointer(&PointerEvent::new(kind, 55.0, 10.0), v).unwrap();
+            }
+            let first = s.active_index().unwrap();
+            s.add_document(vectorcraft_doc::Document::new(100.0, 100.0), None);
+            assert!(!s.tool_editing());
+            let labels: Vec<&str> = s.documents()[first].history.undo.iter().rev().take(2).map(|e| e.label.as_str()).collect();
+            assert_eq!(labels, ["Shape Builder", "Shape Builder"], "the held click merges in its own document first");
+            s.set_active(first);
+        }),
+        ("a Cmd-click", |s, _, _| {
+            let v = ViewInfo::default();
+            let cmd = Mods { cmd: true, ..Default::default() };
+            assert_eq!(s.cursor(Point::new(500.0, 300.0), cmd, v), vectorcraft_tools::Cursor::Busy, "Cmd shows the merge is computed");
+            for kind in [PointerKind::Down, PointerKind::Up] {
+                s.pointer(&PointerEvent::new(kind, 500.0, 300.0).with_mods(cmd), v).unwrap();
+            }
+            assert!(s.tool_editing(), "the click is held");
+            while s.tool_waiting() {
+                s.tool_poll(v, true).unwrap();
+            }
+            assert!(s.doc().unwrap().selection.is_empty(), "the lent selection tool deselects after the merge");
+            assert_eq!(s.tool_id(), "shapeBuilder");
+        }),
+        ("a Cmd-drag", |s, _, _| {
+            let v = ViewInfo::default();
+            let cmd = Mods { cmd: true, ..Default::default() };
+            for (kind, y) in [(PointerKind::Down, 10.0), (PointerKind::Drag, 60.0), (PointerKind::Drag, 110.0), (PointerKind::Up, 110.0)] {
+                s.pointer(&PointerEvent::new(kind, 305.0, y).with_mods(cmd), v).unwrap();
+            }
+            assert!(s.tool_editing(), "the drag is held");
+            while s.tool_waiting() {
+                s.tool_poll(v, true).unwrap();
+            }
+            let labels: Vec<&str> = s.doc().unwrap().history.undo.iter().rev().take(2).map(|e| e.label.as_str()).collect();
+            assert_eq!(labels, ["Move", "Shape Builder"]);
+        }),
+        // The proof views apply the merge first by command id (`WAIT_FOR_TOOL_EDIT`), also when
+        // the view does not change and no document gets a new revision. They are left off, as
+        // the other tests of the process-wide proof view expect.
+        ("Separations Preview", |s, _, _| {
+            s.execute("view.separationsPreview", &json!({"on": false})).unwrap();
+        }),
+        ("Overprint Preview", |s, _, _| {
+            s.execute("view.overprintPreview", &json!({"on": false})).unwrap();
+        }),
+        ("Proof Colors", |s, _, _| {
+            s.execute("view.proofColors", &json!({"on": false})).unwrap();
+        }),
+        ("Proof Setup", |s, _, _| {
+            s.execute("view.proofSetup", &json!({})).unwrap();
+        }),
+        ("a proof view that changes", |s, _, _| {
+            let _v = crate::tests_colormgmt::DefaultView::new();
+            s.execute("view.proofColors", &json!({"on": true})).unwrap();
+            let on = s.doc().unwrap().revision;
+            s.execute("view.proofColors", &json!({"on": false})).unwrap();
+            assert!(s.doc().unwrap().revision > on, "the view changes and the documents get new revisions");
+        }),
+        ("a preference", |s, _, _| {
+            let every = s.prefs.gridline_every;
+            s.execute("prefs.set", &json!({"key": "gridlineEvery", "value": every + 10.0})).unwrap();
+        }),
+        ("Reset Preferences", |s, _, _| {
+            s.execute("prefs.reset", &json!({})).unwrap();
+        }),
+        ("preferences applied outside a command", |s, _, _| {
+            let mut p = s.prefs.clone();
+            p.gridline_every += 10.0;
+            s.apply_prefs(p);
+        }),
+        ("Add Font Files", |s, _, _| {
+            // No files: the command fails after the merge.
+            assert!(s.execute("text.addFontFiles", &json!({"files": []})).is_err());
+        }),
+        ("a call its schema refuses", |s, _, _| {
+            // The refused call adds no undo step of its own: the merge's is the last one.
+            let e = s.execute("view.saved.new", &json!({"center": [0, 0], "zoom": 0})).unwrap_err().to_string();
+            assert!(e.contains("`zoom`"), "{e}");
+            assert!(s.doc().unwrap().doc.views.is_empty());
+            assert_eq!(s.doc().unwrap().history.undo.last().map(|e| e.label.as_str()), Some("Shape Builder"));
+        }),
+    ];
+    let _proof = crate::tests_colormgmt::GLOBAL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let dir = vectorcraft_testkit::TempDir::new("shape-builder-merge-first");
+    for (what, then) in next {
+        let mut s = session();
+        if what == "Select All Instances" {
+            let far = rect(&mut s, 500.0, 500.0, 20.0, 20.0);
+            s.execute("symbol.new", &json!({"name": "S", "ids": [far.0]})).unwrap();
+        }
+        let ids = square_row(&mut s);
+        click_row(&mut s, v);
+        let computed = merges_computed();
+        let journal = s.journal.len();
+        then(&mut s, &ids, &dir);
+        assert!(!s.tool_editing(), "{what}");
+        assert_eq!(merges_computed(), computed, "{what}: the merge computed on another thread");
+        assert_eq!(s.journal.since(journal).first().map(|j| j.0.as_str()), Some("shapeBuilder.merge"), "{what}: the merge comes first");
+        if what != "a closed document" {
+            assert!(layer_children(&s) >= 41, "{what}: the merge stays");
+        }
+    }
+}
+
 
 /// Gestures and arrow keys that come while a merge is computed on another thread are held and
 /// made after it, in order: the document is the one they make one after the other, and the
@@ -1036,7 +1238,7 @@ fn shape_builder_cuts_gradient_shapes_from_a_pdf_along_their_outlines() {
     };
     let bytes = pdf(&[page], None);
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "diamonds.pdf", "dataBase64": vectorcraft_format::base64_encode(&bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": "diamonds.pdf", "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let r = s.execute("shapeBuilder.merge", &json!({"points": [[250, 100]]})).unwrap();
     let mut pieces: Vec<(f64, Rect, Paint)> =
@@ -4209,6 +4411,56 @@ fn live_paint_group_contents_edits_follow_the_group_rule() {
     assert_eq!(sources_looks(&s, g), sources0, "the hidden source paths keep their appearance");
 }
 
+/// Fill edits of a Live Paint group's contents with an `item` (a gradient vector, Invert, Overprint
+/// Fill) change its faces and leave an edge's fill row as it is, and Overprint on the whole group goes
+/// to the faces' fills and the edges' strokes, leaving the hidden source paths as they are.
+#[test]
+fn live_paint_group_item_edits_and_overprint_follow_the_group_rule() {
+    let mut s = session();
+    let g = live(&mut s);
+    s.execute("select.set", &json!({"ids": [g.0]})).unwrap();
+    s.execute("paint.setFill", &json!({"gradient": {}})).unwrap();
+    // Each edge gets a copy of a face's gradient fill row, below its stroke.
+    let n = node(&s, g);
+    let face_row = vectorcraft_tools::builder::faces(&n)[0].appearance.items[0].clone();
+    let edge_ids: Vec<NodeId> = vectorcraft_tools::builder::edges(&n).iter().map(|e| e.id).collect();
+    let mut face_ids: Vec<u64> = vectorcraft_tools::builder::faces(&n).iter().map(|f| f.id.0).collect();
+    face_ids.sort_unstable();
+    s.edit("t", |d, _| {
+        for e in &edge_ids {
+            d.node_mut(*e).unwrap().appearance.items.insert(0, face_row.clone());
+        }
+        Ok(())
+    })
+    .unwrap();
+    let (faces0, edges0) = part_looks(&s, g);
+    let sources0 = sources_looks(&s, g);
+    let r = s.execute("paint.setGradientGeom", &json!({"stroke": false, "item": 0, "target": "contents", "start": [0, 0], "end": [100, 0]})).unwrap();
+    let mut changed: Vec<u64> = r["ids"].as_array().unwrap().iter().map(|v| v.as_u64().unwrap()).collect();
+    changed.sort_unstable();
+    assert_eq!(changed, face_ids, "only the faces take the vector");
+    assert_eq!(part_looks(&s, g).1, edges0, "an edge's fill row keeps its vector");
+    let stops = |a: &vectorcraft_doc::Appearance| match a.fill_paint() {
+        Paint::Gradient(gr) => gr.gradient.stops.iter().map(|st| st.color).collect::<Vec<_>>(),
+        _ => vec![],
+    };
+    let before: Vec<_> = part_looks(&s, g).0.iter().map(stops).collect();
+    s.execute("paint.invert", &json!({"stroke": false, "item": 0, "target": "contents"})).unwrap();
+    for (f, b) in part_looks(&s, g).0.iter().zip(&before) {
+        assert_eq!(stops(f), b.iter().rev().copied().collect::<Vec<_>>(), "the black-to-white stops of a face's fill are inverted");
+    }
+    assert_ne!(part_looks(&s, g).0, faces0);
+    assert_eq!(part_looks(&s, g).1, edges0, "an edge's fill row is not inverted");
+    s.execute("object.setOverprint", &json!({"fill": true, "item": 0, "target": "contents"})).unwrap();
+    let (faces1, edges1) = part_looks(&s, g);
+    assert!(faces1.iter().all(|f| f.items[0].overprint()), "the faces' fill overprints");
+    assert_eq!(edges1, edges0, "an edge's fill row does not overprint");
+    s.execute("object.setOverprint", &json!({"fill": true, "stroke": true})).unwrap();
+    let (_, edges2) = part_looks(&s, g);
+    assert!(edges2.iter().all(|e| e.items.iter().all(|it| it.overprint() != it.is_fill())), "only the edges' strokes overprint");
+    assert_eq!(sources_looks(&s, g), sources0, "the hidden source paths keep their flags");
+}
+
 
 /// A face selected before an ordinary group that holds its Live Paint group counts with that group:
 /// the Stroke panel shows the edges' stroke.
@@ -6829,7 +7081,7 @@ fn gap_options_survive_save_copy_and_undo() {
     let want = vectorcraft_doc::GapOptions { detect: true, size: vectorcraft_doc::GapSize::Custom(4.5), color: [0x12, 0x34, 0x56] };
     assert_eq!(gap_options(&s, g), want);
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(back.node(g).unwrap().gap_options(), want);
     s.execute("edit.copy", &json!({})).unwrap();
     s.execute("edit.paste", &json!({})).unwrap();
@@ -9463,7 +9715,7 @@ fn image_trace_presets_export_and_import_round_trip() {
     assert_eq!(t.trace_presets_revision(), before + 2);
     // A file written by hand in the documented layout: missing settings are Default's.
     let hand = r#"{"format": "vctracepresets", "version": 1, "presets": [{"name": "Hand", "params": {"mode": "grayscale", "colors": 12}}]}"#;
-    t.execute("imageTrace.presets.import", &json!({ "dataBase64": vectorcraft_format::base64_encode(hand.as_bytes()) })).unwrap();
+    t.execute("imageTrace.presets.import", &json!({ "dataBase64": etcfile::base64::encode(hand.as_bytes()) })).unwrap();
     let hand = t.trace_preset("hand").unwrap().params.clone();
     assert_eq!((hand.mode, hand.colors, hand.threshold), (vectorcraft_trace::Mode::Grayscale, 12, 128));
 }
@@ -9534,7 +9786,7 @@ fn image_trace_presets_import_checks_the_whole_file_first() {
         let e = s.execute("imageTrace.presets.import", &json!({ "data": data })).unwrap_err().to_string();
         assert!(e.contains(why), "{why}: {e}");
     }
-    let big = vectorcraft_format::base64_encode(&vec![b' '; (4 << 20) + 1]);
+    let big = etcfile::base64::encode(&vec![b' '; (4 << 20) + 1]);
     assert!(s.execute("imageTrace.presets.import", &json!({ "dataBase64": big })).unwrap_err().to_string().contains("larger than 4 MiB"));
     assert!(s.execute("imageTrace.presets.import", &json!({})).is_err());
     assert_eq!(s.prefs.trace_presets, saved, "nothing changed");
@@ -9717,7 +9969,7 @@ fn image_trace_object_remembers_its_settings() {
     let r = s.execute("imageTrace.make", &json!({"id": g.0, "preset": "6 Colors", "params": {"colors": 9}})).unwrap();
     let g = NodeId(r["id"].as_u64().unwrap());
     let d = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
     let t = back.node(g).unwrap().extras().trace.clone().unwrap();
     assert_eq!((t["preset"].as_str(), t["params"]["colors"].as_u64()), (Some("Custom"), Some(9)));
     // Expanded traces are plain groups.
@@ -9763,7 +10015,7 @@ fn image_trace_view_is_stored_kept_and_validated() {
     let g = NodeId(s.execute("imageTrace.make", &json!({"id": g.0, "params": {"ignoreWhite": true, "noise": 30}})).unwrap()["id"].as_u64().unwrap());
     assert_eq!(node(&s, g).trace_view(), vectorcraft_doc::TraceView::OutlinesWithSource);
     let g = NodeId(s.execute("imageTrace.make", &json!({"id": g.0, "view": "SourceImage"})).unwrap()["id"].as_u64().unwrap());
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(back.node(g).unwrap().trace_view(), vectorcraft_doc::TraceView::Source);
     // Bad views and other objects are refused.
     assert!(s.execute("imageTrace.setView", &json!({"view": "sepia"})).is_err());
@@ -9807,7 +10059,7 @@ fn image_trace_split_view_keeps_and_validates_its_divider() {
     s.execute("imageTrace.setView", &json!({"view": "split"})).unwrap();
     let g = NodeId(s.execute("imageTrace.make", &json!({"id": g.0, "params": {"ignoreWhite": true, "noise": 30}})).unwrap()["id"].as_u64().unwrap());
     assert_eq!((node(&s, g).trace_view(), node(&s, g).trace_split()), (vectorcraft_doc::TraceView::Split, 0.25), "tracing again");
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!((back.node(g).unwrap().trace_view(), back.node(g).unwrap().trace_split()), (vectorcraft_doc::TraceView::Split, 0.25));
     // Bad dividers are refused and change nothing.
     let steps = s.doc().unwrap().history.undo.len();

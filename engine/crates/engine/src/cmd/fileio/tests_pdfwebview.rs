@@ -9,7 +9,7 @@ use super::*;
 
 fn export(s: &mut Session, p: Value) -> (Vec<u8>, Vec<Value>) {
     let v = s.execute("document.exportPdf", &p).unwrap_or_else(|e| panic!("{p}: {e}"));
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     (bytes, v["warnings"].as_array().unwrap().clone())
 }
 
@@ -87,12 +87,12 @@ fn fast_web_view_through_every_pdf_path() {
     assert!(linearised(&pdf) && warnings.is_empty(), "{warnings:?}");
     // Reopened: the pages, and the document the editing data carries.
     s.execute("document.close", &json!({"force": true})).ok();
-    let v = s.execute("document.open", &json!({"dataBase64": vectorcraft_format::base64_encode(&pdf), "name": "web.pdf"})).unwrap();
+    let v = s.execute("document.open", &json!({"dataBase64": etcfile::base64::encode(&pdf), "name": "web.pdf"})).unwrap();
     assert!(v.is_object());
     assert_eq!(s.doc().unwrap().doc.artboards.len(), 3);
     assert!(s.doc().unwrap().doc.layers[0].children().unwrap().iter().any(|n| n.path_data().is_some()), "the ellipse is back");
     // document.export takes the same options; without them the file isn't linearised.
     let v = s.execute("document.export", &json!({"format": "pdf", "fastWebView": true, "range": "2"})).unwrap();
-    assert!(linearised(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()));
+    assert!(linearised(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()));
     assert!(!linearised(&export(&mut s, json!({})).0));
 }

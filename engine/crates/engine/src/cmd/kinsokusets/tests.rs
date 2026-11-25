@@ -51,12 +51,12 @@ fn kinsoku_sets_are_set_as_one_undo_step_and_saved() {
     assert_eq!(steps(&s), before + 1, "the same sets again change nothing");
     let listed = s.execute("type.kinsokuSets.list", &json!({})).unwrap();
     assert_eq!((listed["sets"][0]["name"].clone(), listed["sets"][0]["paragraphs"].clone()), (json!("Tight"), json!(0)));
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(*reopened.kinsoku_sets, *s.doc().unwrap().doc.kinsoku_sets);
     s.execute("edit.undo", &json!({})).unwrap();
     assert!(names(&s).is_empty());
     // A document without sets saves none.
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = etcfile::save(&s.doc().unwrap().doc, false);
     assert!(!String::from_utf8_lossy(&saved).contains("kinsoku_sets"));
 }
 
@@ -117,7 +117,7 @@ fn text_set_format_chooses_a_custom_set_per_paragraph() {
     s.execute("text.setFormat", &json!({"kinsoku": "Tight", "start": second, "end": second})).unwrap();
     assert_eq!(steps(&s), before + 1, "the set the paragraph already has records nothing");
     // The file keeps the paragraph's copy.
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!(back.para_at(1).kinsoku_name(), "Tight");
     // A paragraph style captured from it carries the set; Soft replaces it.

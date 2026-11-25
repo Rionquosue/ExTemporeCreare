@@ -51,10 +51,10 @@ fn batch_rolls_back_on_error() {
 fn serialize_and_reopen() {
     let mut s = session();
     s.execute("shape.ellipse", &json!({"x": 10, "y": 10, "width": 80, "height": 40})).unwrap();
-    let b64 = s.execute("document.serialize", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
+    let b64 = s.execute("document.serialize", &json!({"format": "etc"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
     let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap()["text"].as_str().unwrap().to_string();
     assert!(svg.contains("<svg"));
-    s.execute("document.open", &json!({"name": "copy.vectorcraft", "dataBase64": b64})).unwrap();
+    s.execute("document.open", &json!({"name": "copy.etc", "dataBase64": b64})).unwrap();
     assert_eq!(s.documents().len(), 2);
     assert_eq!(s.doc().unwrap().doc.node_count(), 2);
     let png = s.execute("document.serialize", &json!({"format": "png", "scale": 0.5})).unwrap()["dataBase64"].as_str().unwrap().to_string();
@@ -96,7 +96,7 @@ fn save_and_open_path() {
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 80, "height": 40})).unwrap();
     let dir = std::env::temp_dir().join(format!("dc-test-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("t.vectorcraft");
+    let path = dir.join("t.etc");
     s.execute("document.save", &json!({"path": path.to_string_lossy()})).unwrap();
     assert!(!s.doc().unwrap().is_dirty());
     s.execute("document.open", &json!({"path": path.to_string_lossy()})).unwrap();
@@ -433,11 +433,11 @@ fn export_selection_crops_to_the_selection() {
     // Only the selected (last) rectangle, with its stroke.
     let w = b[2].as_f64().unwrap();
     assert!((81.0..90.0).contains(&w) && b[0].as_f64().unwrap() > 190.0, "{v}");
-    let png = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let png = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     assert_eq!(&png[..4], b"\x89PNG");
     assert_eq!(u32::from_be_bytes([png[16], png[17], png[18], png[19]]), (w * 2.0).round() as u32);
     let svg = s.execute("document.exportSelection", &json!({"format": "svg"})).unwrap();
-    let text = String::from_utf8(vectorcraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let text = String::from_utf8(etcfile::base64::decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     assert_eq!(vectorcraft_testkit::svg_shapes(&text), 1, "{text}");
 }
 
@@ -459,7 +459,7 @@ fn export_selection_keeps_the_effects_in_the_crop() {
         assert_eq!(plain["bounds"], json!([99.5, 99.5, 21.0, 21.0]), "a plain path keeps its crop: {plain}");
         s.execute("effect.apply", &json!({"effect": effect, "params": params})).unwrap();
         let png = |v: &serde_json::Value| {
-            craft_image_codecs::decode(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap())
+            craft_image_codecs::decode(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap())
                 .map(|__cimg| {
                     let (__w, __h) = __cimg.dimensions();
                     match (__cimg.layout(), __cimg.sample_type()) {
@@ -502,7 +502,7 @@ fn a_screen_outer_glow_is_in_raster_exports() {
     s.execute("effect.apply", &json!({"effect": "stylize.outerGlow"})).unwrap();
     let mut pixel = |p: serde_json::Value| {
         let v = s.execute("document.export", &p).unwrap();
-        let img = craft_image_codecs::decode(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap())
+        let img = craft_image_codecs::decode(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap())
             .map(|__cimg| {
                 let (__w, __h) = __cimg.dimensions();
                 match (__cimg.layout(), __cimg.sample_type()) {
@@ -546,7 +546,7 @@ fn export_selection_keeps_a_groups_shadow_in_the_crop() {
     let b: Vec<f64> = v["bounds"].as_array().unwrap().iter().map(|n| n.as_f64().unwrap()).collect();
     // The shadow of the right square reaches x = 158.5.
     assert!(b[0] < 99.5 && b[0] + b[2] >= 158.5, "{v}");
-    let img = craft_image_codecs::decode(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap())
+    let img = craft_image_codecs::decode(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap())
         .map(|__cimg| {
             let (__w, __h) = __cimg.dimensions();
             match (__cimg.layout(), __cimg.sample_type()) {
@@ -585,7 +585,7 @@ fn the_arts_bounds_take_in_the_shadow_of_a_group_and_of_type() {
         s.execute("effect.apply", &json!({"effect": "stylize.dropShadow", "ids": [id], "params": {"x": 8, "y": 0, "blur": 0}})).unwrap();
         s.execute("select.set", &json!({"ids": [id]})).unwrap();
         let png = |v: &serde_json::Value| {
-            craft_image_codecs::decode(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap())
+            craft_image_codecs::decode(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap())
                 .map(|__cimg| {
                     let (__w, __h) = __cimg.dimensions();
                     match (__cimg.layout(), __cimg.sample_type()) {
@@ -661,9 +661,9 @@ fn template_opens_as_untitled() {
     s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 50, "height": 50})).unwrap();
     let dir = std::env::temp_dir().join(format!("vc-tpl-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("letterhead.vectorcraft");
+    let path = dir.join("letterhead.etc");
     let r = s.execute("file.saveAsTemplate", &json!({"path": path.to_str().unwrap()})).unwrap();
-    assert_eq!(r["path"], dir.join("letterhead.vctemplate").to_str().unwrap(), "saved with the template's extension");
+    assert_eq!(r["path"], dir.join("letterhead.etc").to_str().unwrap(), "saved with the template's extension");
     s.execute("document.open", &json!({"path": r["path"]})).unwrap();
     let st = s.doc().unwrap();
     assert!(st.path.is_none() && !st.doc.template);
@@ -704,10 +704,10 @@ fn japanese_file_names_save_open_and_export() {
     s.execute("text.create", &json!({"x": 10, "y": 80, "text": "日本語のテキスト"})).unwrap();
     let dir = std::env::temp_dir().join(format!("vc-日本語フォルダ-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("運動会カード（最終版）・2024.vectorcraft");
+    let path = dir.join("運動会カード（最終版）・2024.etc");
     s.execute("document.save", &json!({"path": path.to_string_lossy()})).unwrap();
     assert!(path.exists());
-    assert_eq!(s.doc().unwrap().title(), "運動会カード（最終版）・2024.vectorcraft", "the tab names the file as typed");
+    assert_eq!(s.doc().unwrap().title(), "運動会カード（最終版）・2024.etc", "the tab names the file as typed");
     s.execute("document.open", &json!({"path": path.to_string_lossy()})).unwrap();
     let d = s.doc().unwrap();
     assert_eq!(d.path.as_deref(), Some(path.to_string_lossy().as_ref()));

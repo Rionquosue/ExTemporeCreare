@@ -447,6 +447,37 @@ fn moving_a_path_of_an_aligned_compound_path_keeps_it_aligned() {
     assert!(whole(&pts), "{pts:?}");
 }
 
+/// A path that Paste in Front puts inside a pixel-aligned compound path, or that an object slice
+/// move moves there, snaps with the compound path's stroke, and a pasted path drops its own
+/// property there.
+#[test]
+fn paths_added_to_or_moved_in_an_aligned_compound_path_keep_it_aligned() {
+    let mut s = new_doc();
+    let a = path(&mut s, "M100 100 L110 100 L110 110 L100 110 Z", 1.0);
+    let b = path(&mut s, "M200 100 L210 100 L210 110 L200 110 Z", 1.0);
+    let loose = path(&mut s, "M300 100 L310 100 L310 110 L300 110 Z", 2.0);
+    s.execute("object.setPixelAligned", &json!({"ids": [loose]})).unwrap();
+    s.execute("select.set", &json!({"ids": [a, b]})).unwrap();
+    let c = s.execute("object.compoundPath.make", &json!({})).unwrap()["id"].as_u64().unwrap();
+    s.execute("object.setPixelAligned", &json!({"ids": [c]})).unwrap();
+    assert!(halves(&compound_points(&s, c)));
+    let member = s.doc().unwrap().doc.node(NodeId(c)).unwrap().children().unwrap()[0].id.0;
+    s.execute("select.set", &json!({"ids": [loose]})).unwrap();
+    s.execute("edit.copy", &json!({})).unwrap();
+    s.execute("select.set", &json!({"ids": [member]})).unwrap();
+    s.execute("edit.pasteInFront", &json!({})).unwrap();
+    let pasted = s.doc().unwrap().selection.objects[0];
+    assert_eq!(s.doc().unwrap().doc.parent_of(pasted), Some(NodeId(c)));
+    assert!(!aligned(&s, pasted.0));
+    let pts = compound_points(&s, c);
+    assert_eq!(pts.len(), 12);
+    assert!(halves(&pts), "paste: {pts:?}");
+    s.execute("object.slice.make", &json!({"ids": [member]})).unwrap();
+    s.execute("object.slice.move", &json!({"slices": [member], "dx": 0.3, "dy": 0.4})).unwrap();
+    let pts = compound_points(&s, c);
+    assert!(halves(&pts), "slice: {pts:?}");
+}
+
 
 /// Art moved by Artboard Options with Move Artwork with Artboard, and the art copies of an
 /// artboard copied with its art, stay on the pixel grid.
@@ -476,7 +507,7 @@ fn type_and_images_cannot_be_aligned() {
     let before = points(&s, p);
     let text = s.execute("text.create", &json!({"x": 10, "y": 100, "text": "Hi"})).unwrap()["id"].as_u64().unwrap();
     let png = crate::tests_links::png(4, 4, [255, 0, 0]);
-    s.execute("file.place", &json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "link": false})).unwrap();
+    s.execute("file.place", &json!({"name": "red.png", "dataBase64": etcfile::base64::encode(&png), "link": false})).unwrap();
     let image = {
         let st = s.doc().unwrap();
         let id = st.selection.objects[0];
@@ -505,13 +536,38 @@ fn the_property_is_saved_and_read_back() {
     let b = path(&mut s, "M110.3 20.6 L140.7 20.6 L140.7 30.3 L110.3 30.3 Z", 2.0);
     s.execute("object.setPixelAligned", &json!({"ids": [a]})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert!(back.node(NodeId(a)).unwrap().extras().pixel_aligned);
     assert!(!back.node(NodeId(b)).unwrap().extras().pixel_aligned);
     let plain: Value = serde_json::to_value(d.node(NodeId(b)).unwrap()).unwrap();
     assert!(plain.get("pixel_aligned").is_none(), "{plain}");
     let node = s.execute("document.node", &json!({"id": a})).unwrap();
     assert_eq!(node["pixel_aligned"], true, "{node}");
+}
+
+/// A copy of a pixel-aligned path that Duplicate or Paste moves by a fractional offset is snapped
+/// to the pixel grid and keeps the property, and so is a pixel-aligned object slice that moves.
+#[test]
+fn duplicates_and_pastes_keep_it_aligned() {
+    let mut s = new_doc();
+    let id = path(&mut s, "M10.3 20.6 L40.7 20.6 L40.7 30.3 L10.3 30.3 Z", 2.0);
+    s.execute("object.setPixelAligned", &json!({"ids": [id]})).unwrap();
+    s.execute("edit.duplicate", &json!({"dx": 100.3, "dy": 0.4})).unwrap();
+    let copy = s.doc().unwrap().selection.objects[0].0;
+    assert_ne!(copy, id);
+    assert!(aligned(&s, copy));
+    assert_eq!(points(&s, copy), [(110.0, 21.0), (141.0, 21.0), (141.0, 30.0), (110.0, 30.0)]);
+    s.execute("select.set", &json!({"ids": [id]})).unwrap();
+    s.execute("edit.copy", &json!({})).unwrap();
+    s.execute("edit.paste", &json!({"dx": 0.3, "dy": 50.4})).unwrap();
+    let pasted = s.doc().unwrap().selection.objects[0].0;
+    assert!(pasted != id && pasted != copy);
+    assert!(aligned(&s, pasted));
+    assert_eq!(points(&s, pasted), [(10.0, 71.0), (41.0, 71.0), (41.0, 80.0), (10.0, 80.0)]);
+    // Moving an object slice moves its object, which snaps too.
+    s.execute("object.slice.make", &json!({"ids": [pasted]})).unwrap();
+    s.execute("object.slice.move", &json!({"slices": [pasted], "dx": 0.3, "dy": 0.4})).unwrap();
+    assert_eq!(points(&s, pasted), [(10.0, 71.0), (41.0, 71.0), (41.0, 80.0), (10.0, 80.0)]);
 }
 
 
@@ -826,12 +882,12 @@ fn align_new_objects_is_saved_and_read_back() {
     let mut s = new_doc();
     let off = serde_json::to_value(&s.doc().unwrap().doc.setup).unwrap();
     assert!(off.get("alignNewObjectsToPixelGrid").is_none(), "{off}");
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert!(!back.setup.align_new_objects_to_pixel_grid);
     s.execute("document.setup", &json!({"alignNewObjectsToPixelGrid": true})).unwrap();
     let on = serde_json::to_value(&s.doc().unwrap().doc.setup).unwrap();
     assert_eq!(on["alignNewObjectsToPixelGrid"], true);
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert!(back.setup.align_new_objects_to_pixel_grid);
     let mut older = on;
     older.as_object_mut().unwrap().remove("alignNewObjectsToPixelGrid");
@@ -941,7 +997,7 @@ fn not_aligned_to_pixel_grid_leaves_out_images_symbol_instances_and_type() {
     let mut s = new_doc();
     let p = path(&mut s, "M10.3 20.6 L40.7 20.6 L40.7 30.3 L10.3 30.3 Z", 1.0);
     let png = crate::tests_links::png(4, 4, [255, 0, 0]);
-    s.execute("file.place", &json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "link": false})).unwrap();
+    s.execute("file.place", &json!({"name": "red.png", "dataBase64": etcfile::base64::encode(&png), "link": false})).unwrap();
     let image = s.doc().unwrap().selection.objects[0].0;
     let art = path(&mut s, "M60.5 60 L80 60 L80 80 L60.5 80 Z", 1.0);
     let made = s.execute("symbol.new", &json!({"name": "Mark", "ids": [art]})).unwrap()["id"].as_u64().unwrap();
@@ -1064,7 +1120,7 @@ fn not_aligned_to_pixel_grid_leaves_out_meshes_placed_documents_and_guides_but_t
     s.execute("paint.setFill", &json!({"color": "#3366cc"})).unwrap();
     let mesh = s.execute("object.mesh.create", &json!({"ids": [filled], "rows": 2, "cols": 2})).unwrap()["ids"][0].as_u64().unwrap();
     let dir = crate::tests_links::Folder::new("pixelalign-placed");
-    let file = dir.file("placed.vectorcraft");
+    let file = dir.file("placed.etc");
     let mut d = vectorcraft_doc::Document::new(50.0, 50.0);
     let layer = d.layers[0].id;
     let id = d.alloc_id();
@@ -1072,7 +1128,7 @@ fn not_aligned_to_pixel_grid_leaves_out_meshes_placed_documents_and_guides_but_t
     let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb8(20, 20, 230));
     let look = vectorcraft_doc::Appearance::basic(paint, vectorcraft_color::Paint::None, 0.0);
     d.insert(Some(layer), 0, vectorcraft_doc::Node::path(id, rect, look)).unwrap();
-    crate::tests_links::write(&file, &vectorcraft_format::save_file(&d));
+    crate::tests_links::write(&file, &etcfile::save_file(&d));
     let placed = s.execute("file.place", &json!({"path": file, "at": [200, 200]})).unwrap()["ids"][0].as_u64().unwrap();
     let guide = path(&mut s, "M0 300.5 L400 300.5", 1.0);
     s.execute("view.guides.make", &json!({})).unwrap();

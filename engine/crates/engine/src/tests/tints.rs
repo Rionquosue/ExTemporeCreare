@@ -192,7 +192,7 @@ fn tints_round_trip_through_the_native_format() {
     run(&mut s, "paint.setFill", json!({"swatch": "Ink", "tint": 35}));
     run(&mut s, "swatch.new", json!({}));
     let d = doc(&s).clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
     let id = s.doc().unwrap().selection.objects[0];
     assert_eq!(back.node(id).unwrap().appearance.fill_paint(), fill(&s, id));
     assert_eq!(back.swatch("Ink 35%"), d.swatch("Ink 35%"));

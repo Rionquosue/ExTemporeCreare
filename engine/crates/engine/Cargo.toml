@@ -34,7 +34,7 @@ vectorcraft-three-d = { workspace = true }
 vectorcraft-brush = { workspace = true }
 vectorcraft-trace = { workspace = true }
 vectorcraft-svg = { workspace = true }
-vectorcraft-format = { workspace = true }
+etcfile = { workspace = true }
 vectorcraft-pdf = { workspace = true }
 vectorcraft-ai = { workspace = true }
 vectorcraft-affinity = { workspace = true }

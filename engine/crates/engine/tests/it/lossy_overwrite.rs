@@ -45,5 +45,67 @@ fn dir(name: &str) -> std::path::PathBuf {
     d
 }
 
+#[test]
+fn a_file_the_import_left_things_out_of_is_not_written_over_unasked() {
+    let d = dir("a");
+    let src = d.join("art.eps");
+    let original = lossy_eps();
+    std::fs::write(&src, &original).unwrap();
+    let mut s = Session::new();
+    let opened = s.execute("document.open", &json!({ "path": src.to_string_lossy() })).unwrap();
+    assert!(opened["warnings"].to_string().contains("layers weren't read"), "{opened}");
+
+    // Over the same file: refused, and the file is as it was.
+    let e = s.execute("document.export", &json!({ "path": src.to_string_lossy(), "format": "eps" })).unwrap_err().to_string();
+    assert!(e.contains("left things out") && e.contains("acknowledgeLoss"), "{e}");
+    assert_eq!(std::fs::read(&src).unwrap(), original);
+    // However the path is spelled.
+    let spelled = d.join(".").join("art.eps");
+    assert!(s.execute("document.export", &json!({ "path": spelled.to_string_lossy(), "format": "eps" })).is_err());
+
+    // Another name is fine, and so is replacing the file when asked to.
+    let other = d.join("art copy.eps");
+    s.execute("document.export", &json!({ "path": other.to_string_lossy(), "format": "eps" })).unwrap();
+    assert!(other.exists());
+    s.execute("document.export", &json!({ "path": src.to_string_lossy(), "format": "eps", "acknowledgeLoss": true })).unwrap();
+    assert_ne!(std::fs::read(&src).unwrap(), original);
+    std::fs::remove_dir_all(d).ok();
+}
+
+#[test]
+fn a_file_the_import_read_whole_is_written_over_as_before() {
+    let d = dir("b");
+    let src = d.join("plain.eps");
+    std::fs::write(&src, "%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 100 100\n%%EndComments\n0 0 1 0 setcmykcolor 10 10 moveto 14 10 lineto 14 14 lineto closepath fill\nshowpage\n%%EOF\n").unwrap();
+    let mut s = Session::new();
+    s.execute("document.open", &json!({ "path": src.to_string_lossy() })).unwrap();
+    s.execute("document.export", &json!({ "path": src.to_string_lossy(), "format": "eps" })).unwrap();
+    std::fs::remove_dir_all(d).ok();
+}
+
+#[test]
+fn the_other_ways_of_writing_a_file_ask_too() {
+    let d = dir("c");
+    let src = d.join("art.eps");
+    let original = lossy_eps();
+    std::fs::write(&src, &original).unwrap();
+    let mut s = Session::new();
+    s.execute("document.open", &json!({ "path": src.to_string_lossy() })).unwrap();
+    s.execute("select.all", &json!({})).unwrap();
+    for (cmd, params) in [
+        ("document.exportPdf", json!({})),
+        ("document.exportSelection", json!({ "format": "eps" })),
+        ("document.exportForOffice", json!({})),
+        ("file.print", json!({ "format": "pdf" })),
+    ] {
+        let mut p = params;
+        p["path"] = json!(src.to_string_lossy());
+        let e = s.execute(cmd, &p).unwrap_err().to_string();
+        assert!(e.contains("left things out"), "{cmd}: {e}");
+        assert_eq!(std::fs::read(&src).unwrap(), original, "{cmd}");
+    }
+    std::fs::remove_dir_all(d).ok();
+}
+
 
 

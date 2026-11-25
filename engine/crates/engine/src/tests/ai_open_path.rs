@@ -17,7 +17,7 @@ const ZIGZAG: &str = "0 0 0 RG 2 w 80 38 m 80 21.75 l 60.571 29.875 l 40 21.75 l
 fn subpaths(name: &str, content: &str) -> Vec<SubPath> {
     let bytes = pdf(&[PdfPage::new(120.0, 60.0, content)], None);
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
     let mut out = vec![];
     s.doc().unwrap().doc.walk(|n| {
         if let NodeKind::Path { path, .. } = &n.kind {

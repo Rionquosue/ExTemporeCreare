@@ -264,8 +264,8 @@ fn moving_a_plane_hiding_the_grid_and_reopening_the_file_end_it() {
     preset.execute("perspective.grid.preset", &json!({"kind": 3})).unwrap();
     assert_eq!((grid(&preset).kind, grid(&preset).inferred), (3, before));
     // A file saved while a plane is held opens with the plane in its place.
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-    let back = vectorcraft_format::load(&saved).unwrap();
+    let saved = etcfile::save(&s.doc().unwrap().doc, false);
+    let back = etcfile::load(&saved).unwrap();
     assert!(PerspectiveGrid::positioning(&back), "the saved file still holds the point");
     s.add_document(back, None);
     assert_eq!(grid(&s).inferred, None);

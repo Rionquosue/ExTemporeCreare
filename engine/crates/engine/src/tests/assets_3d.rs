@@ -38,7 +38,7 @@ fn files(r: &Value) -> Vec<(String, Vec<u8>)> {
         .as_array()
         .unwrap()
         .iter()
-        .map(|f| (f["name"].as_str().unwrap().to_string(), vectorcraft_format::base64_decode(f["dataBase64"].as_str().unwrap()).unwrap()))
+        .map(|f| (f["name"].as_str().unwrap().to_string(), etcfile::base64::decode(f["dataBase64"].as_str().unwrap()).unwrap()))
         .collect()
 }
 
@@ -308,7 +308,7 @@ fn export_3d_paints_mapped_graphics_on_their_caps_in_every_format() {
     let out = files(&run(&mut s, "assets.export3D", json!({})));
     let g: Value = serde_json::from_slice(&out[0].1).unwrap();
     assert_eq!(g["images"].as_array().map(Vec::len), Some(2));
-    let png = vectorcraft_format::base64_decode(g["images"][0]["uri"].as_str().unwrap().split(',').nth(1).unwrap()).unwrap();
+    let png = etcfile::base64::decode(g["images"][0]["uri"].as_str().unwrap().split(',').nth(1).unwrap()).unwrap();
     assert_eq!(image::load_from_memory(&png).unwrap().to_rgba8().dimensions(), (1024, 1024), "1024 pixels by default");
 }
 
@@ -515,8 +515,8 @@ fn three_d_assets_round_trip_through_the_native_format() {
     let a = extruded(&mut s, 10.0, "Box");
     run(&mut s, "assets.add3D", json!({"ids": [a], "format": "usdz"}));
     let saved = s.doc().unwrap().doc.assets.clone();
-    let b64 = run(&mut s, "document.serialize", json!({"format": "vectorcraft"}))["dataBase64"].as_str().unwrap().to_string();
-    run(&mut s, "document.open", json!({"name": "assets3d.vectorcraft", "dataBase64": b64}));
+    let b64 = run(&mut s, "document.serialize", json!({"format": "etc"}))["dataBase64"].as_str().unwrap().to_string();
+    run(&mut s, "document.open", json!({"name": "assets3d.etc", "dataBase64": b64}));
     assert_eq!(s.doc().unwrap().doc.assets, saved);
     assert_eq!(saved[0].format_3d.as_deref(), Some("usdz"));
 }

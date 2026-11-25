@@ -32,7 +32,7 @@ fn clipped(s: &mut Session) -> (u64, u64) {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap_or_else(|| panic!("no dataBase64 in {v}"))).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap_or_else(|| panic!("no dataBase64 in {v}"))).unwrap()
 }
 
 fn rect_of(v: &Value) -> Rect {
@@ -116,7 +116,7 @@ fn export_selection_of_a_clipped_object_keeps_its_clip() {
     assert!(text.contains("<clipPath") && text.contains("clip-path"), "the SVG clips the square: {text}");
     // Opened again, the SVG draws what the canvas draws.
     let mut t = Session::new();
-    run(&mut t, "document.open", json!({"name": "sel.svg", "dataBase64": vectorcraft_format::base64_encode(&svg)}));
+    run(&mut t, "document.open", json!({"name": "sel.svg", "dataBase64": etcfile::base64::encode(&svg)}));
     let board = t.doc().unwrap().doc.artboards[0].rect;
     let reopened = canvas(&t, board);
     let mut png = vec![];
@@ -370,7 +370,7 @@ fn a_selection_on_a_non_printing_layer_exports_to_pdf() {
     run(&mut s, "select.set", json!({"ids": [square]}));
     let pdf = b64(&run(&mut s, "document.exportSelection", json!({"format": "pdf", "createLayers": false, "preserveEditing": false})));
     let mut t = Session::new();
-    run(&mut t, "document.open", json!({"name": "sel.pdf", "dataBase64": vectorcraft_format::base64_encode(&pdf)}));
+    run(&mut t, "document.open", json!({"name": "sel.pdf", "dataBase64": etcfile::base64::encode(&pdf)}));
     let page = t.doc().unwrap().doc.artboards[0].rect;
     let mut png = vec![];
     {
@@ -525,7 +525,7 @@ fn selected_only_keeps_holders_and_takes_a_blend_object_alone() {
     run(&mut s, "select.set", json!({"ids": [a]}));
     let svg = run(&mut s, "document.serialize", json!({"format": "svg", "selectedOnly": true}))["text"].as_str().unwrap().to_string();
     let mut t = Session::new();
-    run(&mut t, "document.open", json!({"name": "a.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())}));
+    run(&mut t, "document.open", json!({"name": "a.svg", "dataBase64": etcfile::base64::encode(svg.as_bytes())}));
     let mut paths = 0;
     for l in &t.doc().unwrap().doc.layers {
         l.walk(&mut |n| paths += usize::from(matches!(n.kind, vectorcraft_doc::NodeKind::Path { .. })));

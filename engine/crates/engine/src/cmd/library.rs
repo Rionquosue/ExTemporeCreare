@@ -537,7 +537,7 @@ fn thumbnail_ok(b64: &str) -> bool {
     }
     // 32 base64 characters: 24 bytes, the signature then the IHDR chunk's length, type, width and
     // height.
-    let Some(head) = b64.get(..32).filter(|_| b64.len() <= MAX_THUMBNAIL).and_then(vectorcraft_format::base64_decode) else { return false };
+    let Some(head) = b64.get(..32).filter(|_| b64.len() <= MAX_THUMBNAIL).and_then(etcfile::base64::decode) else { return false };
     let side = |at: usize| {
         head.get(at..at + 4).and_then(|b| <[u8; 4]>::try_from(b).ok()).map(u32::from_be_bytes).is_some_and(|v| (1..=MAX_THUMBNAIL_SIDE).contains(&v))
     };
@@ -1037,8 +1037,8 @@ fn graphic_of(s: &Session, p: &Value, cmd: &str) -> Result<LibraryGraphic> {
         _ => String::new(),
     };
     let name = if name.trim().is_empty() || name.starts_with('<') { "Graphic".to_string() } else { name };
-    let thumbnail = super::fileio::preview_png(&doc)?.map(|b| vectorcraft_format::base64_encode(&b)).unwrap_or_default();
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&doc, false));
+    let thumbnail = super::fileio::preview_png(&doc)?.map(|b| etcfile::base64::encode(&b)).unwrap_or_default();
+    let data = etcfile::base64::encode(&etcfile::save(&doc, false));
     Ok(LibraryGraphic { id: String::new(), name, width: bounds.width(), height: bounds.height(), data, thumbnail })
 }
 
@@ -1158,8 +1158,8 @@ fn pattern_of(s: &Session, p: &Value, stroke: bool, cmd: &str) -> Result<Library
         Some(a) => a.rect = r,
         None => return Err(bad(cmd, "the graphic's document has no artboard")),
     }
-    let thumbnail = super::fileio::preview_png(&doc)?.map(|b| vectorcraft_format::base64_encode(&b)).unwrap_or_default();
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&doc, false));
+    let thumbnail = super::fileio::preview_png(&doc)?.map(|b| etcfile::base64::encode(&b)).unwrap_or_default();
+    let data = etcfile::base64::encode(&etcfile::save(&doc, false));
     Ok(LibraryPattern { name: name.clone(), pattern: name, data, thumbnail })
 }
 
@@ -1230,9 +1230,9 @@ fn use_item(s: &mut Session, p: &Value) -> Result<Value> {
             let bytes = data
                 .get("data")
                 .and_then(Value::as_str)
-                .and_then(vectorcraft_format::base64_decode)
+                .and_then(etcfile::base64::decode)
                 .ok_or_else(|| bad(C, "the graphic's data is damaged"))?;
-            let doc = vectorcraft_format::load(&bytes).map_err(|e| bad(C, format!("the graphic can't be read: {e}")))?;
+            let doc = etcfile::load(&bytes).map_err(|e| bad(C, format!("the graphic can't be read: {e}")))?;
             let clip = Clipboard::from_document(&doc);
             if clip.is_empty() {
                 return Err(bad(C, "the graphic is empty"));
@@ -1344,8 +1344,8 @@ fn to_stroke(p: &Value, kind: Kind) -> Result<bool> {
 fn use_pattern(s: &mut Session, data: &Value, stroke: bool) -> Result<String> {
     const C: &str = "library.use";
     let damaged = || bad(C, "the library item is damaged");
-    let bytes = data.get("data").and_then(Value::as_str).and_then(vectorcraft_format::base64_decode).ok_or_else(damaged)?;
-    let doc = vectorcraft_format::load(&bytes).map_err(|_| damaged())?;
+    let bytes = data.get("data").and_then(Value::as_str).and_then(etcfile::base64::decode).ok_or_else(damaged)?;
+    let doc = etcfile::load(&bytes).map_err(|_| damaged())?;
     let name = data.get("pattern").and_then(Value::as_str).filter(|n| doc.pattern(n).is_some()).ok_or_else(damaged)?.to_string();
     // Only what paints with the pattern is brought along.
     let clip = Clipboard::from_document(&doc);
@@ -1673,7 +1673,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
             super::fileio::read_file(path)?.into()
         }
         (None, Some(text), _) => text.as_bytes().into(),
-        (None, None, Some(b64)) => vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(C, "bad dataBase64"))?.into(),
+        (None, None, Some(b64)) => etcfile::base64::decode(b64).ok_or_else(|| bad(C, "bad dataBase64"))?.into(),
         _ => return Err(bad(C, "give `path`, `data` or `dataBase64`")),
     };
     if bytes.len() as u64 > MAX_FILE {

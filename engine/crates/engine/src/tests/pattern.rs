@@ -1204,8 +1204,8 @@ fn save_load_roundtrip_keeps_patterns_and_repeats() {
     let r = rect(&mut s, 300.0, 50.0, 10.0, 10.0);
     sel(&mut s, &[r]);
     s.execute("object.repeat.radial", &json!({"instances": 6})).unwrap();
-    let bytes = vectorcraft_format::save(doc(&s), false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(doc(&s), false);
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.patterns, doc(&s).patterns);
     assert_eq!(back.node(big).unwrap().appearance.fill_paint(), node(&s, big).appearance.fill_paint());
     assert!(back.layers[0].children().unwrap().iter().any(|n| matches!(n.kind, NodeKind::Repeat(_))));

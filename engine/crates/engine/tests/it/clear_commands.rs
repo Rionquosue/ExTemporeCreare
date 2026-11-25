@@ -377,8 +377,8 @@ fn clear_selection_perf() {
             );
         }
         let mut s = Session::new();
-        let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&doc, false));
-        s.execute("document.open", &json!({"name": "perf.vectorcraft", "dataBase64": data})).unwrap();
+        let data = etcfile::base64::encode(&etcfile::save(&doc, false));
+        s.execute("document.open", &json!({"name": "perf.etc", "dataBase64": data})).unwrap();
         s.execute("select.all", &json!({})).unwrap();
         let mut cut = Vec::new();
         for _ in 0..7 {

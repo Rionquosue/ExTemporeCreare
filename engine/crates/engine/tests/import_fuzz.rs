@@ -297,7 +297,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"renamed.png", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"renamed.png", "dataBase64":etcfile::base64::encode(&bytes)});
             for cmd in ["file.place", "file.place.info"] { assert!(no_panic(s.execute(cmd, &p)).is_err()); }
             assert!(no_panic(s.execute("file.place.queue", &json!({"files":[p]}))).is_err());
         });
@@ -329,7 +329,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"x.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"x.cdr", "dataBase64":etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "CDR drawing placement panicked: {:?}", r.err());
@@ -366,7 +366,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"x.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"x.cdr", "dataBase64":etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "CDR package placement panicked: {:?}", r.err());
@@ -382,7 +382,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"x.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"x.cdr", "dataBase64":etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "CDR placement panicked: {:?}", r.err());
@@ -405,7 +405,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"x.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"x.cdr", "dataBase64":etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "placing a CDR drawing of version 1 or 2 panicked: {:?}", r.err());
@@ -427,7 +427,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"x.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"x.cdr", "dataBase64":etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "placing CDR garbage of version 1 or 2 panicked: {:?}", r.err());
@@ -454,7 +454,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"x.cmx", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"x.cmx", "dataBase64":etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "CMX placement panicked: {:?}", r.err());
@@ -473,7 +473,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"x.cmx", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"x.cmx", "dataBase64":etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "CMX placement panicked: {:?}", r.err());
@@ -620,7 +620,7 @@ fn survive(what: &str, import: impl FnOnce() -> Option<Document>) -> Result<(), 
             }
             let _ = vectorcraft_svg::export(&d, &vectorcraft_svg::ExportOptions::default());
             let _ = vectorcraft_engine::export_pdf(&d, &vectorcraft_pdf::PdfOptions::default());
-            let _ = vectorcraft_format::save_file(&d);
+            let _ = etcfile::save_file(&d);
         }
     });
     r.map_err(|msg| TestCaseError::fail(format!("{what}: panicked: {msg}")))
@@ -918,6 +918,15 @@ proptest! {
         survive(&svg, || vectorcraft_svg::import(&svg).ok())?;
     }
 
+
+    #[test]
+    fn svg_mutated_export_never_panics(
+        cut in 0usize..20_000,
+        edits in prop::collection::vec((0usize..20_000, prop::sample::select(vec!['<', '>', '"', '/', '-', '9', 'e', '.', ' ', '#', '%', '&', ';', 'x'])), 0..10),
+    ) {
+        let svg = mutate_text(&rich_svg(), cut, &edits);
+        survive("mutated svg", || vectorcraft_svg::import(&svg).ok())?;
+    }
 }
 
 // ---------- PDF ----------
@@ -1050,6 +1059,20 @@ proptest! {
         survive(&ops.join(" "), || vectorcraft_pdf::import(&pdf).ok())?;
     }
 
+
+    #[test]
+    fn pdf_mutated_export_never_panics(
+        cut in 0usize..40_000,
+        flips in prop::collection::vec((0usize..40_000, prop::sample::select(vec![b'0', b'9', b'-', b'.', b' ', b'[', b']', b'<', b'>', b'/', b'(', b'e', 0u8, 0xff])), 0..10),
+    ) {
+        let mut b = rich_pdf();
+        for (i, c) in flips {
+            let n = b.len();
+            b[i % n] = c;
+        }
+        b.truncate(cut.min(b.len()).max(9));
+        survive("mutated pdf", || vectorcraft_pdf::import(&b).ok())?;
+    }
 }
 
 /// A dictionary value: one the reader reads, or one it skips over but can't parse (a name with a
@@ -1163,7 +1186,7 @@ proptest! {
             ..PdfPage::new(0.0, 0.0, "0 0 1 rg 20 20 50 50 re f")
         };
         let bytes = pdf(&[page.clone(), page], encrypt.then_some("pw"));
-        let b64 = vectorcraft_format::base64_encode(&bytes);
+        let b64 = etcfile::base64::encode(&bytes);
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             let p = json!({"name": "x.pdf", "dataBase64": b64, "pages": pages, "cropTo": crop, "password": password, "thumbnail": 1, "thumbnailSize": 64});
@@ -1208,7 +1231,7 @@ fn file_info_pdf(info: &str, xmp: &str) -> Vec<u8> {
 fn the_file_info_sample_reaches_the_reader() {
     let pdf = file_info_pdf("/Author (Info author) /Subject (Info subject)", RICH_XMP);
     let mut s = vectorcraft_engine::Session::new();
-    s.execute("document.open", &json!({"name": "x.ai", "dataBase64": vectorcraft_format::base64_encode(&pdf)})).unwrap();
+    s.execute("document.open", &json!({"name": "x.ai", "dataBase64": etcfile::base64::encode(&pdf)})).unwrap();
     let info = s.execute("file.info", &json!({})).unwrap();
     assert_eq!((info["author"].as_str(), info["description"].as_str()), (Some("Ada, Grace"), Some("A poster")));
     assert_eq!((info["copyrightStatus"].as_str(), info["keywords"].clone()), (Some("copyrighted"), json!(["fair", "print"])));
@@ -1236,7 +1259,7 @@ proptest! {
         // `nest` elements nested in one another around the packet.
         let xmp = format!("{}{}{}", "<a>".repeat(nest), mutate_text(RICH_XMP, cut, &edits), "</a>".repeat(nest));
         let pdf = file_info_pdf(info, &xmp);
-        let b64 = vectorcraft_format::base64_encode(&pdf);
+        let b64 = etcfile::base64::encode(&pdf);
         let r = catch_quiet(|| {
             let _ = vectorcraft_pdf::file_info(&pdf, None);
             let mut s = vectorcraft_engine::Session::new();
@@ -1382,32 +1405,36 @@ fn styles(what: &str, data: &str) -> Result<(), TestCaseError> {
     })
 }
 
-/// A document with type and a character and a paragraph style, saved as pretty native text: what
+
+
+/// A document with type and a character and a paragraph style, saved as an `.etc` file: what
 /// Load All Styles reads.
-fn saved_text_styles() -> String {
-    static TEXT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    TEXT.get_or_init(|| {
-        let mut s = vectorcraft_engine::Session::new();
-        s.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
-        s.execute("text.create", &json!({"x": 10, "y": 40, "text": "Styled"})).unwrap();
-        s.execute("charStyle.new", &json!({"name": "Lead", "attrs": {"size": 30, "tracking": 50, "underline": true, "leading": 36}})).unwrap();
-        s.execute("paraStyle.new", &json!({"name": "Centered", "attrs": {"justify": "Center", "space_after": 6, "hyphenate": true}})).unwrap();
-        let options = vectorcraft_format::SaveOptions { version: 2, pretty: true, ..vectorcraft_format::SaveOptions::default() };
-        let text = String::from_utf8(vectorcraft_format::save_with(&s.doc().unwrap().doc, &options).unwrap()).unwrap();
-        // Undamaged, it loads both styles.
-        let r = rich_session().execute("textStyle.loadAll", &json!({"data": text, "name": "fuzz.vectorcraft"})).unwrap();
-        assert_eq!((&r["charStyles"]["added"], &r["paraStyles"]["added"]), (&json!(["Lead"]), &json!(["Centered"])));
-        text
-    })
-    .clone()
+fn saved_text_styles() -> Vec<u8> {
+    static BYTES: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
+    BYTES
+        .get_or_init(|| {
+            let mut s = vectorcraft_engine::Session::new();
+            s.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
+            s.execute("text.create", &json!({"x": 10, "y": 40, "text": "Styled"})).unwrap();
+            s.execute("charStyle.new", &json!({"name": "Lead", "attrs": {"size": 30, "tracking": 50, "underline": true, "leading": 36}})).unwrap();
+            s.execute("paraStyle.new", &json!({"name": "Centered", "attrs": {"justify": "Center", "space_after": 6, "hyphenate": true}})).unwrap();
+            let bytes = etcfile::save(&s.doc().unwrap().doc, true);
+            // Undamaged, it loads both styles.
+            let r = rich_session()
+                .execute("textStyle.loadAll", &json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "fuzz.etc"}))
+                .unwrap();
+            assert_eq!((&r["charStyles"]["added"], &r["paraStyles"]["added"]), (&json!(["Lead"]), &json!(["Centered"])));
+            bytes
+        })
+        .clone()
 }
 
-/// Native file text `data`'s styles loaded into the rich document by Load All Styles, and each
+/// The `.etc` file `data`'s styles loaded into the rich document by Load All Styles, and each
 /// style it added applied to all of its type.
-fn text_styles(what: &str, data: &str) -> Result<(), TestCaseError> {
+fn text_styles(what: &str, data: &[u8]) -> Result<(), TestCaseError> {
     survive(what, || {
         let mut s = rich_session();
-        let r = no_panic(s.execute("textStyle.loadAll", &json!({"data": data, "name": "fuzz.vectorcraft"}))).ok()?;
+        let r = no_panic(s.execute("textStyle.loadAll", &json!({"dataBase64": etcfile::base64::encode(data), "name": "fuzz.etc"}))).ok()?;
         let _ = no_panic(s.execute("select.all", &json!({})));
         for (list, kind) in [("charStyles", "charStyle"), ("paraStyles", "paraStyle")] {
             for name in r[list]["added"].as_array().into_iter().flatten() {
@@ -1514,7 +1541,7 @@ fn export_presets(what: &str, data: &str) -> Result<(), TestCaseError> {
 fn swatch_exchange(what: &str, bytes: &[u8]) -> Result<(), TestCaseError> {
     survive(what, || {
         let mut s = rich_session();
-        let load = json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": "fuzz.ase"});
+        let load = json!({"dataBase64": etcfile::base64::encode(bytes), "name": "fuzz.ase"});
         let r = no_panic(s.execute("swatch.library.load", &load)).ok()?;
         let _ = no_panic(s.execute("swatch.library.add", &json!({"library": r["library"], "apply": "fill"})));
         Some((*s.doc().ok()?.doc).clone())
@@ -1530,7 +1557,7 @@ fn saved_ase() -> Vec<u8> {
         s.execute("swatch.new", &json!({"name": "Ink", "color": {"c": 1, "m": 0.5, "y": 0, "k": 0.2}, "spot": true})).unwrap();
         s.execute("swatch.new", &json!({"name": "Clay", "color": {"l": 50, "a": 20, "b": -30}, "global": true})).unwrap();
         let r = s.execute("swatch.library.save", &json!({"format": "ase"})).unwrap();
-        vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
     })
     .clone()
 }
@@ -1569,6 +1596,98 @@ proptest! {
 
 
 
+
+    #[test]
+    fn library_garbage_never_panics(s in ".{0,300}", head in prop::sample::select(vec!["", "GIMP Palette\n","{\"format\": \"vcswatches\", ", "{\"format\": \"vcstyles\", ", "{\"format\": \"vcflattener\", ", "{\"format\": \"vcexportpresets\", ", "{\"name\": \"L\", "])) {
+        let data = format!("{head}{s}");
+        swatches("swatch library garbage", &data)?;
+        styles("style library garbage", &data)?;
+        flattener_presets("flattener preset garbage", &data)?;
+        export_presets("export preset garbage", &data)?;
+        libraries("library garbage", &data)?;
+    }
+
+    #[test]
+    fn mutated_swatch_libraries_never_panic(cut in 0usize..20_000, edits in prop::collection::vec(arb_edit(), 0..10), gpl in any::<bool>()) {
+        let text = saved("swatch.library.save", json!({"format": if gpl { "gpl" } else { "vcswatches" }}));
+        swatches("mutated swatch library", &mutate_text(&text, cut, &edits))?;
+    }
+
+    #[test]
+    fn mutated_style_libraries_never_panic(cut in 0usize..20_000, edits in prop::collection::vec(arb_edit(), 0..10)) {
+        let text = saved("graphicStyle.saveLibrary", json!({}));
+        styles("mutated style library", &mutate_text(&text, cut, &edits))?;
+    }
+
+    #[test]
+    fn mutated_text_style_files_never_panic(cut in 0usize..20_000, edits in prop::collection::vec((0usize..20_000, any::<u8>()), 0..10)) {
+        let mut bytes = saved_text_styles();
+        for &(at, b) in &edits {
+            let n = bytes.len();
+            bytes[at % n] = b;
+        }
+        bytes.truncate(cut.max(2));
+        text_styles("mutated text styles", &bytes)?;
+    }
+
+    #[test]
+    fn mutated_flattener_presets_never_panic(cut in 0usize..5_000, edits in prop::collection::vec(arb_edit(), 0..10)) {
+        let text = saved("flattener.presets.export", json!({"names": ["high", "medium", "low"]}));
+        flattener_presets("mutated flattener presets", &mutate_text(&text, cut, &edits))?;
+    }
+
+    #[test]
+    fn mutated_export_presets_never_panic(cut in 0usize..5_000, edits in prop::collection::vec(arb_edit(), 0..10)) {
+        let text = saved("document.exportPresets.export", json!({"names": ["Logo Package", "Print-Ready PDF"]}));
+        export_presets("mutated export presets", &mutate_text(&text, cut, &edits))?;
+    }
+
+    #[test]
+    fn mutated_libraries_never_panic(keep in 0.0f64..1.2, edits in prop::collection::vec(arb_edit(), 0..10)) {
+        // Cut anywhere in the file (whole most of the time), the edits anywhere in it.
+        let text = saved_library();
+        let cut = (text.chars().count() as f64 * keep) as usize;
+        libraries("mutated library", &mutate_text(&text, cut, &edits))?;
+    }
+
+    #[test]
+    fn swatch_exchange_garbage_never_panics(blocks in prop::collection::vec(arb_ase_block(), 0..12), tail in prop::collection::vec(any::<u8>(), 0..16)) {
+        let mut bytes = b"ASEF\0\x01\0\0".to_vec();
+        bytes.extend((blocks.len() as u32).to_be_bytes());
+        for (kind, body) in &blocks {
+            bytes.extend(kind.to_be_bytes());
+            bytes.extend((body.len() as u32).to_be_bytes());
+            bytes.extend(body);
+        }
+        bytes.extend(tail);
+        swatch_exchange("swatch exchange garbage", &bytes)?;
+    }
+
+    #[test]
+    fn mutated_swatch_exchange_files_never_panic(cut in prop::option::of(0usize..200), edits in prop::collection::vec((0usize..200, any::<u8>()), 0..12)) {
+        let mut bytes = vectorcraft_testkit::ase::sample();
+        for (at, b) in edits {
+            let n = bytes.len();
+            bytes[at % n] = b;
+        }
+        if let Some(cut) = cut {
+            bytes.truncate(cut);
+        }
+        swatch_exchange("mutated swatch exchange file", &bytes)?;
+    }
+
+    #[test]
+    fn mutated_saved_swatch_exchange_files_never_panic(cut in prop::option::of(0usize..4_000), edits in prop::collection::vec((0usize..4_000, any::<u8>()), 0..12)) {
+        let mut bytes = saved_ase();
+        for (at, b) in edits {
+            let n = bytes.len();
+            bytes[at % n] = b;
+        }
+        if let Some(cut) = cut {
+            bytes.truncate(cut);
+        }
+        swatch_exchange("mutated saved swatch exchange file", &bytes)?;
+    }
 }
 
 // ---------- data set CSV files ----------
@@ -1619,36 +1738,37 @@ proptest! {
 
 
 
+
+    #[test]
+    fn dataset_csv_garbage_never_panics(s in ".{0,300}", head in prop::sample::select(vec!["", "name,Title,Show,Chart\n", "Title\tShow\tChart\n", "name\tTitle\n", "Show,Chart\n", "name,#Show,@Photo,New\n", "#Shown\t@Title\tChart\n", "name,%Chart,#\n"])) {
+        datasets("data set CSV garbage", json!({"csv": format!("{head}{s}")}))?;
+    }
+
+    #[test]
+    fn prefixed_dataset_headers_never_panic(
+        cells in prop::collection::vec((prop::sample::select(vec!["", "#", "@", "%", "#@", " # "]), "[A-Za-z #@%\"]{0,8}"), 1..8),
+        tabs in any::<bool>(),
+        body in ".{0,200}",
+    ) {
+        let sep = if tabs { "\t" } else { "," };
+        let header: Vec<String> = cells.iter().map(|(prefix, name)| format!("{prefix}{name}")).collect();
+        datasets("prefixed data set CSV header", json!({"csv": format!("{}\n{body}", header.join(sep))}))?;
+    }
+
+    #[test]
+    fn dataset_csv_bytes_never_panic(bytes in prop::collection::vec(any::<u8>(), 0..300)) {
+        datasets("data set CSV bytes", json!({"dataBase64": etcfile::base64::encode(&bytes)}))?;
+    }
+
+    #[test]
+    fn mutated_dataset_csvs_never_panic(cut in 0usize..200, edits in prop::collection::vec(arb_edit(), 0..10), tabs in any::<bool>()) {
+        let text = saved_datasets();
+        let text = if tabs { text.replace(',', "\t") } else { text };
+        datasets("mutated data set CSV", json!({"csv": mutate_text(&text, cut, &edits)}))?;
+    }
 }
 
 // ---------- variable library XML files ----------
-
-/// A variable library written from its public grammar: two text variables (`Title` is a
-/// variable of [`merge_session`]'s document), a variable of another kind and two data sets.
-const VARIABLE_LIBRARY: &str = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n\
-<!DOCTYPE svg [\n<!ENTITY ns_vars \"http://ns.adobe.com/Variables/1.0/\">\n<!ENTITY ns_custom \"http://ns.adobe.com/GenericCustomNamespace/1.0/\">\n]>\n\
-<svg>\n<variableSets xmlns=\"&ns_vars;\">\n<variableSet varSetName=\"binding1\" locked=\"none\">\n<variables>\n\
-<variable varName=\"Title\" trait=\"textcontent\"></variable>\n<variable varName=\"Note\" trait=\"textcontent\"></variable>\n\
-<variable varName=\"Show\" trait=\"other\"></variable>\n</variables>\n\
-<v:sampleDataSets xmlns:v=\"&ns_vars;\" xmlns=\"&ns_custom;\">\n\
-<v:sampleDataSet dataSetName=\"A\">\n<Title><p>One</p><p>Two &amp; three</p></Title>\n<Note><p>x</p></Note>\n<Show><p>true</p></Show>\n</v:sampleDataSet>\n\
-<v:sampleDataSet dataSetName=\"C\">\n<Title><p>Four</p></Title>\n<Note></Note>\n</v:sampleDataSet>\n\
-</v:sampleDataSets>\n</variableSet>\n</variableSets>\n</svg>\n";
-
-/// `variable.loadLibrary` with `params` on [`merge_session`]'s document, the first three data sets
-/// it read selected in turn and every data set exported; the document then renders and exports.
-fn variable_library(what: &str, params: Value) -> Result<(), TestCaseError> {
-    survive(what, || {
-        let mut s = merge_session();
-        if let Ok(r) = no_panic(s.execute("variable.loadLibrary", &params)) {
-            for name in r["names"].as_array().into_iter().flatten().take(3) {
-                let _ = no_panic(s.execute("dataset.select", &json!({"name": name})));
-            }
-        }
-        let _ = no_panic(s.execute("dataset.export", &json!({})));
-        Some((*s.doc().ok()?.doc).clone())
-    })
-}
 
 proptest! {
     #![proptest_config(config())]
@@ -1659,36 +1779,7 @@ proptest! {
 
 // ---------- shortcut sets ----------
 
-/// Shortcut set `bytes` read with `shortcutSet.read`, with import matches saved to annotate it: an
-/// error, or a set within the caps.
-fn shortcut_set(bytes: &[u8]) -> Result<(), TestCaseError> {
-    let mut s = vectorcraft_engine::Session::new();
-    let matches = json!([
-        {"kind": "name", "name": "A", "target": "edit.undo"},
-        {"kind": "key", "name": "1", "target": "K"},
-        {"kind": "modifiers", "name": "-1", "target": "Cmd"},
-    ]);
-    s.execute("importMatches.set", &json!({ "matches": matches })).unwrap();
-    let read = json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": "fuzz.kys"});
-    if let Ok(r) = no_panic(s.execute("shortcutSet.read", &read)) {
-        prop_assert!(r["entries"].as_array().map_or(0, Vec::len) <= 20_000);
-        prop_assert!(r["unread"].as_array().map_or(0, Vec::len) <= 1000);
-    }
-    Ok(())
-}
 
-/// A token of a text shortcut set: a name (escaped spaces), a field, an integer of any size and sign,
-/// a brace, a lone backslash, a line end, NUL or bytes that aren't UTF-8.
-fn arb_kys_token() -> impl Strategy<Value = Vec<u8>> {
-    prop_oneof![
-        "[A-Za-z ]{0,12}".prop_map(|n| format!("/{}", n.replace(' ', "\\ ")).into_bytes()),
-        prop::sample::select(vec!["/Key", "/Modifiers", "/Context", "/Represent"]).prop_map(|f| f.as_bytes().to_vec()),
-        any::<i64>().prop_map(|n| n.to_string().into_bytes()),
-        Just(b"99999999999999999999999".to_vec()),
-        prop::sample::select(vec!["{", "}", "\\", "\r\n", "\r", "\n"]).prop_map(|t| t.as_bytes().to_vec()),
-        prop::sample::select(vec![vec![0u8], vec![0xFF, 0xFE], vec![0xC3]]),
-    ]
-}
 
 proptest! {
     #![proptest_config(config())]
@@ -1701,7 +1792,7 @@ proptest! {
 
 /// Action set `bytes` read with `actionSet.read`: an error, or a set within the caps.
 fn action_set(bytes: &[u8]) -> Result<(), TestCaseError> {
-    let read = json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": "fuzz.aia"});
+    let read = json!({"dataBase64": etcfile::base64::encode(bytes), "name": "fuzz.aia"});
     if let Ok(r) = no_panic(vectorcraft_engine::Session::new().execute("actionSet.read", &read)) {
         let actions = r["actions"].as_array().cloned().unwrap_or_default();
         prop_assert!(actions.len() <= 1000);
@@ -1830,7 +1921,7 @@ fn raster_samples() -> Vec<(&'static str, Vec<u8>)> {
     // A layered PSD with transparency (as VectorCraft exports it), and a PackBits PSB by hand.
     let mut s = rich_session();
     let r = s.execute("document.export", &json!({"format": "psd", "ppi": 2})).unwrap();
-    out.push(("a.psd", vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()));
+    out.push(("a.psd", etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()));
     let mut psb = b"8BPS\0\x02\0\0\0\0\0\0\0\x04\0\0\0\x02\0\0\0\x03\0\x08\0\x03".to_vec();
     psb.extend([0; 8]);
     psb.extend(10u64.to_be_bytes());
@@ -1874,6 +1965,55 @@ proptest! {
     #![proptest_config(config())]
 
 
+
+    /// Mutated image headers (resolution metadata, chunk and segment lengths) never crash reading
+    /// their resolution or placing them.
+    #[test]
+    fn mutated_images_place_without_panics(which in 0usize..8, cut in 0usize..4000, edits in prop::collection::vec((0usize..120, any::<u8>()), 0..12)) {
+        let (name, mut bytes) = raster_samples().swap_remove(which);
+        for (at, b) in edits {
+            if let Some(x) = bytes.get_mut(at) {
+                *x = b;
+            }
+        }
+        bytes.truncate(cut.max(8));
+        let r = catch_quiet(|| {
+            let _ = vectorcraft_engine::cmd::fileio::ppi::resolution(&bytes);
+            let _ = vectorcraft_engine::cmd::fileio::ppi::with_png_resolution(&bytes, (72.0, 72.0));
+            let mut s = vectorcraft_engine::Session::new();
+            s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes), "thumbnail": 8});
+            let _ = no_panic(s.execute("file.place.info", &p));
+            let _ = no_panic(s.execute("file.place", &p));
+        });
+        prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
+    }
+
+    /// Mutated copies of the PSD and PSB samples never crash opening them with their layers, hidden
+    /// ones too: the PSD's layer records, channel lengths and data, and the PSB's layer count.
+    /// (Masks, clipping and groups are covered by `tests_psdlayers::damaged_layers_never_panic`.)
+    /// Neither does `document.psdInfo`, nor placing them with their layers as objects.
+    #[test]
+    fn mutated_layered_psds_open_without_panics(which in 6usize..8, cut in 0usize..1_000_000, edits in prop::collection::vec((0usize..1_000_000, any::<u8>()), 0..12)) {
+        let (name, mut bytes) = raster_samples().swap_remove(which);
+        let len = bytes.len();
+        for (at, b) in edits {
+            if let Some(x) = bytes.get_mut(at % len) {
+                *x = b;
+            }
+        }
+        bytes.truncate((cut % (len + 1)).max(8));
+        let r = catch_quiet(|| {
+            let mut s = vectorcraft_engine::Session::new();
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes), "hiddenLayers": true});
+            let _ = no_panic(s.execute("document.open", &p));
+            let _ = no_panic(s.execute("document.psdInfo", &p));
+            let _ = no_panic(s.execute("file.new", &json!({})));
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes), "layers": true, "hiddenLayers": true});
+            let _ = no_panic(s.execute("file.place", &p));
+        });
+        prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
+    }
 }
 
 /// A 4 × 2 pixel RGB PSD file whose clipping path resource (2999) names its saved path "P"
@@ -1918,7 +2058,7 @@ fn the_clipped_psd_sample_places_in_a_clip_group() {
     assert_eq!(path.subpaths.iter().map(|s| (s.anchors.len(), s.closed)).collect::<Vec<_>>(), [(4, true), (3, true), (2, false)]);
     let mut s = vectorcraft_engine::Session::new();
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-    let r = s.execute("file.place", &json!({"name": "c.psd", "dataBase64": vectorcraft_format::base64_encode(&clipped_psd())})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "c.psd", "dataBase64": etcfile::base64::encode(&clipped_psd())})).unwrap();
     assert!(r["image"].is_u64(), "{r}");
 }
 
@@ -1942,9 +2082,9 @@ proptest! {
             let _ = vectorcraft_engine::cmd::fileio::psdread::clipping_path(&bytes);
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": "c.psd", "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": "c.psd", "dataBase64": etcfile::base64::encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place", &p));
-            let _ = no_panic(s.execute("document.open", &json!({"name": "c.psd", "dataBase64": vectorcraft_format::base64_encode(&bytes), "layers": false})));
+            let _ = no_panic(s.execute("document.open", &json!({"name": "c.psd", "dataBase64": etcfile::base64::encode(&bytes), "layers": false})));
         });
         prop_assert!(r.is_ok(), "panicked: {:?}", r.err());
     }
@@ -2133,12 +2273,12 @@ fn sliced_psd(data: &[u8]) -> (Vec<u8>, std::ops::Range<usize>) {
 /// `document.psdInfo`, and placed embedded in a new document (the count of the slices it brings in).
 fn sliced_psd_imports(f: &[u8]) -> (Vec<String>, Value, Value, usize) {
     let mut s = vectorcraft_engine::Session::new();
-    let p = json!({"name": "sheet.psd", "dataBase64": vectorcraft_format::base64_encode(f)});
+    let p = json!({"name": "sheet.psd", "dataBase64": etcfile::base64::encode(f)});
     let r = s.execute("document.open", &p).unwrap();
     let names = s.doc().unwrap().doc.slices.iter().map(|x| x.options.name.clone()).collect();
     let info = s.execute("document.psdInfo", &p).unwrap();
     s.execute("file.new", &json!({})).unwrap();
-    let placed = s.execute("file.place", &json!({"name": "sheet.psd", "dataBase64": vectorcraft_format::base64_encode(f), "link": false})).unwrap();
+    let placed = s.execute("file.place", &json!({"name": "sheet.psd", "dataBase64": etcfile::base64::encode(f), "link": false})).unwrap();
     (names, r["warnings"].clone(), info["slices"].clone(), placed["slices"].as_array().map_or(0, Vec::len))
 }
 
@@ -2193,11 +2333,11 @@ proptest! {
         };
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
-            let p = json!({"name": "sheet.psd", "dataBase64": vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name": "sheet.psd", "dataBase64": etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("document.open", &p));
             let _ = no_panic(s.execute("document.psdInfo", &p));
             let _ = no_panic(s.execute("file.new", &json!({})));
-            let p = json!({"name": "sheet.psd", "dataBase64": vectorcraft_format::base64_encode(&bytes), "link": false});
+            let p = json!({"name": "sheet.psd", "dataBase64": etcfile::base64::encode(&bytes), "link": false});
             let _ = no_panic(s.execute("file.place", &p));
         });
         prop_assert!(r.is_ok(), "version {version}, mode {mode}: panicked: {:?}", r.err());
@@ -2223,7 +2363,7 @@ fn the_group3_samples_place() {
     for bytes in group3_samples() {
         let mut s = vectorcraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-        s.execute("file.place", &json!({"name": "fax.tif", "dataBase64": vectorcraft_format::base64_encode(&bytes)})).unwrap();
+        s.execute("file.place", &json!({"name": "fax.tif", "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
     }
 }
 
@@ -2244,7 +2384,7 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": "fax.tif", "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": "fax.tif", "dataBase64": etcfile::base64::encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });
@@ -2295,7 +2435,7 @@ fn targa_samples() -> Vec<(&'static str, Vec<u8>)> {
     .unwrap();
     let mut s = rich_session();
     let r = s.execute("document.export", &json!({"format": "tga", "depth": 16, "ppi": 2})).unwrap();
-    let export = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+    let export = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
     let mut alpha = vec![0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2, 0, 16, 0x31, 0x02, 0x00, 0xfc, 0x1f, 0x80, 0x00, 0x00];
     alpha.extend([0x82, 0xe0, 0x83]);
     let mut mapped = vec![0, 1, 9, 5, 0, 2, 0, 16, 0, 0, 0, 0, 3, 0, 2, 0, 8, 0x21, 0x00, 0x00, 0x00, 0xfc];
@@ -2314,6 +2454,28 @@ fn targa_samples() -> Vec<(&'static str, Vec<u8>)> {
 proptest! {
     #![proptest_config(config())]
 
+
+    /// Mutated Targa files (headers, run-length packets, color maps, the extension area and the
+    /// footer) never crash placing them.
+    #[test]
+    fn mutated_targa_files_place_without_panics(which in 0usize..5, cut in 0usize..600, edits in prop::collection::vec((0usize..560, any::<u8>()), 0..12)) {
+        let (name, mut bytes) = targa_samples().swap_remove(which);
+        for (at, b) in edits {
+            if let Some(x) = bytes.get_mut(at) {
+                *x = b;
+            }
+        }
+        bytes.truncate(cut.max(8));
+        let r = catch_quiet(|| {
+            let mut s = vectorcraft_engine::Session::new();
+            s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes), "thumbnail": 8});
+            let _ = no_panic(s.execute("file.place.info", &p));
+            let _ = no_panic(s.execute("file.place", &p));
+            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": etcfile::base64::encode(&bytes)})));
+        });
+        prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
+    }
 }
 
 /// PCX files of each layout, 3 × 2 pixels at 150 dpi: 1 bit in two colors, 1 bit in four planes,
@@ -2360,11 +2522,11 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
-            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes)})));
-            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)})));
+            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": etcfile::base64::encode(&bytes)})));
         });
         prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
     }
@@ -2428,11 +2590,11 @@ proptest! {
         let r = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
-            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes)})));
-            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)})));
+            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": etcfile::base64::encode(&bytes)})));
         });
         prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
     }
@@ -2457,7 +2619,7 @@ proptest! {
         bytes.truncate(cut);
         let result = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
-            let params = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes)});
+            let params = json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("document.open", &params));
             let _ = no_panic(s.execute("file.place", &params));
         });
@@ -2484,7 +2646,7 @@ proptest! {
         bytes.truncate(cut);
         let result = catch_quiet(|| {
             let mut s = vectorcraft_engine::Session::new();
-            let params = json!({"name": "a.heic", "dataBase64": vectorcraft_format::base64_encode(&bytes)});
+            let params = json!({"name": "a.heic", "dataBase64": etcfile::base64::encode(&bytes)});
             let _ = no_panic(s.execute("document.open", &params));
             let _ = no_panic(s.execute("file.place", &params));
         });
@@ -2499,12 +2661,21 @@ fn saved_svg() -> String {
         std::sync::Arc::make_mut(l).visible = false;
     }
     let opts = vectorcraft_svg::ExportOptions { hidden_layers: true, preserve_editing: true, ..Default::default() };
-    vectorcraft_svg::export_full(&d, &opts, Some(&vectorcraft_format::save(&d, false))).svg
+    vectorcraft_svg::export_full(&d, &opts, Some(&etcfile::save(&d, false))).svg
 }
 
 proptest! {
     #![proptest_config(config())]
 
+
+    #[test]
+    fn svg_mutated_save_never_panics(
+        cut in 0usize..40_000,
+        edits in prop::collection::vec((0usize..40_000, prop::sample::select(vec!['<', '>', '"', '/', '-', '9', 'e', '.', ' ', '#', '%', '&', ';', 'x', ']', 'A'])), 0..10),
+    ) {
+        let svg = mutate_text(&saved_svg(), cut, &edits);
+        survive("mutated saved svg", || vectorcraft_engine::cmd::fileio::load("saved.svg", svg.as_bytes()).ok().map(|l| l.doc))?;
+    }
 }
 
 // ---------- PDF saved with editing data ----------
@@ -2514,7 +2685,7 @@ fn saved_ai() -> Vec<u8> {
     static AI: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
     AI.get_or_init(|| {
         let r = rich_session().execute("document.save", &json!({"format": "ai", "compression": {"compressText": false}})).unwrap();
-        vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
     })
     .clone()
 }
@@ -2540,6 +2711,17 @@ proptest! {
     #![proptest_config(config())]
 
 
+
+    #[test]
+    fn pdf_presets_garbage_never_panics(s in ".{0,300}", head in prop::sample::select(vec!["", "{\"format\": \"vcpdfpresets\", ", "{\"format\": \"vcpdfpresets\", \"presets\": [{\"name\": \"x\", \"settings\": "])) {
+        pdf_presets("pdf presets garbage", &format!("{head}{s}"))?;
+    }
+
+    #[test]
+    fn mutated_pdf_presets_never_panic(cut in 0usize..20_000, edits in prop::collection::vec(arb_edit(), 0..10)) {
+        let text = saved("pdf.preset.export", json!({"names": ["VectorCraft Default", "Smallest File Size", "PDF/X-4:2010"]}));
+        pdf_presets("mutated pdf presets", &mutate_text(&text, cut, &edits))?;
+    }
 }
 
 // ---------- what Paste takes from other apps ----------
@@ -2574,7 +2756,7 @@ fn mutated_b64(mut bytes: Vec<u8>, cut: usize, edits: &[(usize, u8)]) -> String 
         }
     }
     bytes.truncate(cut.max(8));
-    vectorcraft_format::base64_encode(&bytes)
+    etcfile::base64::encode(&bytes)
 }
 
 proptest! {
@@ -2588,37 +2770,59 @@ proptest! {
     fn pasted_text_never_panics(text in r"[\x00-\x7f\u{300}\u{feff}\u{fffd}é€]{0,200}") {
         paste_from_elsewhere("clipboard.importText", json!({ "text": text }))?;
     }
+
+    #[test]
+    fn pasted_bitmaps_never_panic(which in 0usize..4, cut in 0usize..400, edits in prop::collection::vec((0usize..120, any::<u8>()), 0..12)) {
+        let (_, image) = raster_samples().swap_remove(which);
+        paste_from_elsewhere("clipboard.importImage", json!({"dataBase64": mutated_b64(image, cut, &edits), "mime": "image/png"}))?;
+    }
+
+    #[test]
+    fn pasted_pdf_never_panics(cut in 0usize..40_000, edits in prop::collection::vec((0usize..40_000, any::<u8>()), 0..12)) {
+        paste_from_elsewhere("clipboard.importPdf", json!({"dataBase64": mutated_b64(rich_pdf_once(), cut, &edits)}))?;
+    }
 }
 
 // ---------- native files: compressed, and saved for older versions ----------
 
-/// The rich document saved compressed, as v1 and as v2 (pretty).
-fn native_samples() -> &'static [Vec<u8>] {
-    use vectorcraft_format::{SaveOptions, save_with};
-    static SAMPLES: std::sync::OnceLock<Vec<Vec<u8>>> = std::sync::OnceLock::new();
-    SAMPLES.get_or_init(|| {
-        let d = rich_doc();
-        [
-            SaveOptions { compress: true, ..SaveOptions::default() },
-            SaveOptions { version: 1, ..SaveOptions::default() },
-            SaveOptions { version: 2, pretty: true, ..SaveOptions::default() },
-        ]
-        .iter()
-        .map(|o| save_with(&d, o).unwrap())
-        .collect()
-    })
-}
 
-fn gzip(bytes: &[u8]) -> Vec<u8> {
-    use std::io::Write as _;
-    let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
-    gz.write_all(bytes).unwrap();
-    gz.finish().unwrap()
-}
 
 proptest! {
     #![proptest_config(config())]
 
+
+    /// Damaged `.etc` files: flipped bytes and cuts in compact and indented files.
+    #[test]
+    fn native_mutated_files_never_panic(which in 0usize..3, cut in 0usize..80_000, edits in prop::collection::vec((0usize..80_000, any::<u8>()), 0..10)) {
+        let samples = native_samples();
+        let mut bytes = samples.get(which).cloned().unwrap_or_else(|| {
+            let mut f = etcfile::save(&rich_doc(), false);
+            f.truncate(cut.max(16));
+            f
+        });
+        for &(at, b) in &edits {
+            let n = bytes.len();
+            bytes[at % n] = b;
+        }
+        if which < samples.len() {
+            bytes.truncate(cut.max(2));
+        }
+        let _ = etcfile::sniff(&bytes);
+        let _ = etcfile::thumbnail(&bytes);
+        survive("mutated native file", || vectorcraft_engine::cmd::fileio::load("x.etc", &bytes).ok().map(|l| l.doc))?;
+    }
+}
+
+/// The rich document saved compact and indented.
+fn native_samples() -> &'static [Vec<u8>] {
+    static SAMPLES: std::sync::OnceLock<Vec<Vec<u8>>> = std::sync::OnceLock::new();
+    SAMPLES.get_or_init(|| {
+        let d = rich_doc();
+        [etcfile::SaveOptions::default(), etcfile::SaveOptions { pretty: true, ..etcfile::SaveOptions::default() }]
+            .iter()
+            .map(|o| etcfile::save_with(&d, o).unwrap())
+            .collect()
+    })
 }
 
 /// A native file whose area type has 2^60 rows, 2^60 columns, or 2^32 of each (their product
@@ -2634,8 +2838,8 @@ fn native_area_type_with_2_to_the_60_rows_or_columns_opens_renders_and_exports()
         let Some(vectorcraft_doc::NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("area type") };
         t.area.rows = rows;
         t.area.columns = columns;
-        let file = vectorcraft_format::base64_encode(&vectorcraft_format::save(&d, false));
-        s.execute("document.open", &json!({"name": "x.vectorcraft", "dataBase64": file})).unwrap();
+        let file = etcfile::base64::encode(&etcfile::save(&d, false));
+        s.execute("document.open", &json!({"name": "x.etc", "dataBase64": file})).unwrap();
         let opened = (*s.doc().unwrap().doc).clone();
         let Some(vectorcraft_doc::NodeKind::Text(t)) = opened.node(id).map(|n| &n.kind) else { panic!("area type") };
         assert_eq!((t.area.rows, t.area.columns), (rows.min(100), columns.min(100)));
@@ -2643,13 +2847,6 @@ fn native_area_type_with_2_to_the_60_rows_or_columns_opens_renders_and_exports()
     }
 }
 
-/// The rich document as EPS (with a preview, a thumbnail and the document it carries), and the
-/// document read back from it.
-fn eps_sample() -> Vec<u8> {
-    let mut s = rich_session();
-    let r = s.execute("document.export", &json!({"format": "eps", "useArtboards": false})).unwrap();
-    vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
-}
 
 proptest! {
     #![proptest_config(config())]
@@ -2674,85 +2871,7 @@ proptest! {
 
 
 
-/// [`eps_sample`] as another app would write it: without the document it carries, so its
-/// PostScript is read.
-fn foreign_eps_sample() -> Vec<u8> {
-    let mut bytes = eps_sample();
-    let marker = b"%VectorCraft_BeginData: native";
-    let at = bytes.windows(marker.len()).position(|w| w == marker).unwrap();
-    bytes[at + marker.len() - 1] = b'x';
-    bytes
-}
 
-/// The operators and operands of a hostile PostScript program.
-fn arb_ps_token() -> impl Strategy<Value = String> {
-    prop_oneof![
-        arb_num(),
-        prop::sample::select(vec![
-            "moveto", "lineto", "curveto", "rlineto", "rmoveto", "closepath", "fill", "eofill", "stroke", "clip", "eoclip", "newpath",
-            "gsave", "grestore", "save", "restore", "concat", "translate", "scale", "rotate", "setlinewidth", "setdash", "setgray",
-            "setrgbcolor", "setcmykcolor", "sethsbcolor", "setcolorspace", "setcolor", "setpattern", "makepattern", "shfill", "arc", "arcn",
-            "arct", "arcto", "rectfill", "rectclip", "rectstroke", "image", "imagemask", "colorimage", "currentfile", "filter",
-            "readhexstring", "readstring", "readline", "show", "stringwidth", "charpath", "findfont", "scalefont", "makefont", "setfont", "selectfont",
-            "def", "bind", "load", "dup", "exch", "pop", "roll", "index", "copy", "for", "repeat", "loop", "exit", "if", "ifelse", "exec",
-            "stopped", "begin", "end", "dict", "array", "string", "get", "put", "getinterval", "putinterval", "aload", "astore", "forall",
-            "[", "]", "<<", ">>", "{", "}", "matrix", "currentmatrix", "setmatrix", "transform", "itransform", "invertmatrix", "pathbbox",
-            "clippath", "initclip", "currentpoint", "eexec", "cleartomark", "mark", "counttomark", "showpage", "gstate", "setgstate",
-            "clipsave", "cliprestore", "languagelevel", "cvx", "findresource", "defineresource", "undefineresource", "resourcestatus",
-            "resourceforall", "/Category", "/Generic", "/ProcSet", "(*)", "(G?n*\\\\*?)", "{pop}", "8 string",
-            "(*) {pop} 8 string /Category resourceforall", "/Generic /Category findresource dup length dict copy /Category defineresource",
-            "dictstack", "8 array", "1183615869 internaldict", "cshow", "currentsystemparams", "currentuserparams", "flushfile", "xcheck",
-            "systemdict", "/userdict", "SharedFontDirectory", "(1 2 add) 0 () /SubFileDecode filter cvx exec", "currentfile cvx exec",
-            "/p { (p) 0 () /SubFileDecode filter cvx exec } def p", "currentfile 0 () /SubFileDecode filter cvx exec", "cvlit", "{ (a) cshow }",
-            "/ASCII85Decode", "/ASCIIHexDecode", "/FlateDecode", "/RunLengthDecode", "/LZWDecode", "/DCTDecode", "/SubFileDecode",
-            "/CCITTFaxDecode", "<< /K -1 /Columns 8 /Rows 3 >> /CCITTFaxDecode", "<< /K 2 /Columns 99999 /EndOfLine true /EncodedByteAlign true /BlackIs1 true >>",
-            "/DeviceRGB", "/DeviceCMYK", "/DeviceGray", "/Pattern", "/x", "x", "/Helvetica", "(abc)", "<ff00>", "<~87cURD]i,\"Ebo80~>",
-            "true", "false", "null", "[/Separation (S) /DeviceCMYK {dup dup dup}]", "[/Indexed /DeviceRGB 1 <ff000000ff00>]",
-            "<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 1 1] /Function << /FunctionType 2 /C0 [0 0 0] /C1 [1 1 1] /N 1 >> >>",
-            "<< /PatternType 2 /Shading << /ShadingType 3 /ColorSpace /DeviceGray /Coords [0 0 0 9 9 9] /Function << /FunctionType 3 /Functions [] /Bounds [] /Encode [] >> >> >>",
-            "<< /ImageType 1 /Width 2 /Height 2 /BitsPerComponent 8 /ImageMatrix [2 0 0 2 0 0] /DataSource (abcdefghijkl) >>",
-            "u", "U", "u u u", "U U", "{ u } 300 repeat", "1 1 300 { pop u 0 0 9 9 rectclip } for",
-            // Probing, files, forms and devices.
-            "status", "token", "bytesavailable", "resetfile", "pdfmark", "execform", "nulldevice", "strokepath", "pathforall",
-            "currenthsbcolor", "currentcolorrendering", "gcheck", "rootfont", "setcachedevice2", "writestring", "(%stdout) (w) file",
-            "//x", "{ //dup }", "/ReusableStreamDecode", "currentfile /ASCII85Decode filter /ReusableStreamDecode filter",
-            "<< /Predictor 12 /Columns 2 /Colors 1 >> /FlateDecode", "<< /Predictor 2 /Colors 3 /BitsPerComponent 4 /Columns 3 >> /LZWDecode",
-            "<< /Predictor 2 /BitsPerComponent 16 /Columns 5 >> /FlateDecode", "<< /FormType 1 /BBox [0 0 9 9] /PaintProc { pop 0 0 5 5 rectfill } >>",
-            // Tiling patterns, uncoloured ones and patterns drawing patterns.
-            "<< /PatternType 1 /PaintType 1 /XStep 5 /YStep 5 /BBox [0 0 5 5] /PaintProc { pop 0 0 3 3 rectfill } >> matrix makepattern",
-            "<< /PatternType 1 /PaintType 2 /XStep 5 /YStep 5 /BBox [0 0 5 5] /PaintProc { pop dup setpattern 0 0 3 3 rectfill } >>",
-            "[/Pattern /DeviceRGB] setcolorspace", "1 0 0", "setpattern",
-            // Mesh and function shadings, sampled functions.
-            "<< /ShadingType 4 /ColorSpace /DeviceGray /DataSource [0 0 0 0 0 9 0 1 0 0 9 1 1 9 9 0] >>",
-            "<< /ShadingType 5 /ColorSpace /DeviceGray /VerticesPerRow 2 /DataSource [0 0 0 9 0 1 0 9 1 9 9 0] >>",
-            "<< /ShadingType 6 /ColorSpace /DeviceGray /BitsPerCoordinate 8 /BitsPerComponent 8 /BitsPerFlag 8 /Decode [0 9 0 9 0 1] /DataSource <00ff10ff20ff30> >>",
-            "<< /ShadingType 7 /ColorSpace /DeviceRGB /BitsPerCoordinate 32 /BitsPerComponent 16 /BitsPerFlag 8 /Decode [0 9 0 9 0 1 0 1 0 1] /DataSource (abc) >>",
-            "<< /ShadingType 1 /ColorSpace /DeviceGray /Function << /FunctionType 0 /Domain [0 1 0 1] /Range [0 1] /Size [2 2] /BitsPerSample 8 /DataSource <00ff00ff> >> >>",
-            "<< /FunctionType 0 /Domain [0 1] /Range [0 1 0 1 0 1] /Size [99999999] /BitsPerSample 32 /DataSource () >>",
-            // Masked images.
-            "<< /ImageType 3 /InterleaveType 1 /DataDict << /ImageType 1 /Width 2 /Height 2 /BitsPerComponent 8 /ImageMatrix [2 0 0 2 0 0] /DataSource (abcdefghijklmnop) >> /MaskDict << /ImageType 1 /Width 2 /Height 2 /BitsPerComponent 1 /ImageMatrix [2 0 0 2 0 0] >> >>",
-            "<< /ImageType 3 /InterleaveType 2 /DataDict << /ImageType 1 /Width 3 /Height 1 /BitsPerComponent 8 /ImageMatrix [3 0 0 1 0 0] /DataSource (abcdefghijklmnop) >> /MaskDict << /ImageType 1 /Width 3 /Height 5 /BitsPerComponent 1 /ImageMatrix [3 0 0 5 0 0] >> >>",
-            "<< /ImageType 4 /Width 2 /Height 2 /BitsPerComponent 8 /Decode [0 1 0 1 0 1 0 1] /ImageMatrix [2 0 0 2 0 0] /MaskColor [97 98 99 100] /DataSource (abcdefghijklmnop) >>",
-            "2 2 8 [2 0 0 2 0 0] (abcdefghijklmnop) false 4 colorimage",
-            // Type 3 fonts and the show operators that space their glyphs.
-            "/T3 << /FontType 3 /FontMatrix [0.1 0 0 0.1 0 0] /FontBBox [0 0 9 9] /Encoding [/a /b] /BuildChar { pop pop 9 0 setcharwidth 0 0 5 5 rectfill } >> definefont setfont",
-            "/T4 << /FontType 3 /FontMatrix [1 0 0 1 0 0] /BuildGlyph { pop pop (x) show } /Encoding [/a] >> definefont setfont",
-            "glyphshow", "xshow", "xyshow", "awidthshow", "kshow", "/a", "[1 2 3]",
-            // Several data sources reading one file in turn, and sources of uneven lengths.
-            "/f currentfile /ASCIIHexDecode filter def", "{f 3 string readstring pop}", "{f 0 string readstring pop}", "true 3 colorimage",
-            "3 2 8 [3 0 0 2 0 0] {f 5 string readstring pop} {(ab)} {f 1 string readstring pop} true 3 colorimage",
-            "<< /ImageType 1 /Width 3 /Height 2 /BitsPerComponent 4 /Decode [0 1 0 1 0 1 0 1] /ImageMatrix [3 0 0 2 0 0] /MultipleDataSources true /DataSource [(a) (bc) {f 2 string readstring pop} (d)] >>",
-            // Local VM restored: dictionary changes undone, saves restored twice.
-            "/a 1 def save /a 2 def", "restore", "save dup restore", "1 dict save exch /k 1 put", "cachestatus", "/n 0 def save /n n 1 add store",
-            // Executable strings and keys other than names (PLRM 3rd ed., `cvx`, `load`).
-            "(>>) cvx", "(1 2 add) cvx exec", "(x) cvx dup exec", "0 load", "1 { } def", "(mark) cvx cvlit",
-            // CID-keyed fonts found by name over predefined CMaps, horizontal and vertical.
-            "/Ryumin-Light-90ms-RKSJ-H", "/Ryumin-Light-EUC-V", "/Ryumin-Light-H", "/GBT-EUC-H", "/KSCms-UHC-V", "/UniJIS-UTF16-V",
-            "[/Ryumin-Light]", "composefont", "<93fa967b8540fd0d41>", "<c7d1a4a4467c>"
-        ])
-        .prop_map(str::to_string),
-    ]
-}
 
 proptest! {
     #![proptest_config(config())]
@@ -2784,10 +2903,6 @@ proptest! {
 // ---------- DXF ----------
 
 
-/// Group-code pairs as DXF text.
-fn dxf_text(pairs: &[(i32, String)]) -> String {
-    pairs.iter().map(|(c, v)| format!("{c:>3}\n{v}\n")).collect()
-}
 
 
 
@@ -2801,20 +2916,6 @@ proptest! {
 
 // ---------- Windows metafiles: opened, placed and pasted ----------
 
-/// The rich document as EMF and as WMF.
-fn metafile_samples() -> &'static [Vec<u8>] {
-    static SAMPLES: std::sync::OnceLock<Vec<Vec<u8>>> = std::sync::OnceLock::new();
-    SAMPLES.get_or_init(|| {
-        let mut s = rich_session();
-        ["emf", "wmf"]
-            .iter()
-            .map(|f| {
-                let r = s.execute("document.export", &json!({ "format": f })).unwrap();
-                vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
-            })
-            .collect()
-    })
-}
 
 /// An EMF of a 100 × 100 mm frame on a device of 10 pixels a millimetre holding `records`.
 fn emf_of(records: &[(u32, Vec<u8>)]) -> Vec<u8> {
@@ -2861,7 +2962,7 @@ fn survive_metafile(what: &str, name: &str, bytes: &[u8]) -> Result<(), TestCase
     let r = catch_quiet(|| {
         let mut s = vectorcraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-        let _ = no_panic(s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})));
+        let _ = no_panic(s.execute("file.place", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})));
     });
     prop_assert!(r.is_ok(), "{what}: placing panicked: {:?}", r.err());
     Ok(())
@@ -3075,23 +3176,6 @@ proptest! {
 
 // ---------- print presets files ----------
 
-/// Import print presets from `data`, then lay out (and print, when short) the rich document with
-/// each one imported, by its settings and by its name.
-fn print_presets(what: &str, data: &str) -> Result<(), TestCaseError> {
-    survive_library(what, "print.presets.import", data, |s, r| {
-        let list = no_panic(s.execute("print.presets.list", &json!({}))).unwrap_or_default();
-        for name in r["imported"].as_array().into_iter().flatten() {
-            let Some(p) = list["presets"].as_array().into_iter().flatten().find(|p| &p["name"] == name) else { continue };
-            let _ = no_panic(s.execute("print.preview", &json!({ "preset": name })));
-            let settings = json!({ "settings": p["settings"] });
-            let pages = no_panic(s.execute("print.preview", &settings)).ok().and_then(|v| v["pages"].as_u64());
-            let _ = no_panic(s.execute("print.setup", &settings));
-            if pages.is_some_and(|n| n <= 8) {
-                let _ = no_panic(s.execute("file.print", &settings));
-            }
-        }
-    })
-}
 
 proptest! {
     #![proptest_config(config())]
@@ -3118,6 +3202,20 @@ proptest! {
     #![proptest_config(config())]
 
 
+
+    #[test]
+    fn perspective_presets_garbage_never_panics(s in ".{0,300}", head in prop::sample::select(vec!["", "{\"format\": \"vcperspective\", ", "{\"format\": \"vcperspective\", \"presets\": [{\"name\": \"x\", \"kind\": 3, \"scale\": "])) {
+        perspective_presets("perspective presets garbage", &format!("{head}{s}"))?;
+    }
+
+    #[test]
+    fn mutated_perspective_presets_never_panic(cut in 0usize..20_000, edits in prop::collection::vec(arb_edit(), 0..10)) {
+        let mut s = rich_session();
+        s.execute("perspective.presets.save", &json!({"name": "Tall", "kind": 3, "units": "inches", "scale": [1, 4], "angle": 25, "thirdVp": [1, 30]})).unwrap();
+        s.execute("perspective.presets.save", &json!({"name": "Flat", "preset": "[1P-Low View]", "gridline": 4, "groundColor": "#00ff00"})).unwrap();
+        let text = s.execute("perspective.presets.export", &json!({"names": ["Tall", "Flat", "[2P-High View]"]})).unwrap()["data"].as_str().unwrap().to_string();
+        perspective_presets("mutated perspective presets", &mutate_text(&text, cut, &edits))?;
+    }
 }
 
 // ---------- the editing data of Illustrator files ----------
@@ -3318,6 +3416,64 @@ fn vertical_document_text() -> String {
     )
 }
 
+/// The fuzzed vertical fixture, as it is, reads as vertical point, area and path type, with the
+/// Tate-chu-yoko run marked.
+#[test]
+fn the_vertical_fixture_reads_as_vertical_type() {
+    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&vertical_document_text(), VERTICAL_OBJECTS)).unwrap();
+    let mut found = vec![];
+    l.doc.walk(|n| {
+        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+            let tcy: Vec<&str> = t.runs.iter().filter(|r| r.style.tate_chu_yoko).map(|r| r.text.as_str()).collect();
+            let roman: Vec<&str> = t.runs.iter().filter(|r| r.style.standard_vertical_roman).map(|r| r.text.as_str()).collect();
+            found.push((t.plain_text(), t.vertical, tcy.join("|"), roman.join("|")));
+        }
+    });
+    // Key 35 at 1 in the defaults: Standard Vertical Roman Alignment, except where a run has 3 or 2.
+    let want = [
+        ("Day 12\nnext", true, "12", "Day "),
+        ("Vertical area type wraps", true, "", "Vertical area type wraps"),
+        ("On a path", true, "On a path", ""),
+    ];
+    assert_eq!(found, want.map(|(a, b, c, d)| (a.to_string(), b, c.to_string(), d.to_string())), "{:?}", l.warnings);
+}
+
+/// The fuzzed fixture, as it is, reads as area type in two threaded frames and type on a path.
+#[test]
+fn the_frames_fixture_reads_as_threaded_area_type_and_type_on_a_path() {
+    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&frames_document_text(), FRAME_OBJECTS)).unwrap();
+    let mut kinds = vec![];
+    l.doc.walk(|n| {
+        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+            kinds.push(match t.kind {
+                vectorcraft_doc::TextKind::Area { .. } => "area",
+                vectorcraft_doc::TextKind::OnPath { .. } => "path",
+                _ => "point",
+            });
+        }
+    });
+    assert_eq!(kinds, ["area", "area", "path"], "{:?}", l.warnings);
+    assert_eq!(l.doc.text_threads.len(), 1);
+}
+
+/// The smallest failing input `eps_text_frames_never_panic` found: the first frame's bottom edge
+/// has a control point at x = 8e115 (`8e0115`). That frame holds no text, and the story flows on
+/// into the second frame.
+#[test]
+fn a_text_frame_with_a_control_point_at_8e115_opens_with_its_story_in_the_next_frame() {
+    let text = mutate_text(&frames_document_text(), 1397, &[(191, '1'), (1586, 'e')]);
+    assert!(text.contains(" 8e0115 "));
+    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&text, FRAME_OBJECTS)).unwrap();
+    let mut texts = vec![];
+    l.doc.walk(|n| {
+        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+            texts.push(t.plain_text());
+        }
+    });
+    assert_eq!(texts, ["", "A story in two frames\nand more", "On a path"], "{:?}", l.warnings);
+    survive("a frame with a control point at 8e115 pt", || Some(l.doc)).unwrap();
+}
+
 /// The text objects of [`vertical_document_text`]: one per story.
 const VERTICAL_OBJECTS: &str = "/AI11Text :\n0 /FrameIndex ,\n0 /StoryIndex ,\n;\n/AI11Text :\n0 /FrameIndex ,\n1 /StoryIndex ,\n;\n/AI11Text :\n0 /FrameIndex ,\n2 /StoryIndex ,\n;\n";
 
@@ -3427,6 +3583,46 @@ const FIRST_LINE: &str = "8.5 91.5 moveto (Line 0 one two) show";
 /// The text objects of `pairs` (story, frame among the story's).
 fn story_objects(pairs: &[(u32, u32)]) -> String {
     pairs.iter().map(|(story, frame)| format!("/AI11Text :\n{frame} /FrameIndex ,\n{story} /StoryIndex ,\n;\n")).collect()
+}
+
+/// The fixture, as it is (point type, area type and type on a path, a line break inside each
+/// paragraph), opens with its layers and every story's type from its text document.
+#[test]
+fn the_shown_stories_fixture_opens_with_its_layers() {
+    let doc = stories_document_text(&[0, 1, 2], &[4], &[]);
+    // Each story's first line where the page draws it: the area type's below its frame's top, the
+    // type on a path on its path.
+    let page = format!("{FIRST_LINE} 8.5 69.5 moveto (Line 1) show 8.5 61.5 moveto (Line 2) show");
+    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &shown_text_eps(&doc, &story_objects(&[(0, 0), (1, 0), (2, 0)]), &page)).unwrap();
+    let names: Vec<_> = l.doc.layers.iter().map(|l| l.name.clone()).collect();
+    assert_eq!(names, [Some("Words".to_string())], "{:?}", l.warnings);
+    let mut texts = vec![];
+    l.doc.walk(|n| {
+        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+            texts.push(t.plain_text());
+        }
+    });
+    assert_eq!(texts.len(), 3, "{texts:?} {:?}", l.warnings);
+    assert!(texts.iter().all(|t| t.contains('\u{2028}') && t.contains('\n')), "{texts:?}");
+}
+
+/// The fixture, as it is, opens with its layer and sublayer.
+#[test]
+fn the_named_prolog_fixture_opens_with_its_layers() {
+    let l = vectorcraft_engine::cmd::fileio::load("x.ai", NAMED_PROLOG_AI.as_bytes()).unwrap();
+    let names: Vec<_> = l.doc.layers.iter().map(|l| l.name.clone()).collect();
+    assert_eq!(names, [Some("A::B".to_string())], "{:?}", l.warnings);
+    assert_eq!(l.doc.layers[0].children().unwrap().len(), 3);
+}
+
+/// The fixture, as it is, opens through the reader: its first path keeps its lock.
+#[test]
+fn the_layerless_fixture_opens_through_the_reader() {
+    let l = vectorcraft_engine::cmd::fileio::load("x.ai", LAYERLESS_AI.as_bytes()).unwrap();
+    assert_eq!(l.doc.layers.len(), 1, "{:?}", l.warnings);
+    let art = l.doc.layers[0].children().unwrap();
+    assert_eq!(art.len(), 2, "{:?}", l.warnings);
+    assert!(art[0].locked && !art[1].locked);
 }
 
 
@@ -3653,6 +3849,15 @@ fn legacy_pattern_ai(pattern: &str) -> String {
         .replace("10 10 L\nS\n", "10 10 L\nB\n")
 }
 
+/// The fixture, as it is, opens with the pattern filling the square.
+#[test]
+fn the_legacy_pattern_fixture_opens_with_its_pattern() {
+    let l = vectorcraft_engine::cmd::fileio::load("x.ai", legacy_pattern_ai(LEGACY_PATTERN).as_bytes()).unwrap();
+    assert_eq!(l.doc.pattern("P").map(|p| p.art.len()), Some(2), "{:?}", l.warnings);
+    let square = &l.doc.layers[0].children().unwrap()[0];
+    assert!(matches!(square.appearance.fill().map(|f| &f.paint), Some(vectorcraft_color::Paint::Pattern { .. })));
+}
+
 
 proptest! {
     #![proptest_config(config())]
@@ -3675,6 +3880,24 @@ const LINKED_AREAS: &str = "1 To\n1 0 0 1 120 90 0 Tp\n120 60 m\n120 90 L\n180 9
 /// [`NAMED_PROLOG_AI`] with `text` on its layer.
 fn linked_areas_ai(text: &str) -> String {
     NAMED_PROLOG_AI.replace("u\n0.5 g\n", &format!("{text}u\n0.5 g\n"))
+}
+
+/// The fixture, as it is, opens with its area type as two threaded frames, the story flowing from
+/// the first into the second.
+#[test]
+fn the_linked_areas_fixture_opens_as_threaded_frames() {
+    let l = vectorcraft_engine::cmd::fileio::load("x.ai", linked_areas_ai(LINKED_AREAS).as_bytes()).unwrap();
+    let [thread] = &l.doc.text_threads[..] else { panic!("one thread: {:?} {:?}", l.doc.text_threads, l.warnings) };
+    let texts: Vec<String> = thread
+        .iter()
+        .map(|id| match &l.doc.node(*id).unwrap().kind {
+            vectorcraft_doc::NodeKind::Text(t) => t.plain_text(),
+            k => panic!("type: {k:?}"),
+        })
+        .collect();
+    let [first, second] = texts.as_slice() else { panic!("two frames: {texts:?}") };
+    assert!(!first.is_empty() && !second.is_empty(), "the story flows on into the second frame: {texts:?}");
+    assert_eq!(format!("{first}{second}"), "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen");
 }
 
 
@@ -3952,7 +4175,7 @@ proptest! {
     #[test]
     fn script_garbage_never_panics(bytes in prop::collection::vec(any::<u8>(), 0..2_000), compiled in any::<bool>()) {
         let name = if compiled { "garbage.jsxbin" } else { "garbage.jsx" };
-        checked("script garbage", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": name}))?;
+        checked("script garbage", json!({"dataBase64": etcfile::base64::encode(&bytes), "name": name}))?;
     }
 
     #[test]
@@ -3968,7 +4191,7 @@ proptest! {
             bytes[at % n] = b;
         }
         bytes.truncate(cut);
-        checked("mutated script", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "sample.jsx"}))?;
+        checked("mutated script", json!({"dataBase64": etcfile::base64::encode(&bytes), "name": "sample.jsx"}))?;
     }
 }
 
@@ -4058,7 +4281,7 @@ fn deeply_nested_svg_is_refused_or_merged() {
         let mut s = vectorcraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 300, "height": 200})).unwrap();
         for svg in [nested_svg(40), nested_svg(2 * most)].iter().chain(&images) {
-            let p = json!({"name": "deep.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())});
+            let p = json!({"name": "deep.svg", "dataBase64": etcfile::base64::encode(svg.as_bytes())});
             let _ = no_panic(s.execute("file.place", &p));
             let _ = no_panic(s.execute("clipboard.importSvg", &json!({"svg": svg})));
             let _ = no_panic(s.execute("edit.paste", &json!({})));
@@ -4071,7 +4294,7 @@ fn deeply_nested_svg_is_refused_or_merged() {
 /// deep around the next.
 fn nested_images(levels: usize, n: usize) -> String {
     let image = |svg: &str| {
-        format!("<image href=\"data:text/plain;base64,{}\" width=\"9\" height=\"9\"/>", vectorcraft_format::base64_encode(svg.as_bytes()))
+        format!("<image href=\"data:text/plain;base64,{}\" width=\"9\" height=\"9\"/>", etcfile::base64::encode(svg.as_bytes()))
     };
     let mut svg = nested_svg(0);
     for _ in 0..levels {
@@ -4187,7 +4410,7 @@ fn open_each(name: &str, files: impl IntoIterator<Item = Vec<u8>> + Send + 'stat
             open_deep(&format!("{name}-{i}.ai"), &bytes);
             let mut s = vectorcraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 300, "height": 200})).unwrap();
-            let _ = no_panic(s.execute("file.place", &json!({"name": "deep.pdf", "dataBase64": vectorcraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("file.place", &json!({"name": "deep.pdf", "dataBase64": etcfile::base64::encode(&bytes)})));
             assert!(!s.doc().unwrap().doc.too_deep(None));
         }
     });
@@ -4696,7 +4919,7 @@ fn brushed_document(kind: usize, art: usize) -> Document {
 
 /// `doc` saved, opened again, drawn, exported and edited: nothing overflows.
 fn art_by_name_survives(what: &str, doc: Document) {
-    let (back, _) = open_deep("named.vectorcraft", &vectorcraft_format::save_file(&doc)).expect("opens");
+    let (back, _) = open_deep("named.etc", &etcfile::save_file(&doc)).expect("opens");
     let mut s = vectorcraft_engine::Session::new();
     s.add_document(back, None);
     for (cmd, p) in [
@@ -4777,23 +5000,46 @@ fn nested_document(levels: usize) -> Document {
     b.build()
 }
 
+#[test]
+fn a_document_at_the_cap_saves_opens_and_exports() {
+    on_a_small_stack(|| {
+        let doc = nested_document(MAX_DEPTH - 2);
+        assert!(!doc.too_deep(None));
+        let back = etcfile::load_file(&etcfile::save_file(&doc)).expect("what can be made opens again");
+        assert!(back.notes.is_empty());
+        assert_eq!(back.doc.layers, doc.layers);
+        survive("at the cap", || Some(doc.clone())).unwrap();
+        // Every format that keeps the nesting reads its own file back within the cap.
+        let mut s = vectorcraft_engine::Session::new();
+        s.add_document(doc, None);
+        for format in ["svg", "pdf", "eps", "ai"] {
+            let r = s.execute("document.export", &json!({"format": format})).unwrap();
+            let bytes = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
+            open_deep(&format!("cap.{format}"), &bytes).unwrap_or_else(|| panic!("{format} opens"));
+        }
+        for cmd in ["select.all", "document.inspect", "document.info", "edit.copy", "edit.paste", "object.ungroup", "edit.undo"] {
+            no_panic(s.execute(cmd, &json!({}))).unwrap_or_else(|e| panic!("{cmd}: {e}"));
+        }
+    });
+}
+
 
 #[test]
 fn a_native_file_nested_too_deep_is_merged_or_refused() {
     on_a_small_stack(|| {
         // Saved before the cap by a version that could still open it: opened, the deepest merged.
-        let old = vectorcraft_format::save_file(&nested_document(MAX_DEPTH + 2));
-        let (doc, warnings) = open_deep("old.vectorcraft", &old).expect("opens");
+        let old = etcfile::save_file(&nested_document(MAX_DEPTH + 2));
+        let (doc, warnings) = open_deep("old.etc", &old).expect("opens");
         assert!(merged(&warnings), "{warnings:?}");
         assert_eq!(paths_in(&doc), MAX_DEPTH + 3, "no art is lost");
         // Deeper than any version could open, and a hostile file: an error that says why. Written
         // by hand: a tree this deep can't be built and saved.
-        let text = String::from_utf8(vectorcraft_format::save(&nested_document(0), false)).unwrap();
+        let text = String::from_utf8(etcfile::save(&nested_document(0), false)).unwrap();
         let (open, close) = ("{\"id\":900000,\"kind\":{\"type\":\"group\",\"children\":[", "]}}");
         let at = text.find("\"children\":[").expect("the layer's children") + "\"children\":[".len();
         for levels in [100, 50_000] {
             let deep = format!("{}{}{},{}", &text[..at], open.repeat(levels), close.repeat(levels), &text[at..]);
-            let e = vectorcraft_engine::cmd::fileio::load("deep.vectorcraft", deep.as_bytes()).err().expect("refused").to_string();
+            let e = vectorcraft_engine::cmd::fileio::load("deep.etc", deep.as_bytes()).err().expect("refused").to_string();
             assert!(e.contains("nested too deep"), "{levels}: {e}");
         }
     });
@@ -4853,7 +5099,7 @@ fn symbols_document(count: usize, levels: usize, last: &str) -> Document {
 /// `doc` saved (as an older version, or a hostile file, could have) and opened again: within the
 /// caps (`kept`: as it was), drawn, exported and edited.
 fn symbols_survive(what: &str, doc: Document, kept: bool) {
-    let (back, warnings) = open_deep("symbols.vectorcraft", &vectorcraft_format::save_file(&doc)).expect("opens");
+    let (back, warnings) = open_deep("symbols.etc", &etcfile::save_file(&doc)).expect("opens");
     assert_eq!(!warnings.iter().any(|w| w.contains("symbol instances")), kept, "{what}: {warnings:?}");
     let mut s = vectorcraft_engine::Session::new();
     s.add_document(back, None);
@@ -4929,6 +5175,21 @@ fn a_pattern_painting_its_own_tile_opens_without_the_paint() {
             symbols_survive("a pattern painting its own tile", doc, false);
         }
     });
+}
+
+/// A .ai cut short inside an array or dictionary of its PDF part (found by
+/// `ai_mutated_save_never_panics`): a value can't be read whole, and hayro's iterators over the
+/// array's items or the dictionary's entries would panic on it.
+#[test]
+fn ai_cut_inside_an_array_or_dictionary_opens_without_panicking() {
+    for flip in [None, Some((12262, b'/'))] {
+        let mut b = saved_ai();
+        if let Some((at, c)) = flip {
+            b[at] = c;
+        }
+        b.truncate(44902.min(b.len()));
+        survive("ai cut inside an array or dictionary", || vectorcraft_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc)).unwrap();
+    }
 }
 
 

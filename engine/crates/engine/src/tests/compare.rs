@@ -119,7 +119,7 @@ fn a_linked_image_is_drawn_from_its_file_as_a_png_export_draws_it() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     place(&mut s, &pic);
-    let doc_path = dir.file("poster.vectorcraft");
+    let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
     // The file changes after the save: the reopened document shows the red preview saved for it,
     // and a PNG export reads the blue file.

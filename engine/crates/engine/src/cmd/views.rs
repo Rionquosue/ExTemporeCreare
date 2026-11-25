@@ -310,8 +310,8 @@ mod tests {
         s.execute("view.saved.edit", &json!({"name": "Logo", "delete": true})).unwrap();
         assert_eq!(s.doc().unwrap().doc.views.len(), 1);
         // Views travel with the file.
-        let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
-        assert_eq!(vectorcraft_format::load(&bytes).unwrap().views[0].name, "Overview");
+        let bytes = etcfile::save_file(&s.doc().unwrap().doc);
+        assert_eq!(etcfile::load(&bytes).unwrap().views[0].name, "Overview");
     }
 
     fn names(s: &mut Session) -> Vec<String> {
@@ -336,7 +336,7 @@ mod tests {
         s.execute("view.saved.new", &json!({"name": "Overview", "center": [306, 396], "zoom": 0.5})).unwrap();
         s.execute("view.saved.new", &json!({"name": "Logo detail", "center": [40.25, -12.5], "zoom": 8, "rotation": -30})).unwrap();
         let saved = s.doc().unwrap().doc.views.clone();
-        let back = vectorcraft_format::load(&vectorcraft_format::save_file(&s.doc().unwrap().doc)).unwrap();
+        let back = etcfile::load(&etcfile::save_file(&s.doc().unwrap().doc)).unwrap();
         assert_eq!(back.views, saved);
         assert_eq!((back.views[1].center.x, back.views[1].center.y, back.views[1].zoom, back.views[1].rotation), (40.25, -12.5, 8.0, -30.0));
     }

@@ -148,21 +148,21 @@ fn grid_prefs_apply_to_opened_files_without_a_grid() {
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
     s.execute("prefs.set", &json!({"values": {"gridlineEvery": 18, "gridSubdivisions": 3}})).unwrap();
-    let native = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let native = etcfile::save(&s.doc().unwrap().doc, false);
     let mut pdf = |editing: bool| {
         let v = s.execute("document.exportPdf", &json!({"preserveEditing": editing})).unwrap();
-        vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+        etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
     };
     let (editable, plain) = (pdf(true), pdf(false));
     s.execute("prefs.set", &json!({"values": {"gridlineEvery": 36, "gridSubdivisions": 4}})).unwrap();
     let mut open = |name: &str, bytes: &[u8]| {
-        let r = s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+        let r = s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})).unwrap();
         let g = &s.doc().unwrap().doc.grid;
         (g.spacing, g.subdivisions, r["restored"].as_bool().unwrap())
     };
     assert_eq!(open("drawing.svg", GRIDLESS_SVG.as_bytes()), (36.0, 4, false));
     assert_eq!(open("plain.pdf", &plain), (36.0, 4, false));
-    assert_eq!(open("saved.vectorcraft", &native), (18.0, 3, false));
+    assert_eq!(open("saved.etc", &native), (18.0, 3, false));
     assert_eq!(open("editable.pdf", &editable), (18.0, 3, true));
 }
 
@@ -173,7 +173,7 @@ fn grid_prefs_apply_to_reverted_files_without_a_grid() {
     let dir = std::env::temp_dir().join(format!("vc-grid-revert-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = |name: &str| dir.join(name).to_string_lossy().to_string();
-    let (svg, native) = (path("drawing.svg"), path("saved.vectorcraft"));
+    let (svg, native) = (path("drawing.svg"), path("saved.etc"));
     std::fs::write(&svg, GRIDLESS_SVG).unwrap();
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
@@ -242,7 +242,7 @@ fn lock_guides_by_default_is_off_and_older_preferences_leave_guides_unlocked() {
 /// › Lock Guides then unlocks them for the session and leaves the preference on.
 #[test]
 fn saved_lock_guides_by_default_locks_a_new_session_and_the_documents_it_opens() {
-    let file = std::env::temp_dir().join(format!("vc-lock-guides-{}.vectorcraft", std::process::id()));
+    let file = std::env::temp_dir().join(format!("vc-lock-guides-{}.etc", std::process::id()));
     let file = file.to_string_lossy().to_string();
     let mut unlocked = new_doc();
     assert!(!unlocked.guides_locked(), "a session without the preference");
@@ -318,6 +318,29 @@ fn resetting_lock_guides_by_default_unlocks_guides_only_when_it_was_on() {
     s.execute("view.guides.lock", &json!({"locked": true})).unwrap();
     s.execute("prefs.reset", &json!({})).unwrap();
     assert!(s.guides_locked());
+}
+
+/// `prefs.set` refuses a recovery or plug-ins folder that is missing or is a file. Nothing changes,
+/// other values in the same call included, and the document gets no undo step.
+#[test]
+fn set_refuses_a_missing_folder_or_a_file_as_a_recovery_or_plugins_folder() {
+    let folder = crate::tests_links::Folder::new("prefs-set-refused");
+    let file = folder.file("not-a-folder.txt");
+    std::fs::write(&file, b"x").unwrap();
+    let mut s = Session::new();
+    s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
+    let before = s.prefs.clone();
+    let undo = s.doc().unwrap().history.undo.len();
+    for key in ["recoveryFolder", "pluginsFolder"] {
+        for path in [file.clone(), folder.file("missing")] {
+            let e = s.execute("prefs.set", &json!({"key": key, "value": path})).unwrap_err();
+            assert_eq!(e.to_string(), format!("{path} is not a folder"), "{key}");
+            let e = s.execute("prefs.set", &json!({"values": {key: path, "keyboardIncrement": 7, "unitsGeneral": "millimeters"}})).unwrap_err();
+            assert_eq!(e.to_string(), format!("{path} is not a folder"), "{key}");
+            assert_eq!(s.prefs, before, "{key}: no preference changes");
+            assert_eq!(s.doc().unwrap().history.undo.len(), undo, "{key}: no undo step");
+        }
+    }
 }
 
 

@@ -212,7 +212,7 @@ fn shaper_source_move_resize_native_roundtrip_and_release_preserve_live_art() {
     s.execute("object.setBounds", &json!({"width":120.0,"height":110.0,"reference":0})).unwrap();
     assert!(matches!(node(&s, a).live_shape(), Some(LiveShape::Rectangle { .. })));
     let doc = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(doc, false)).unwrap();
     assert_eq!(back.layers, doc.layers);
     let originals = [node(&s, a).clone(), node(&s, b).clone()];
     s.execute("shaper.release", &json!({"id":g.0})).unwrap();
@@ -791,7 +791,7 @@ fn shaper_taking_the_last_original_shape_out_removes_the_group_and_saves() {
     assert!(doc.node(g).is_none());
     assert_eq!(doc.parent_of(a), doc.parent_of(b));
     assert_eq!(node(&s, b).geometric_bounds().unwrap().x0, 325.0);
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(doc, false)).unwrap();
     assert_eq!(back.layers, doc.layers);
 }
 

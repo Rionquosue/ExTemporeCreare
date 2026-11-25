@@ -397,7 +397,7 @@ fn distort_angles_undo_redo_and_reopen_together() {
     assert!(near(angle(&s, a), 30.0));
     // A native file keeps the angle.
     let data = s.execute("document.save", &json!({})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-    s.execute("document.open", &json!({"name": "warped.vectorcraft", "dataBase64": data})).unwrap();
+    s.execute("document.open", &json!({"name": "warped.etc", "dataBase64": data})).unwrap();
     assert!(near(angle(&s, a), 30.0));
     sel(&mut s, &[a]);
     let b = selection_box(&s);
@@ -1135,10 +1135,10 @@ fn native_files_keep_the_angle() {
     let plain = rect(&mut s, 0.0, 0.0, 10.0, 10.0);
     let a = turned_rect(&mut s);
     let data = s.execute("document.save", &json!({})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-    let text = String::from_utf8(vectorcraft_format::base64_decode(&data).unwrap()).unwrap();
+    let text = String::from_utf8(etcfile::base64::decode(&data).unwrap()).unwrap();
     // Only turned objects write it.
     assert_eq!(text.matches("bbox_angle").count(), 1);
-    s.execute("document.open", &json!({"name": "turned.vectorcraft", "dataBase64": data})).unwrap();
+    s.execute("document.open", &json!({"name": "turned.etc", "dataBase64": data})).unwrap();
     assert!(near(angle(&s, a), 45.0));
     assert_eq!(angle(&s, plain), 0.0);
     sel(&mut s, &[a]);

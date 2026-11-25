@@ -16,7 +16,7 @@ fn session() -> Session {
 /// The PDF `document.exportPdf {p}` writes, and its warnings.
 fn export(s: &mut Session, p: Value) -> (Vec<u8>, Vec<String>) {
     let v = s.execute("document.exportPdf", &p).unwrap_or_else(|e| panic!("{p}: {e}"));
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     (bytes, serde_json::from_value(v["warnings"].clone()).unwrap())
 }
 

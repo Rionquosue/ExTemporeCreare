@@ -40,13 +40,13 @@ pub fn unused_option_notes(cmd: &str, f: &Format, p: &Value) -> Vec<String> {
 /// those files.
 pub(super) fn export_reads(f: &Format, key: &str) -> bool {
     match (f.id, key) {
-        ("vectorcraft" | "template", "separateArtboards" | "range") => false,
+        ("etc", "separateArtboards" | "range") => false,
         _ => super::save::file_reads(f, key),
     }
 }
 
 pub(super) fn serialize(s: &mut Session, p: &Value) -> Result<Value> {
-    let f = writable("document.serialize", Some(text_param(p, "format", "document.serialize")?.unwrap_or("vectorcraft")), None)?;
+    let f = writable("document.serialize", Some(text_param(p, "format", "document.serialize")?.unwrap_or("etc")), None)?;
     let unused = unused_option_notes("document.serialize", f, p);
     let expanded = expand_presets(s, "document.serialize", p)?;
     let p = with_black_output(s, &expanded);
@@ -69,18 +69,18 @@ pub(super) fn serialize(s: &mut Session, p: &Value) -> Result<Value> {
             let text = vectorcraft_svg::text_of(bytes).unwrap_or_else(|_| String::from_utf8_lossy(bytes));
             let mut v = json!({ "text": text });
             if text.as_bytes() != bytes {
-                v["dataBase64"] = json!(vectorcraft_format::base64_encode(bytes));
+                v["dataBase64"] = json!(etcfile::base64::encode(bytes));
             }
             v
         }
-        _ => json!({ "dataBase64": vectorcraft_format::base64_encode(bytes) }),
+        _ => json!({ "dataBase64": etcfile::base64::encode(bytes) }),
     };
     let mut out = merge(data(main.first().map_or(&[][..], |m| &m.1)), json!({ "warnings": enc.notes() }));
     if main.len() > 1 {
         out["files"] = main.iter().map(|(name, bytes)| merge(json!({ "name": name }), data(bytes))).collect();
     }
     if !linked.is_empty() {
-        out["linked"] = linked.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })).collect();
+        out["linked"] = linked.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": etcfile::base64::encode(bytes) })).collect();
     }
     Ok(out)
 }

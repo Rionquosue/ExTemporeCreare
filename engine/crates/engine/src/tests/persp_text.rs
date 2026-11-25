@@ -279,7 +279,7 @@ fn ending_edit_text_during_a_save_leaves_the_document_saved() {
     s.execute("select.set", &json!({"ids": [id.0]})).unwrap();
     s.execute("perspective.editText", &json!({})).unwrap();
     let uid = s.doc().unwrap().uid;
-    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/type.vectorcraft", "modified": 777})).unwrap();
+    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/type.etc", "modified": 777})).unwrap();
     let job = save_job(&mut s, plan).unwrap();
     s.execute("object.exitIsolation", &json!({})).unwrap();
     job.write(|_, _| Ok(())).unwrap();
@@ -498,7 +498,7 @@ fn double_clicking_type_in_perspective_edits_it_and_projections_round_trip() {
     let (mut s, _) = persp_session();
     let id = persp_text(&mut s);
     // Saved and opened again: still type, still projected.
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(doc.node(id).unwrap().projection(), node(&s, id).projection());
     let v = ViewInfo::default();
     s.select_tool("perspectiveSelection", v).unwrap();
@@ -507,7 +507,7 @@ fn double_clicking_type_in_perspective_edits_it_and_projections_round_trip() {
     assert_eq!(r, vec![crate::UiRequest::SwitchTool("type".into())]);
     assert_eq!(s.doc().unwrap().isolation, Some(id));
     // Saved while editing: the file has it projected.
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert!(doc.node(id).unwrap().projection().is_some());
     s.execute("object.exitIsolation", &json!({})).unwrap();
     assert!(node(&s, id).projection().is_some());

@@ -8,11 +8,11 @@ use super::tests_svgedit::{comparable, rich};
 use super::*;
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap_or_else(|| panic!("no dataBase64 in {v}"))).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap_or_else(|| panic!("no dataBase64 in {v}"))).unwrap()
 }
 
 fn open(s: &mut Session, name: &str, bytes: &[u8]) -> Value {
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap()
+    s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})).unwrap()
 }
 
 /// The path of `name` in the test's folder `dir`.
@@ -42,7 +42,7 @@ fn a_pdf_saved_with_preserve_editing_reopens_as_the_same_document() {
     assert_eq!(comparable(&s.doc().unwrap().doc), before, "the document came back exactly");
     assert_eq!(s.doc().unwrap().path, None, "a PDF is not saved over");
     // Picking pages imports them as artwork.
-    let r = s.execute("document.open", &json!({"name": "rich.pdf", "dataBase64": vectorcraft_format::base64_encode(&pdf), "pages": "1"})).unwrap();
+    let r = s.execute("document.open", &json!({"name": "rich.pdf", "dataBase64": etcfile::base64::encode(&pdf), "pages": "1"})).unwrap();
     assert_eq!(r["restored"], false, "{r}");
     // Off: the pages import as artwork.
     let plain = b64(&s.execute("document.exportPdf", &json!({"preserveEditing": false})).unwrap());
@@ -81,6 +81,20 @@ fn utf16_described(pdf: &[u8]) -> Vec<u8> {
     patched(pdf, &pdf[at..at + len], &desc)
 }
 
+#[test]
+fn pages_changed_elsewhere_are_noticed_with_a_utf16_description() {
+    let mut s = rich();
+    let pdf = b64(&s.execute("document.exportPdf", &json!({"compression": {"compressText": false}})).unwrap());
+    let ai = b64(&s.execute("document.export", &json!({"format": "ai"})).unwrap());
+    for (name, file) in [("edited.pdf", pdf), ("edited.ai", ai)] {
+        let r = open(&mut s, name, &utf16_described(&file));
+        assert_eq!((&r["warnings"], &r["restored"]), (&json!([]), &json!(true)), "{name}: the same pages: {r}");
+        let edited = patched(&file, b"/MediaBox[0 0 300 200]", b"/MediaBox[0 0 300 201]");
+        let r = open(&mut s, name, &utf16_described(&edited));
+        assert_eq!((&r["warnings"][0], &r["restored"]), (&json!(load::EDITING_STALE), &json!(false)), "{name}: {r}");
+    }
+}
+
 
 #[test]
 fn the_legacy_payload_name_is_accepted() {
@@ -108,14 +122,14 @@ fn standards_and_screens_leave_the_editing_data_out() {
     assert!(matches!(e, crate::EngineError::BadParams { .. }), "{e}");
     // Export for Screens writes a PDF per artboard for viewing.
     let r = s.execute("document.exportForScreens", &json!({"formats": [{"format": "pdf"}]})).unwrap();
-    let file = vectorcraft_format::base64_decode(r["files"][0]["dataBase64"].as_str().unwrap()).unwrap();
+    let file = etcfile::base64::decode(r["files"][0]["dataBase64"].as_str().unwrap()).unwrap();
     assert!(vectorcraft_pdf::editing(&file).is_none());
 }
 
 #[test]
 fn save_dialogs_offer_every_format_save_writes() {
     let labels = |name: &str| save_filters(name).into_iter().map(|(l, _)| l).collect::<Vec<_>>();
-    assert_eq!(labels("a.vectorcraft").len(), SAVE_FORMATS.len());
+    assert_eq!(labels("a.etc").len(), SAVE_FORMATS.len());
     assert_eq!(labels("a.svg")[0], "SVG");
     assert!(labels("a.png").is_empty() && labels("noext").is_empty(), "exports pick their own name");
     assert!(save_format(Some("png"), None).is_err());
@@ -162,25 +176,6 @@ fn a_preserve_editing_pdf_opens_with_its_halftone_radius_in_pixels() {
     assert_eq!(halftone(false), 8.0);
 }
 
-/// The layers of `doc` as their names and the kinds and bounds of what they hold, rounded.
-fn outline(doc: &vectorcraft_doc::Document) -> Vec<String> {
-    fn walk(nodes: &[std::sync::Arc<vectorcraft_doc::Node>], depth: usize, out: &mut Vec<String>) {
-        for n in nodes {
-            let b = n.visual_bounds().map(|b| [b.x0, b.y0, b.x1, b.y1].map(|v| v.round() as i64));
-            let kind = match &n.kind {
-                vectorcraft_doc::NodeKind::Layer { .. } => "layer",
-                vectorcraft_doc::NodeKind::Group { .. } => "group",
-                vectorcraft_doc::NodeKind::Path { .. } => "path",
-                _ => "other",
-            };
-            out.push(format!("{depth} {kind} {:?} {} {b:?}", n.name, n.visible));
-            walk(n.children().map(Vec::as_slice).unwrap_or_default(), depth + 1, out);
-        }
-    }
-    let mut out = vec![];
-    walk(&doc.layers, 0, &mut out);
-    out
-}
 
 /// The layers, groups, compound paths and paths of `doc` with their names, visibility, geometric
 /// bounds (rounded), transparency, clipping and opacity masks, one line each; a mask's art after
@@ -269,6 +264,43 @@ fn editing_copy(bytes: &[u8]) -> vectorcraft_doc::Document {
     assert!(l.editing_data && !l.restored, "{:?}", l.warnings);
     assert!(!l.warnings.iter().any(|w| w.contains("editing data")), "{:?}", l.warnings);
     l.doc
+}
+
+/// Transparency, a compound path, a clipping group, an opacity mask and a clipping layer come back
+/// from the editing copy for other apps alone, its page matching it, with every save option that
+/// writes the copy; the version 7 `.ai` keeps the compound path and the clipping group.
+#[test]
+fn transparency_clipping_and_opacity_masks_come_back_from_the_editing_copy() {
+    let scratch = vectorcraft_testkit::TempDir::new("pdfedit");
+    let mut s = see_through_session();
+    let before = (*s.doc().unwrap().doc).clone();
+    // The mask's art is one path, and it reads back as that path.
+    let mut arts = vec![];
+    before.walk(|n| arts.extend(n.extras().mask.as_ref().map(|m| matches!(m.art.kind, vectorcraft_doc::NodeKind::Path { .. }))));
+    assert_eq!(arts, [true]);
+    let want = see_through_outline(&before);
+    for opts in [json!({"format": "ai"}), json!({"format": "ai"}), json!({"format": "ai"})] {
+        let bytes = b64(&s.execute("document.export", &opts).unwrap());
+        assert_eq!(see_through_outline(&editing_copy(&bytes)), want, "{opts}");
+    }
+    // Each artboard in a file of its own: the first holds all the art.
+    let path = tmp(&scratch, "see-through.ai");
+    let r = s.execute("document.save", &json!({"path": path, "separateArtboards": true})).unwrap();
+    let files: Vec<String> = r["files"].as_array().unwrap().iter().map(|f| f.as_str().unwrap().to_string()).collect();
+    assert_eq!(files.len(), 3, "{r}");
+    for f in &files {
+        let copy = editing_copy(&std::fs::read(f).unwrap());
+        if f.ends_with("-2.ai") {
+            assert!(copy.layers.iter().all(|l| l.children().is_none_or(Vec::is_empty)), "{f} {:#?}", see_through_outline(&copy));
+        } else {
+            assert_eq!(see_through_outline(&copy), want, "{f}");
+        }
+    }
+    // Version 7 has no transparency; it keeps the compound path and the clipping group.
+    let r = s.execute("document.export", &json!({"format": "ai", "aiVersion": 7})).unwrap();
+    let legacy = load::load_with("art.ai", &b64(&r), &LoadOptions::default()).unwrap();
+    let kinds = see_through_outline(&legacy.doc);
+    assert!(kinds.iter().any(|l| l.contains(" compound ")) && kinds.iter().any(|l| l.contains("group clip=true")), "{kinds:#?}");
 }
 
 
@@ -399,6 +431,85 @@ fn image_outline(doc: &vectorcraft_doc::Document) -> Vec<String> {
     out
 }
 
+/// An embedded image (RGBA, part of it see-through, turned) and a linked one come back from the
+/// editing copy for other apps alone, pixel for pixel, with every save option that writes the copy;
+/// the linked image keeps its path and its path relative to the document's folder.
+#[test]
+fn images_come_back_from_the_editing_copy() {
+    let scratch = vectorcraft_testkit::TempDir::new("pdfedit");
+    let dir = tmp(&scratch, "ai-images");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(format!("{dir}/art")).unwrap();
+    let png = |w: u32, h: u32, f: &dyn Fn(u32, u32) -> [u8; 4]| {
+        let mut out = vec![];
+        {
+            let __dyn: image::DynamicImage = (image::RgbaImage::from_fn(w, h, |x, y| image::Rgba(f(x, y)))).into();
+            let (__w, __h) = (__dyn.width(), __dyn.height());
+            let (__layout, __sample, __raw) = match __dyn {
+                image::DynamicImage::ImageLuma8(b) => (craft_image_codecs::ChannelLayout::Gray, craft_image_codecs::SampleType::U8, b.into_raw()),
+                image::DynamicImage::ImageLumaA8(b) => (craft_image_codecs::ChannelLayout::GrayA, craft_image_codecs::SampleType::U8, b.into_raw()),
+                image::DynamicImage::ImageRgb8(b) => (craft_image_codecs::ChannelLayout::Rgb, craft_image_codecs::SampleType::U8, b.into_raw()),
+                image::DynamicImage::ImageRgba8(b) => (craft_image_codecs::ChannelLayout::Rgba, craft_image_codecs::SampleType::U8, b.into_raw()),
+                image::DynamicImage::ImageLuma16(b) => (
+                    craft_image_codecs::ChannelLayout::Gray,
+                    craft_image_codecs::SampleType::U16,
+                    b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+                ),
+                image::DynamicImage::ImageLumaA16(b) => (
+                    craft_image_codecs::ChannelLayout::GrayA,
+                    craft_image_codecs::SampleType::U16,
+                    b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+                ),
+                image::DynamicImage::ImageRgb16(b) => (
+                    craft_image_codecs::ChannelLayout::Rgb,
+                    craft_image_codecs::SampleType::U16,
+                    b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+                ),
+                image::DynamicImage::ImageRgba16(b) => (
+                    craft_image_codecs::ChannelLayout::Rgba,
+                    craft_image_codecs::SampleType::U16,
+                    b.into_raw().into_iter().flat_map(|s| s.to_ne_bytes()).collect(),
+                ),
+                other => (craft_image_codecs::ChannelLayout::Rgba, craft_image_codecs::SampleType::U8, other.into_rgba8().into_raw()),
+            };
+            let __cimg = craft_image_codecs::Image::from_raw(__w, __h, __layout, __sample, __raw).unwrap();
+            craft_image_codecs::encode(&__cimg, craft_image_codecs::Format::Png, &craft_image_codecs::EncodeOptions::default())
+                .map(|__b| out.extend_from_slice(&__b))
+        }
+        .unwrap();
+        out
+    };
+    let linked = format!("{dir}/art/linked.png");
+    std::fs::write(&linked, png(5, 4, &|x, y| [(x * 50) as u8, (y * 60) as u8, 90, 255])).unwrap();
+    let mut s = Session::new();
+    s.execute("file.new", &json!({"width": 300, "height": 200})).unwrap();
+    let data = etcfile::base64::encode(&png(6, 3, &|x, y| [200, (x * 40) as u8, (y * 80) as u8, if x < 2 { 100 } else { 255 }]));
+    s.execute("file.place", &json!({"name": "embedded.png", "dataBase64": data})).unwrap();
+    // The placed image is selected.
+    s.execute("object.rotate", &json!({"angle": 30})).unwrap();
+    s.execute("file.place", &json!({"path": linked, "link": true})).unwrap();
+    let path = format!("{dir}/images.ai");
+    s.execute("document.save", &json!({"path": path})).unwrap();
+    let before = image_outline(&s.doc().unwrap().doc);
+    assert_eq!(before.len(), 2, "{before:#?}");
+    assert!(before[1].contains("art/linked.png"), "{before:#?}");
+    for opts in [
+        json!({"format": "ai"}),
+        json!({"format": "ai"}),
+        json!({"format": "ai", "embedProfiles": false}),
+        json!({"format": "ai", "includeLinked": true}),
+        json!({"format": "ai", "range": "all"}),
+        json!({"format": "ai"}),
+    ] {
+        let r = s.execute("document.export", &opts).unwrap();
+        assert!(!r["warnings"].to_string().contains("image"), "{r}");
+        let copy = load::load_with(&path, &b64(&r), &LoadOptions { native: false, ..Default::default() }).unwrap();
+        assert!(copy.editing_data && !copy.restored, "{opts} {:?}", copy.warnings);
+        assert!(!copy.warnings.iter().any(|w| w.contains("editing data")), "{opts} {:?}", copy.warnings);
+        assert_eq!(image_outline(&copy.doc), before, "{opts}");
+    }
+}
+
 
 /// The type of `doc`'s art, one line each: its kind, point type's matrix or area type's frame on the
 /// document (rounded to hundredths), its characters, and each run's font, size and fill.
@@ -425,6 +536,39 @@ fn type_outline(doc: &vectorcraft_doc::Document) -> Vec<String> {
         }
     });
     out
+}
+
+/// Point type of two paragraphs, turned point type and area type come back from the editing copy
+/// for other apps alone as type, with every save option that writes the copy.
+#[test]
+fn type_comes_back_from_the_editing_copy() {
+    let scratch = vectorcraft_testkit::TempDir::new("pdfedit");
+    let mut s = Session::new();
+    s.execute("file.new", &json!({"width": 300, "height": 200})).unwrap();
+    s.execute("text.create", &json!({"x": 20, "y": 40, "text": "Hello\nWorld", "size": 24})).unwrap();
+    s.execute("text.create", &json!({"x": 150, "y": 100, "text": "Turned"})).unwrap();
+    // The new type is selected.
+    s.execute("object.rotate", &json!({"angle": 30})).unwrap();
+    s.execute("text.create", &json!({"x": 20, "y": 120, "text": "Area type in a frame", "area": {"width": 120, "height": 60}})).unwrap();
+    let path = tmp(&scratch, "type.ai");
+    s.execute("document.save", &json!({"path": path})).unwrap();
+    let before = type_outline(&s.doc().unwrap().doc);
+    assert_eq!(before.len(), 3, "{before:#?}");
+    for opts in [
+        json!({"format": "ai"}),
+        json!({"format": "ai"}),
+        json!({"format": "ai", "embedProfiles": false}),
+        json!({"format": "ai", "includeLinked": true}),
+        json!({"format": "ai", "range": "all"}),
+        json!({"format": "ai"}),
+    ] {
+        let r = s.execute("document.export", &opts).unwrap();
+        assert!(!r["warnings"].to_string().contains("type"), "{opts} {}", r["warnings"]);
+        let copy = load::load_with(&path, &b64(&r), &LoadOptions { native: false, ..Default::default() }).unwrap();
+        assert!(copy.editing_data && !copy.restored, "{opts} {:?}", copy.warnings);
+        assert!(!copy.warnings.iter().any(|w| w.contains("editing data")), "{opts} {:?}", copy.warnings);
+        assert_eq!(type_outline(&copy.doc), before, "{opts}");
+    }
 }
 
 
@@ -481,5 +625,69 @@ fn gradient_session() -> Session {
     let dawn = json!({"kind": "linear", "stops": [{"offset": 0, "color": "#ffcc00"}, {"offset": 1, "color": "#cc3300"}]});
     s.execute("swatch.new", &json!({"name": "Dawn", "gradient": dawn})).unwrap();
     s
+}
+
+/// Gradients and patterns come back from the editing copy for other apps alone (the native
+/// document left out), with every save option that writes the copy; where the file has PDF pages,
+/// the reader takes the copy only when it draws as its page does. The version 7 `.ai` keeps each
+/// gradient.
+#[test]
+fn gradients_and_patterns_come_back_from_the_editing_copy() {
+    let scratch = vectorcraft_testkit::TempDir::new("pdfedit");
+    let mut s = gradient_session();
+    let before = (*s.doc().unwrap().doc).clone();
+    let want = paint_outline(&before);
+    assert!(want.iter().filter(|l| l.starts_with("path") && l.contains("pattern Dots")).count() == 2, "{want:#?}");
+    assert!(want.iter().any(|l| l.starts_with("compound") && l.contains("Ink") && l.contains(") 0.70")), "{want:#?}");
+    assert!(want.iter().any(|l| l.contains("mid 0.30")) && want.iter().any(|l| l.starts_with("swatch Dawn")), "{want:#?}");
+    for opts in [
+        json!({"format": "ai"}),
+        json!({"format": "ai"}),
+        json!({"format": "ai", "embedProfiles": false}),
+        json!({"format": "ai", "includeLinked": true}),
+        json!({"format": "ai", "range": "all"}),
+        json!({"format": "ai"}),
+    ] {
+        let r = s.execute("document.export", &opts).unwrap();
+        assert!(!r["warnings"].to_string().contains("gradient") && !r["warnings"].to_string().contains("pattern"), "{r}");
+        let copy = editing_copy(&b64(&r));
+        assert_eq!(paint_outline(&copy), want, "{opts}");
+    }
+    let path = tmp(&scratch, "gradients.ai");
+    let r = s.execute("document.save", &json!({"path": path, "separateArtboards": true})).unwrap();
+    let files: Vec<String> = r["files"].as_array().unwrap().iter().map(|f| f.as_str().unwrap().to_string()).collect();
+    assert_eq!(files.len(), 3, "{r}");
+    for f in files.iter().filter(|f| !f.ends_with("-2.ai")) {
+        assert_eq!(paint_outline(&editing_copy(&std::fs::read(f).unwrap())), want, "{f}");
+    }
+    let r = s.execute("document.export", &json!({"format": "ai", "aiVersion": 7})).unwrap();
+    let legacy = load::load_with("art.ai", &b64(&r), &LoadOptions::default()).unwrap();
+    // Each gradient the art paints with, by its kind and its stops' places, and its stops' colors
+    // within 5% (version 7 writes a gradient stroke as its filled outline, so the objects differ),
+    // except a spot color's tint, which version 7 writes through its CMYK equivalent: 70% of that
+    // equivalent displays about 7% off the tint of the spot color.
+    let gradients = |doc: &vectorcraft_doc::Document| {
+        let mut all = std::collections::BTreeMap::new();
+        doc.walk(|node| {
+            for it in node.appearance.items.iter() {
+                if let vectorcraft_color::Paint::Gradient(g) = it.paint() {
+                    let places: Vec<String> = g.gradient.stops.iter().map(|s| format!("{:.3}", s.offset)).collect();
+                    let colors: Vec<([f32; 3], bool)> =
+                        g.gradient.stops.iter().map(|s| (s.color.to_rgb(), s.swatch.is_some() && s.tint < 1.0)).collect();
+                    all.insert(format!("{:?} {places:?}", g.gradient.kind), colors);
+                }
+            }
+        });
+        all
+    };
+    let (got, want) = (gradients(&legacy.doc), gradients(&before));
+    assert_eq!(got.keys().collect::<Vec<_>>(), want.keys().collect::<Vec<_>>());
+    for (key, stops) in &want {
+        for (i, (rgb, spot)) in stops.iter().enumerate() {
+            let back = got[key][i].0;
+            let most = if *spot { 0.1 } else { 0.05 };
+            assert!((0..3).all(|c| (back[c] - rgb[c]).abs() < most), "{key} stop {i}: {back:?} for {rgb:?}");
+        }
+    }
 }
 

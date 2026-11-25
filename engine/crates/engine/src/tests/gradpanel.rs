@@ -118,8 +118,8 @@ fn graphic_styles_keep_gradients_relative_to_the_bounds() {
     assert_eq!(linked(&mut s), json!([src.0, dst.0]));
     s.execute("select.set", &json!({"ids": [dst.0]})).unwrap();
     // The flag survives a save; a style from an older file (no flag) keeps document coordinates.
-    let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(&s.doc().unwrap().doc, false);
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.graphic_styles, s.doc().unwrap().doc.graphic_styles);
     let legacy: vectorcraft_doc::GraphicStyle = serde_json::from_value(json!({"name": "Old", "appearance": style.appearance})).unwrap();
     assert!(!legacy.unit_box);

@@ -26,7 +26,7 @@ fn info() -> Value {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 #[test]
@@ -109,27 +109,27 @@ fn file_info_round_trips_and_old_files_load() {
     let mut s = session();
     s.execute("file.info", &info()).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(d)).unwrap();
+    let back = etcfile::load(&etcfile::save_file(d)).unwrap();
     assert_eq!(back.metadata, d.metadata);
     assert_eq!(back.metadata.copyright_status, CopyrightStatus::Copyrighted);
     // A document saved before File Info existed has none.
     let mut old = vectorcraft_doc::Document::new(10.0, 10.0);
     old.metadata = DocMetadata::default();
-    let bytes = vectorcraft_format::save_file(&old);
+    let bytes = etcfile::save_file(&old);
     assert!(!String::from_utf8_lossy(&bytes).contains("\"metadata\""), "default File Info isn't written");
-    assert_eq!(vectorcraft_format::load(&bytes).unwrap().metadata, DocMetadata::default());
+    assert_eq!(etcfile::load(&bytes).unwrap().metadata, DocMetadata::default());
 }
 
 #[test]
 fn saving_to_a_file_stamps_the_modified_date() {
     let mut s = session();
     let created = s.doc().unwrap().doc.metadata.created;
-    let path = std::env::temp_dir().join(format!("vc-fileinfo-{}.vectorcraft", std::process::id()));
+    let path = std::env::temp_dir().join(format!("vc-fileinfo-{}.etc", std::process::id()));
     s.execute("document.save", &json!({"path": path.to_string_lossy()})).unwrap();
     let st = s.doc().unwrap();
     assert!(st.doc.metadata.modified.is_some() && st.doc.metadata.created == created);
     assert!(!st.is_dirty(), "the stamped document is the saved one");
-    let back = vectorcraft_format::load(&std::fs::read(&path).unwrap()).unwrap();
+    let back = etcfile::load(&std::fs::read(&path).unwrap()).unwrap();
     assert_eq!(back.metadata.modified, st.doc.metadata.modified);
     let _ = std::fs::remove_file(&path);
     assert!(s.execute("file.info", &json!({})).unwrap()["modified"].is_string());
@@ -139,7 +139,7 @@ fn saving_to_a_file_stamps_the_modified_date() {
 fn inspect_and_open_report_the_file_info_title_beside_the_file_name() {
     let dir = std::env::temp_dir().join(format!("vc-fileinfotitle-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("poster.vectorcraft");
+    let path = dir.join("poster.etc");
     let mut s = session();
     // Untitled, the two are the same.
     let r = s.execute("document.inspect", &json!({"depth": 0})).unwrap();
@@ -147,13 +147,13 @@ fn inspect_and_open_report_the_file_info_title_beside_the_file_name() {
     s.execute("file.info", &json!({"title": "Poster: final"})).unwrap();
     s.execute("document.save", &json!({"path": path.to_str().unwrap()})).unwrap();
     let r = s.execute("document.inspect", &json!({"depth": 0})).unwrap();
-    assert_eq!((r["title"].as_str(), r["fileInfoTitle"].as_str()), (Some("poster.vectorcraft"), Some("Poster: final")));
+    assert_eq!((r["title"].as_str(), r["fileInfoTitle"].as_str()), (Some("poster.etc"), Some("Poster: final")));
     // Opened from the file, in another session.
     let mut s = Session::new();
     let opened = s.execute("document.open", &json!({"path": path.to_str().unwrap()})).unwrap();
-    assert_eq!((opened["title"].as_str(), opened["fileInfoTitle"].as_str()), (Some("poster.vectorcraft"), Some("Poster: final")));
+    assert_eq!((opened["title"].as_str(), opened["fileInfoTitle"].as_str()), (Some("poster.etc"), Some("Poster: final")));
     let r = s.execute("document.inspect", &json!({"depth": 0})).unwrap();
-    assert_eq!((r["title"].as_str(), r["fileInfoTitle"].as_str()), (Some("poster.vectorcraft"), Some("Poster: final")));
+    assert_eq!((r["title"].as_str(), r["fileInfoTitle"].as_str()), (Some("poster.etc"), Some("Poster: final")));
     assert_eq!(r["fileInfoTitle"], s.execute("file.info", &json!({})).unwrap()["title"]);
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -267,7 +267,7 @@ fn a_pdf_compatible_ai_opens_with_the_file_info_of_its_xmp_packet() {
     let catalog = format!("/Metadata {} 0 R ", first_extra(1));
     let bytes = pdf_with_catalog(&[PdfPage::new(100.0, 100.0, "0 0 1 rg 10 10 50 50 re f")], &[&stream], &catalog, None);
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "notes.ai", "dataBase64": vectorcraft_format::base64_encode(&bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": "notes.ai", "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
     let m = &s.doc().unwrap().doc.metadata;
     assert_eq!((m.author.as_str(), m.keywords.clone()), ("Grace Hopper", vec!["navy".to_string(), "cobol".into()]));
     assert_eq!((m.copyright_status, m.copyright_notice.as_str()), (CopyrightStatus::PublicDomain, "No rights reserved"));
@@ -308,7 +308,7 @@ fn pdf_titled(info: Option<&str>, xmp_title: Option<&str>) -> Vec<u8> {
 /// A document called `name` with content `bytes` opened (as `document.open` with no path: the tab
 /// shows the document's name), `s` holding it.
 fn open_named(s: &mut Session, name: &str, bytes: &[u8]) -> Value {
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap()
+    s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})).unwrap()
 }
 
 /// The document's name (its tab) and its File Info title.
@@ -420,11 +420,11 @@ fn file_info_edits_a_files_own_title_and_the_document_follows() {
 fn restored_file_info_title_keeps_authored_spaces() {
     let mut s = session();
     std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc).metadata.title = Some("Release  Plan".into());
-    for format in ["vectorcraft", "svg", "pdf"] {
+    for format in ["etc", "svg", "pdf"] {
         let bytes = b64(&s.execute("document.export", &json!({"format": format, "preserveEditing": true})).unwrap());
         let mut reopened = Session::new();
         let reply = open_named(&mut reopened, &format!("again.{format}"), &bytes);
-        assert_eq!(reply["restored"], format != "vectorcraft", "{format}");
+        assert_eq!(reply["restored"], format != "etc", "{format}");
         assert_eq!(reopened.doc().unwrap().doc.metadata.title.as_deref(), Some("Release  Plan"), "{format}");
         assert_eq!(titles(&mut reopened)[1], "Release  Plan", "{format}");
     }
@@ -435,9 +435,9 @@ fn the_files_own_title_is_kept_by_saves_and_written_by_exports() {
     let mut s = Session::new();
     open_named(&mut s, "box.svg", svg_titled("<title>Access paths</title>").as_bytes());
     // The native file: its own title is the document's name, the File Info title survives.
-    let native = b64(&s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap());
+    let native = b64(&s.execute("document.export", &json!({"format": "etc"})).unwrap());
     let mut t = Session::new();
-    open_named(&mut t, "other.vectorcraft", &native);
+    open_named(&mut t, "other.etc", &native);
     assert_eq!(titles(&mut t), ["box.svg", "Access paths"]);
     // An SVG with the editing data it carries, reopened under another name.
     let svg = s.execute("document.serialize", &json!({"format": "svg", "preserveEditing": true, "metadata": true})).unwrap()["text"]
@@ -535,7 +535,7 @@ fn xmp_title(pdf: &str) -> &str {
 fn an_untitled_document_saved_to_a_file_exports_titled_after_it() {
     let dir = std::env::temp_dir().join(format!("vc-pdftitle-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("Document C.vectorcraft");
+    let path = dir.join("Document C.etc");
     // Unsaved and untitled: viewers keep showing the file name, not "Untitled-1".
     let mut untitled = Session::new();
     untitled.execute("file.new", &json!({"width": 100, "height": 80})).unwrap();
@@ -568,7 +568,7 @@ fn an_untitled_document_saved_to_a_file_exports_titled_after_it() {
     assert_eq!(s.doc().unwrap().doc.title, "Untitled-1");
     // A title of its own (File Info, New Document's Name) stays.
     let mut s = session();
-    s.execute("document.save", &json!({"path": dir.join("Document D.vectorcraft").to_str().unwrap()})).unwrap();
+    s.execute("document.save", &json!({"path": dir.join("Document D.etc").to_str().unwrap()})).unwrap();
     for pdf in pdf_texts(&mut s) {
         assert!(pdf.contains("/Title(Poster)") && xmp_title(&pdf).contains("Poster"));
         assert!(pdf.contains("/ViewerPreferences<</DisplayDocTitle true>>"), "{pdf}");

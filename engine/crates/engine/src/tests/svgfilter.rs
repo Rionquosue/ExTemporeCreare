@@ -619,7 +619,7 @@ fn filters_survive_a_native_round_trip() {
     run(&mut s, "svgFilter.define", json!({"xml": BLUR}));
     run(&mut s, "svgFilter.apply", json!({"name": "Soft", "ids": [a.0]}));
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(back.svg_filters, doc.svg_filters);
     assert_eq!(back.node(a).unwrap().appearance.effects, doc.node(a).unwrap().appearance.effects);
 }
@@ -692,7 +692,7 @@ fn svg_export_writes_the_filter_when_it_is_the_last_effect() {
     assert!(kept[0].params["xml"].as_str().unwrap().ends_with("<feOffset dx=\"3\" dy=\"3\"/></filter>"), "{kept:?}");
     // SVG Tiny 1.2 has no filters: the object is written as an image.
     let tiny = run(&mut s, "document.export", json!({"format": "svg", "profile": "tiny12"}));
-    let tiny = String::from_utf8(vectorcraft_format::base64_decode(tiny["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let tiny = String::from_utf8(etcfile::base64::decode(tiny["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     assert!(tiny.contains("<image") && !tiny.contains("<filter"), "{tiny}");
     // An artboard away from the origin: the object keeps the document's coordinates, which the
     // filter's user space measures, in a group that moves it.
@@ -924,7 +924,7 @@ fn an_applied_default_survives_svg_export_and_a_native_round_trip() {
     assert!(warnings.is_empty(), "{warnings:?}");
     assert!(back.any_node(|n| n.appearance.effects.iter().any(|e| e.id == "svg.filter")), "SVG import reads the filter back");
     let doc = s.doc().unwrap().doc.clone();
-    let again = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let again = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(again.svg_filters, doc.svg_filters);
     assert_eq!(again.svg_filters[0].name, "Grayscale");
 }

@@ -228,7 +228,7 @@ fn character_style_options_edit_applies_to_users_and_is_one_saved_undo_step() {
     s.execute("charStyle.apply", &json!({"name":"Text","id":future})).unwrap();
     s.execute("text.editRange", &json!({"id":future,"start":0,"end":0,"insert":"Later"})).unwrap();
     assert_eq!((runs(&s, future)[0].style.size, runs(&s, future)[0].style.tracking), (18.0, 40.0));
-    let saved = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let saved = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(
         saved.char_styles.iter().find(|d| d.name == "Text").unwrap().attrs,
         s.doc().unwrap().doc.char_styles.iter().find(|d| d.name == "Text").unwrap().attrs
@@ -261,7 +261,7 @@ fn character_style_options_edit_sets_the_advanced_character_formats() {
             .collect::<Vec<_>>(),
         [(80.0, 120.0, -2.0, 15.0, Some("de".to_string())), (80.0, 120.0, -2.0, 30.0, Some("de".to_string()))]
     );
-    let saved = vectorcraft_format::load(&vectorcraft_format::save(&changed, false)).unwrap();
+    let saved = etcfile::load(&etcfile::save(&changed, false)).unwrap();
     assert_eq!(saved.char_styles.iter().find(|d| d.name == "Body").unwrap().attrs, def.attrs);
     s.execute("edit.undo", &json!({})).unwrap();
     assert_eq!(s.doc().unwrap().doc, before);
@@ -317,7 +317,7 @@ fn character_style_color_and_features_reach_text_and_follow_swatch_edits() {
     assert_eq!(runs(&s, id)[0].style.features, ["dlig", "-liga", "tnum", "lnum", "-onum", "-pnum", "ss02", "-ss01", "salt=2"]);
     let def = |s: &Session| s.doc().unwrap().doc.char_styles.iter().find(|d| d.name == "Ink").unwrap().attrs.clone();
     assert_eq!(def(&s)["stroke"], serde_json::to_value(&want_stroke).unwrap());
-    let saved = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let saved = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(saved.char_styles.iter().find(|d| d.name == "Ink").unwrap().attrs, def(&s));
 
     s.execute("swatch.edit", &json!({"name": "Brand", "color": "#a02050"})).unwrap();
@@ -755,7 +755,7 @@ fn styles_file(char: &[(&str, Value)], para: &[(&str, Value)]) -> String {
     };
     d.char_styles = defs(char).into();
     d.para_styles = defs(para).into();
-    vectorcraft_format::base64_encode(&vectorcraft_format::save(&d, false))
+    etcfile::base64::encode(&etcfile::save(&d, false))
 }
 
 /// Load Character Styles and Load Paragraph Styles copy the other document's styles of their kind
@@ -780,7 +780,7 @@ fn styles_load_from_another_document_in_one_step() {
         let data = styles_file(&file, &file);
         let before = s.doc().unwrap().doc.clone();
         let undo = s.doc().unwrap().history.undo.len();
-        let r = s.execute(&format!("{p}.load"), &json!({"dataBase64": data, "name": "Other.vectorcraft"})).unwrap();
+        let r = s.execute(&format!("{p}.load"), &json!({"dataBase64": data, "name": "Other.etc"})).unwrap();
         assert_eq!(r, json!({"added": ["Accent 3", "Fresh"], "existing": ["Body"], "skipped": ["Bad", " "]}), "{p}");
         assert_eq!(listed(&mut s, p), [normal, "Body", "Accent", "Accent 2", "Accent 3", "Fresh"], "{p}");
         let d = s.doc().unwrap().doc.clone();
@@ -794,7 +794,7 @@ fn styles_load_from_another_document_in_one_step() {
         assert_eq!(d.node(NodeId(id)), before.node(NodeId(id)), "{p}");
         assert_eq!(s.doc().unwrap().history.undo.len(), undo + 1, "{p}");
         // Loading the same file again adds nothing and makes no undo step.
-        let again = s.execute(&format!("{p}.load"), &json!({"dataBase64": data, "name": "Other.vectorcraft"})).unwrap();
+        let again = s.execute(&format!("{p}.load"), &json!({"dataBase64": data, "name": "Other.etc"})).unwrap();
         assert_eq!(again["added"], json!([]), "{p}");
         assert_eq!(again["existing"], json!(["Body", "Accent 3", "Fresh"]), "{p}");
         assert_eq!(s.doc().unwrap().history.undo.len(), undo + 1, "{p}");
@@ -812,11 +812,11 @@ fn load_all_styles_loads_both_kinds_in_one_step() {
     let data = styles_file(&[("Lead", json!({"size": 30.0}))], &[("Centered", json!({"justify": "Center"}))]);
     let dir = std::env::temp_dir().join(format!("vc-load-styles-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("Other.vectorcraft");
-    std::fs::write(&path, vectorcraft_format::base64_decode(&data).unwrap()).unwrap();
+    let path = dir.join("Other.etc");
+    std::fs::write(&path, etcfile::base64::decode(&data).unwrap()).unwrap();
     let before = s.doc().unwrap().doc.clone();
     let undo = s.doc().unwrap().history.undo.len();
-    for bad in [json!({}), json!({"data": "not a document", "name": "x.vectorcraft"}), json!({"dataBase64": "!"})] {
+    for bad in [json!({}), json!({"data": "not a document", "name": "x.etc"}), json!({"dataBase64": "!"})] {
         assert!(s.execute("textStyle.loadAll", &bad).is_err(), "{bad}");
     }
     let r = s.execute("textStyle.loadAll", &json!({"path": path.to_string_lossy()})).unwrap();
@@ -844,7 +844,7 @@ fn loaded_styles_out_of_range_are_skipped() {
         ("Fine", json!({"size": 12.0, "h_scale": 50.0})),
     ];
     let data = styles_file(&file, &[]);
-    let r = s.execute("charStyle.load", &json!({"dataBase64": data, "name": "Other.vectorcraft"})).unwrap();
+    let r = s.execute("charStyle.load", &json!({"dataBase64": data, "name": "Other.etc"})).unwrap();
     assert_eq!(r, json!({"added": ["Fine"], "existing": [], "skipped": ["Huge", "Flat", "Shifted", "Thick", "Gapped"]}));
     assert_eq!(listed(&mut s, "charStyle"), [NORMAL_CHAR, "Fine"]);
 }
@@ -868,9 +868,9 @@ fn loaded_styles_bring_the_patterns_and_swatches_they_paint_with() {
     src.execute("charStyle.new", &json!({"name": "Patterned", "id": id})).unwrap();
     src.execute("paint.setFill", &json!({"swatch": "Ink", "ids": [id]})).unwrap();
     src.execute("charStyle.new", &json!({"name": "Inked", "id": id})).unwrap();
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&src.doc().unwrap().doc, false));
+    let data = etcfile::base64::encode(&etcfile::save(&src.doc().unwrap().doc, false));
     let (mut s, id) = painted(30.0, "#ff0000");
-    let r = s.execute("charStyle.load", &json!({"dataBase64": data, "name": "Other.vectorcraft"})).unwrap();
+    let r = s.execute("charStyle.load", &json!({"dataBase64": data, "name": "Other.etc"})).unwrap();
     assert_eq!(r["added"], json!(["Patterned", "Inked"]));
     let d = s.doc().unwrap().doc.clone();
     let fill = |name: &str| super::style_attrs(&d, false, name).unwrap()["fill"].to_string();
@@ -903,10 +903,10 @@ fn reloaded_patterns_follow_the_renamed_styles_their_type_uses() {
         let other = src.execute("text.create", &json!({"x": 10, "y": 90, "text": "B"})).unwrap()["id"].as_u64().unwrap();
         src.execute("paint.setFill", &json!({"swatch": "Tiles", "ids": [other]})).unwrap();
         src.execute("charStyle.new", &json!({"name": "Tiled", "id": other})).unwrap();
-        let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&src.doc().unwrap().doc, false));
+        let data = etcfile::base64::encode(&etcfile::save(&src.doc().unwrap().doc, false));
         let (mut s, _) = session_with_text("X");
         s.execute("charStyle.new", &json!({"name": "Accent", "attrs": {"kerning": 10}})).unwrap();
-        let load = json!({"dataBase64": data, "name": "Other.vectorcraft"});
+        let load = json!({"dataBase64": data, "name": "Other.etc"});
         s.execute("charStyle.load", &load).unwrap();
         let counts = |s: &Session| {
             let d = &s.doc().unwrap().doc;
@@ -937,14 +937,14 @@ fn a_style_and_the_pattern_that_uses_it_load_together() {
     let painted = source.char_styles.iter().find(|s| s.name == "Painted").unwrap().attrs.clone();
     source.char_styles.retain(|s| s.name != "Painted");
     source.char_styles.iter_mut().find(|s| s.name == "Accent").unwrap().attrs = painted;
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&source, false));
+    let data = etcfile::base64::encode(&etcfile::save(&source, false));
     let fill = |s: &Session, name: &str| super::style_attrs(&s.doc().unwrap().doc, false, name).unwrap()["fill"].to_string();
     let source_fill = super::style_attrs(&source, false, "Accent").unwrap()["fill"].to_string();
     assert!(source_fill.contains("\"Dots\""), "{source_fill}");
     let (mut s, _) = session_with_text("X");
     let square = s.execute("shape.rectangle", &json!({"x": 200, "y": 200, "width": 30, "height": 30})).unwrap()["id"].clone();
     s.execute("object.pattern.make", &json!({"name": "Dots", "edit": false, "ids": [square]})).unwrap();
-    let load = json!({"dataBase64": data, "name": "Other.vectorcraft"});
+    let load = json!({"dataBase64": data, "name": "Other.etc"});
     s.execute("charStyle.load", &load).unwrap();
     assert!(s.doc().unwrap().doc.pattern("Dots 2").is_some());
     assert!(fill(&s, "Accent").contains("\"Dots 2\""), "{}", fill(&s, "Accent"));
@@ -973,13 +973,13 @@ fn a_style_in_a_loop_is_not_matched_to_a_style_that_paints_with_another_pattern(
     let painted = source.char_styles.iter().find(|s| s.name == "Painted").unwrap().attrs.clone();
     source.char_styles.retain(|s| s.name != "Painted");
     source.char_styles.iter_mut().find(|s| s.name == "Accent").unwrap().attrs = painted.clone();
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&source, false));
+    let data = etcfile::base64::encode(&etcfile::save(&source, false));
     let (mut s, _) = session_with_text("X");
     let square = s.execute("shape.rectangle", &json!({"x": 200, "y": 200, "width": 30, "height": 30})).unwrap()["id"].clone();
     s.execute("object.pattern.make", &json!({"name": "Dots", "edit": false, "ids": [square]})).unwrap();
     let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
     doc.char_styles.push(TextStyleDef { name: "Accent".into(), attrs: painted });
-    let load = json!({"dataBase64": data, "name": "Other.vectorcraft"});
+    let load = json!({"dataBase64": data, "name": "Other.etc"});
     let r = s.execute("charStyle.load", &load).unwrap();
     assert_eq!(r["added"], json!(["Accent 2"]), "{r}");
     let d = s.doc().unwrap().doc.clone();
@@ -1020,10 +1020,10 @@ fn reloaded_brushes_follow_the_renamed_styles_their_art_uses() {
     let other = src.execute("text.create", &json!({"x": 10, "y": 90, "text": "B"})).unwrap()["id"].as_u64().unwrap();
     src.execute("paint.setFill", &json!({"swatch": "Tiles", "ids": [other]})).unwrap();
     src.execute("charStyle.new", &json!({"name": "Tiled", "id": other})).unwrap();
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&src.doc().unwrap().doc, false));
+    let data = etcfile::base64::encode(&etcfile::save(&src.doc().unwrap().doc, false));
     let (mut s, _) = session_with_text("X");
     s.execute("charStyle.new", &json!({"name": "Accent", "attrs": {"kerning": 10}})).unwrap();
-    let load = json!({"dataBase64": data, "name": "Other.vectorcraft"});
+    let load = json!({"dataBase64": data, "name": "Other.etc"});
     let r = s.execute("charStyle.load", &load).unwrap();
     assert!(r["added"].as_array().unwrap().contains(&json!("Accent 2")), "{r}");
     let d = s.doc().unwrap().doc.clone();
@@ -1059,9 +1059,9 @@ fn loaded_style_keeps_the_name_used_by_pattern_type() {
     let art = std::sync::Arc::make_mut(&mut tile.art[0]);
     let NodeKind::Text(text) = &mut art.kind else { panic!("pattern art should be type") };
     text.runs[0].style.style_name = Some(" Accent ".into());
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&source, false));
+    let data = etcfile::base64::encode(&etcfile::save(&source, false));
     let (mut dst, _) = session_with_text("X");
-    let load = json!({"dataBase64": data, "name": "Other.vectorcraft"});
+    let load = json!({"dataBase64": data, "name": "Other.etc"});
     dst.execute("charStyle.load", &load).unwrap();
     let doc = &dst.doc().unwrap().doc;
     assert!(doc.char_styles.iter().any(|s| s.name == " Accent "));
@@ -1080,10 +1080,10 @@ fn loaded_pattern_type_keeps_its_paragraph_style() {
     let other = src.execute("text.create", &json!({"x": 10, "y": 90, "text": "B"})).unwrap()["id"].as_u64().unwrap();
     src.execute("paint.setFill", &json!({"swatch": "Tiles", "ids": [other]})).unwrap();
     src.execute("charStyle.new", &json!({"name": "Tiled", "id": other})).unwrap();
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save(&src.doc().unwrap().doc, false));
+    let data = etcfile::base64::encode(&etcfile::save(&src.doc().unwrap().doc, false));
     let (mut s, _) = session_with_text("X");
     s.execute("paraStyle.new", &json!({"name": "Centered", "attrs": {"justify": "Right"}})).unwrap();
-    let load = json!({"dataBase64": data, "name": "Other.vectorcraft"});
+    let load = json!({"dataBase64": data, "name": "Other.etc"});
     let r = s.execute("charStyle.load", &load).unwrap();
     assert_eq!(r, json!({"added": ["Tiled"], "existing": [], "skipped": []}));
     let d = s.doc().unwrap().doc.clone();
@@ -1284,7 +1284,7 @@ fn auto_leading_redefine_keeps_overrides_and_history() {
         assert_eq!(s.doc().unwrap().doc, before);
         s.execute("edit.redo", &json!({})).unwrap();
         assert_eq!(s.doc().unwrap().doc, after);
-        let back = vectorcraft_format::load(&vectorcraft_format::save(&after, false)).unwrap();
+        let back = etcfile::load(&etcfile::save(&after, false)).unwrap();
         assert_eq!(back.char_styles, after.char_styles);
         for id in ids {
             let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("not text") };
@@ -1496,7 +1496,7 @@ fn paragraph_styles_and_survive_save() {
     s.execute("paraStyle.redefine", &json!({"name": NORMAL_PARA})).unwrap();
     assert_eq!(s.execute("paraStyle.list", &json!({})).unwrap()["styles"][0]["attrs"]["justify"], "Center");
     let d = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
     assert_eq!(back.para_styles, d.para_styles);
 }
 
@@ -1635,7 +1635,7 @@ fn paragraph_style_options_edit_applies_to_users_and_is_one_saved_undo_step() {
     let mut keys: Vec<&str> = def.keys().map(String::as_str).collect();
     keys.sort_unstable();
     assert_eq!(keys, ["composer", "hyphenation", "justification", "left_indent", "tabs"]);
-    let saved = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let saved = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(saved.para_styles.iter().find(|d| d.name == "Text").unwrap().attrs, def);
     let changed = s.doc().unwrap().doc.clone();
     s.execute("edit.undo", &json!({})).unwrap();
@@ -1665,7 +1665,7 @@ fn paragraph_styles_keep_a_standard_composer_through_a_save() {
     s.execute("paraStyle.apply", &json!({"name": "Legacy", "id": id, "start": 0, "end": 0})).unwrap();
     assert_eq!(paras(&s, id).iter().map(|p| p.composer).collect::<Vec<_>>(), [Composer::StandardSingleLine, Composer::EveryLine]);
     let doc = s.doc().unwrap().doc.clone();
-    let saved = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let saved = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     let style = saved.para_styles.iter().find(|d| d.name == "Legacy").unwrap();
     assert_eq!(style.attrs["composer"], json!("standardSingleLine"));
     let mut composers = vec![];
@@ -1834,7 +1834,7 @@ fn loading_skips_paragraph_styles_out_of_range() {
     let data = styles_file(&[], &file);
     for cmd in ["paraStyle.load", "textStyle.loadAll"] {
         let (mut s, _) = session_with_text("Title");
-        let r = s.execute(cmd, &json!({"dataBase64": data, "name": "Other.vectorcraft"})).unwrap();
+        let r = s.execute(cmd, &json!({"dataBase64": data, "name": "Other.etc"})).unwrap();
         let r = if cmd == "textStyle.loadAll" { r["paraStyles"].clone() } else { r };
         assert_eq!(r, json!({"added": ["Good"], "existing": [], "skipped": ["Indent", "Space", "Hyphens", "Spacing", "Leader"]}), "{cmd}");
         let good = super::style_attrs(&s.doc().unwrap().doc, true, "Good").unwrap();

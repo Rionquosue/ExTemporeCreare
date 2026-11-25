@@ -51,7 +51,7 @@ pub(crate) fn place_undecodable_png_sized(s: &mut Session, w: u32, h: u32) -> No
     image::RgbaImage::from_pixel(w, h, image::Rgba([200, 30, 30, 255]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    let r = s.execute("file.place", &json!({"name": "cut.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "cut.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     let id = NodeId(r["ids"][0].as_u64().unwrap());
     cut_pixels(s, id);
     id
@@ -1245,7 +1245,7 @@ fn transform_each_refuses_strokes_given_as_text_and_keeps_transform_again() {
     sel(&mut s, &[a]);
     s.execute("stroke.set", &json!({"weight": 4})).unwrap();
     s.execute("object.transformEach", &json!({"moveH": 10})).unwrap();
-    let saved = |s: &Session| vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = |s: &Session| etcfile::save(&s.doc().unwrap().doc, false);
     let repeat = |s: &Session| s.doc().unwrap().last_transform.clone();
     let before = (saved(&s), history(&s), repeat(&s));
     for strokes in [json!("false"), json!("true"), json!(0)] {
@@ -1559,7 +1559,7 @@ fn busy_image_at_two_points_a_pixel() -> (Session, NodeId, image::RgbaImage) {
     let mut png = Vec::new();
     px.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "art.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    s.execute("document.open", &json!({"name": "art.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let img = selected(&s)[0];
     s.execute("object.scale", &json!({"sx": 200, "origin": [0, 0]})).unwrap();
@@ -1615,7 +1615,7 @@ fn crop_image_resampling_keeps_hidden_colors_out_of_the_edges() {
     let mut png = Vec::new();
     px.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "edge.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    s.execute("document.open", &json!({"name": "edge.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let img = selected(&s)[0];
     s.execute("object.scale", &json!({"sx": 200, "origin": [0, 0]})).unwrap();
@@ -1637,7 +1637,7 @@ fn crop_image_resampling_keeps_the_color_of_nearly_transparent_pixels() {
     let mut png = Vec::new();
     px.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "faint.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    s.execute("document.open", &json!({"name": "faint.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let img = selected(&s)[0];
     s.execute("object.scale", &json!({"sx": 200, "origin": [0, 0]})).unwrap();
@@ -1659,7 +1659,7 @@ fn crop_image_between_pixels_keeps_the_content_at_its_place() {
     let mut png = Vec::new();
     px.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "edge.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    s.execute("document.open", &json!({"name": "edge.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let img = selected(&s)[0];
     s.execute("object.scale", &json!({"sx": 200, "origin": [0, 0]})).unwrap();
@@ -3793,7 +3793,7 @@ fn update_selection_replaces_the_recalled_saved_selection() {
     s.execute("select.recall", &json!({"name": "Other"})).unwrap();
     assert_eq!(selected(&s), vec![a, b]);
     // It travels with the file.
-    let loaded = vectorcraft_format::load(&vectorcraft_format::save_file(&s.doc().unwrap().doc)).unwrap();
+    let loaded = etcfile::load(&etcfile::save_file(&s.doc().unwrap().doc)).unwrap();
     assert_eq!(loaded.saved_selections.iter().map(|x| x.objects.len()).collect::<Vec<_>>(), [3, 2]);
     // It is one undo step.
     s.execute("edit.undo", &json!({})).unwrap();
@@ -3934,7 +3934,7 @@ fn saved_selections_live_in_the_document() {
     sel(&mut s, &[a, b]);
     s.execute("select.save", &json!({"name": "Both"})).unwrap();
     // They travel with the file.
-    let loaded = vectorcraft_format::load(&vectorcraft_format::save_file(&s.doc().unwrap().doc)).unwrap();
+    let loaded = etcfile::load(&etcfile::save_file(&s.doc().unwrap().doc)).unwrap();
     assert_eq!(loaded.saved_selections.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(), ["A", "Both"]);
     // Saving is an undo step.
     s.execute("edit.undo", &json!({})).unwrap();
@@ -4976,6 +4976,45 @@ fn refuses_wrong_type(s: &mut Session, cmd: &str, params: Value, msg: &str) {
     assert!(state(s) == before, "{cmd} changed something for {params}");
 }
 
+#[test]
+fn edit_guide_and_slice_commands_refuse_params_of_the_wrong_type() {
+    let mut s = session();
+    let a = rect(&mut s, 10.0, 10.0, 40.0, 20.0);
+    s.execute("guide.add", &json!({"vertical": true, "pos": 200})).unwrap();
+    let slice = s.execute("object.slice.fromSelection", &json!({"ids": [a.0]})).unwrap()["id"].as_u64().unwrap();
+    sel(&mut s, &[a]);
+    s.execute("select.save", &json!({"name": "A"})).unwrap();
+    s.execute("edit.copy", &json!({})).unwrap();
+    for (cmd, params, msg) in [
+        ("edit.duplicate", json!({"dx": "5"}), "`dx` must be a number, not \"5\""),
+        ("edit.duplicate", json!({"dy": true}), "`dy` must be a number, not true"),
+        ("edit.paste", json!({"dx": "5"}), "`dx` must be a number, not \"5\""),
+        ("edit.paste", json!({"dy": [1]}), "`dy` must be a number, not [1]"),
+        ("document.node", json!({"id": a.0, "summary": "yes"}), "`summary` must be true or false"),
+        ("file.close", json!({"index": "0"}), "`index` must be a non-negative integer"),
+        ("guide.add", json!({"pos": 50, "vertical": "true"}), "`vertical` must be true or false"),
+        ("guide.select", json!({"indexes": [0], "toggle": 1}), "`toggle` must be true or false"),
+        ("select.save", json!({"name": 5}), "`name` must be a string"),
+        ("select.editSaved", json!({"name": "A", "delete": "yes"}), "`delete` must be true or false"),
+        ("select.editSaved", json!({"name": "A", "newName": 5}), "`newName` must be a string"),
+    ] {
+        refuses_wrong_type(&mut s, cmd, params, msg);
+    }
+    s.execute("guide.select", &json!({"indexes": [0]})).unwrap();
+    refuses_wrong_type(&mut s, "guide.move", json!({"dx": "10"}), "`dx` must be a number, not \"10\"");
+    refuses_wrong_type(&mut s, "guide.move", json!({"dy": 5, "copy": "yes"}), "`copy` must be true or false");
+    s.execute("object.slice.select", &json!({"slices": [slice]})).unwrap();
+    refuses_wrong_type(&mut s, "object.slice.duplicate", json!({"dx": "10"}), "`dx` must be a number, not \"10\"");
+    refuses_wrong_type(&mut s, "object.slice.select", json!({"slices": [slice], "toggle": "no"}), "`toggle` must be true or false");
+    s.execute("edit.undoGroup.begin", &json!({})).unwrap();
+    refuses_wrong_type(&mut s, "edit.undoGroup.end", json!({"cancel": "yes"}), "`cancel` must be true or false");
+    // Null is read as a key left out.
+    s.execute("edit.undoGroup.end", &json!({"cancel": null})).unwrap();
+    s.execute("guide.select", &json!({"indexes": [0]})).unwrap();
+    s.execute("guide.move", &json!({"dx": 10, "dy": null, "copy": null})).unwrap();
+    assert_eq!(guides(&s), vec![(true, 210.0)]);
+}
+
 
 /// When ruler guides and art are selected together, moving the art moves the guides as well;
 /// copy leaves both in place and moves the copies; single undo reverts both.
@@ -5756,7 +5795,7 @@ fn opening_in_cmyk_can_put_rgb_greys_on_the_black_plate() {
         fill(&mut s, id, hex);
     }
     let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap()["text"].as_str().unwrap().to_string();
-    let data = vectorcraft_format::base64_encode(svg.as_bytes());
+    let data = etcfile::base64::encode(svg.as_bytes());
     let mut o = Session::new();
     o.execute("document.open", &json!({"name": "greys.svg", "dataBase64": data, "colorMode": "cmyk", "grays": "black"})).unwrap();
     let d = &o.doc().unwrap().doc;
@@ -5828,7 +5867,7 @@ fn crop_image_trim_cuts_to_the_opaque_pixels_as_they_are() {
     let mut png = Vec::new();
     px.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "art.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    s.execute("document.open", &json!({"name": "art.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let img = selected(&s)[0];
     s.execute("object.scale", &json!({"sx": 200, "origin": [0, 0]})).unwrap();
@@ -5855,7 +5894,7 @@ fn crop_image_trim_checks_the_rgba_size_before_decoding() {
     let trim = |w: u32, h: u32| {
         let png = crate::tests_linkspanel::png_header(w, h);
         let mut s = Session::new();
-        s.execute("document.open", &json!({"name": "wall.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+        s.execute("document.open", &json!({"name": "wall.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
         s.execute("select.all", &json!({})).unwrap();
         s.execute("object.cropImage", &json!({"trim": true})).unwrap_err().to_string()
     };
@@ -5888,7 +5927,7 @@ fn crop_image_trim_leaves_a_cmyk_image_alone() {
     let inks = vectorcraft_doc::cmyk::Inks::new(4, 2, [255, 0, 0, 0].repeat(8)).unwrap();
     let tiff = vectorcraft_doc::ImageBlob::cmyk_tiff(&inks).unwrap();
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "inks.tif", "dataBase64": vectorcraft_format::base64_encode(&tiff.bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": "inks.tif", "dataBase64": etcfile::base64::encode(&tiff.bytes)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let r = s.execute("object.cropImage", &json!({"trim": true})).unwrap();
     assert_eq!((r["trimmed"].as_bool(), r["width"].as_u64(), r["height"].as_u64()), (Some(false), Some(4), Some(2)), "{r}");

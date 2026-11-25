@@ -11,7 +11,7 @@ use vectorcraft_color::{BlendMode, Color, Paint};
 use vectorcraft_doc::{Appearance, CharStyle, Document, Effect, Node, NodeKind, OpacityMask, Symbol, TextObject, TextRun};
 use vectorcraft_geom::{Affine, Point, Rect, shapes};
 use vectorcraft_svg::{Encoding, ExportOptions, Profile, Styling, compress_bytes, editing, export_full, import, text_of};
-use vectorcraft_testkit::format::base64_decode;
+use vectorcraft_testkit::etcfile::base64::decode;
 
 fn add(d: &mut Document, mut n: Node) {
     n.id = d.alloc_id();
@@ -178,7 +178,7 @@ fn embedded(svg: &str) -> Vec<(String, u16, Vec<u8>)> {
         .map(|r| {
             let field = |k: &str| r.split(&format!("{k}:")).nth(1).unwrap().split(';').next().unwrap().to_string();
             let data = r.split("base64,").nth(1).unwrap().split(')').next().unwrap();
-            (field("font-family"), field("font-weight").parse().unwrap(), base64_decode(data).unwrap())
+            (field("font-family"), field("font-weight").parse().unwrap(), decode(data).unwrap())
         })
         .collect()
 }

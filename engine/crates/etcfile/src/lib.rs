@@ -5,7 +5,7 @@
 //! (an ORA-style projection), `mergedimage.png`, `Thumbnails/thumbnail.png`, the embedded images
 //! under `data/` and the embedded ICC profiles under `profiles/`.
 //!
-//! This crate replaces VectorCraft's `.vectorcraft` serializer. The Android side reaches content
+//! This crate replaces VectorCraft's `.etc` serializer. The Android side reaches content
 //! URIs itself; this crate builds, validates and reads the bytes and saves paths atomically.
 #![forbid(unsafe_code)]
 
@@ -44,7 +44,8 @@ pub const THUMBNAIL: &str = "Thumbnails/thumbnail.png";
 pub const THUMBNAIL_MAX: u32 = 256;
 /// The most decimal places [`SaveOptions::precision`] rounds path geometry to.
 pub const MAX_PRECISION: u8 = 9;
-/// The document `extra` key that keeps the project id between loads and saves.
+/// The document `extra` key that keeps the project id between loads and saves (`projectId`
+/// repeats it at the top of `project.json`).
 pub const PROJECT_ID_KEY: &str = "etcProjectId";
 
 /// Whether `ext` (without the dot, any case) is the native extension.
@@ -86,7 +87,7 @@ mod tests {
         assert_eq!(json["projectId"].as_str(), Some(id.as_str()));
         assert_eq!(json["canvas"]["mode"], "finite");
         assert_eq!((json["canvas"]["width"].as_u64(), json["canvas"]["height"].as_u64()), (Some(400), Some(300)));
-        assert!(json["document"].get(PROJECT_ID_KEY).is_none(), "the id is written once, at the top");
+        assert_eq!(json["document"][PROJECT_ID_KEY].as_str(), Some(id.as_str()), "the document keeps its id");
         assert_eq!(thumbnail(&bytes), Some(png()));
         let f = load_file(&bytes).unwrap();
         assert_eq!(f.doc.title, "Round trip");

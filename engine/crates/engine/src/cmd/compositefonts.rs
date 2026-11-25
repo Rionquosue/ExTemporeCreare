@@ -343,7 +343,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
             if b64.len() > MAX_FILE_BYTES / 3 * 4 + 4 {
                 return Err(too_large());
             }
-            vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(C, "dataBase64 is not base64"))?
+            etcfile::base64::decode(b64).ok_or_else(|| bad(C, "dataBase64 is not base64"))?
         }
         _ => return Err(bad(C, "give one of path, data or dataBase64")),
     };

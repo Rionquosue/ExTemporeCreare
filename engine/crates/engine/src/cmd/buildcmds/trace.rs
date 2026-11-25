@@ -279,10 +279,10 @@ fn trace_preset_file(c: &str, p: &Value) -> Result<Vec<u8>> {
             text.as_bytes().to_vec()
         }
         (None, None, Some(b64)) => {
-            if vectorcraft_format::base64_decoded_len(b64) > TRACE_PRESET_MAX_BYTES as u64 {
+            if etcfile::base64::decoded_len(b64).is_some_and(|n| n > TRACE_PRESET_MAX_BYTES) {
                 return Err(too_big());
             }
-            vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(c, "bad dataBase64"))?
+            etcfile::base64::decode(b64).ok_or_else(|| bad(c, "bad dataBase64"))?
         }
         _ => return Err(bad(c, "give `path`, `data` or `dataBase64`")),
     };

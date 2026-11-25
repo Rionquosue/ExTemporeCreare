@@ -741,7 +741,7 @@ fn placed(s: &mut Session, w: u32, h: u32, f: impl Fn(u32, u32) -> [u8; 4]) -> N
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    let r = s.execute("file.place", &json!({"name": "art.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "art.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     NodeId(r["ids"][0].as_u64().unwrap())
 }
 
@@ -804,7 +804,7 @@ fn convert_to_indexed_takes_ids_and_leaves_linked_and_colorized_images() {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    let r = s.execute("file.place", &json!({"name": "gray.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "gray.png", "dataBase64": etcfile::base64::encode(&png)})).unwrap();
     let gray = NodeId(r["ids"][0].as_u64().unwrap());
     s.execute("paint.setFill", &json!({"ids": [gray.0], "color": "#ff0000"})).unwrap();
     assert!(s.doc().unwrap().doc.node(gray).unwrap().extras().colorize.is_some(), "the fill colorizes the image");

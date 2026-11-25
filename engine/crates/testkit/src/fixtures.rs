@@ -58,7 +58,7 @@ pub fn select(s: &mut Session, ids: &[NodeId]) {
 /// decode the image and draws nothing. Place refuses such a file, so tests cut a placed one. The
 /// image is stored under the key of its new bytes. → `file.place`'s reply.
 pub fn place_cut_png(s: &mut Session, png: &[u8], params: Value) -> Value {
-    let mut p = json!({"name": "cut.png", "dataBase64": vectorcraft_format::base64_encode(png)});
+    let mut p = json!({"name": "cut.png", "dataBase64": etcfile::base64::encode(png)});
     if let (Some(o), Value::Object(extra)) = (p.as_object_mut(), params) {
         o.extend(extra);
     }

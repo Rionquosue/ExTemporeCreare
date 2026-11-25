@@ -81,7 +81,6 @@ pub use mesh3d::{DEFAULT_FORMAT_3D, FORMATS_3D, draws_textures, format_3d_label}
 pub(crate) use mesh3d::{TEXTURE_SIZE, TEXTURE_SIZES, image_maps, mesh_file_names, mesh_files, textures};
 pub use naming::{NameParts as FileNameParts, parse_date as parse_file_date, render as render_file_name};
 pub(crate) use native::preview_png;
-pub use native::with_compression_pref;
 pub(crate) use pdfimport::opened_page_document;
 pub use pdfimport::{LoadOptions, page_document, pages_can_link};
 pub(crate) use psdlayers::import_active as psd_layers;
@@ -109,7 +108,7 @@ pub use svg::options_map as svg_options;
 /// Atomic file writes (a temporary file renamed over the target: a failed write never damages the
 /// file it replaces), for the apps' own writers too.
 #[cfg(not(target_arch = "wasm32"))]
-pub use vectorcraft_format::write_atomic;
+pub use etcfile::write_atomic;
 
 use super::{CommandSpec, Result, Session, always, bad, cmd, has_doc, has_selection};
 use crate::EngineError;

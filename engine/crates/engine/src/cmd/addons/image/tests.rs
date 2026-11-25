@@ -70,7 +70,7 @@ fn framed() -> image::RgbaImage {
 /// A session with `bytes` opened as a document, its image selected.
 fn open(bytes: &[u8]) -> (Session, NodeId) {
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "art.png", "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": "art.png", "dataBase64": etcfile::base64::encode(bytes)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let id = s.doc().unwrap().selection.objects[0];
     (s, id)

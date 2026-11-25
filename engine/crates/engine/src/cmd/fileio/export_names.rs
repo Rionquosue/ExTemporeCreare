@@ -79,7 +79,7 @@ pub(super) fn write_encoded(path: Option<&str>, name: &str, doc: &vectorcraft_do
     let (main, linked) = files.split_at(enc.files.len());
     let row = |(name, bytes): &(String, std::borrow::Cow<[u8]>)| match path {
         Some(_) => json!(name),
-        None => json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) }),
+        None => json!({ "name": name, "dataBase64": etcfile::base64::encode(bytes) }),
     };
     if path.is_some() {
         for (p, bytes) in &files {
@@ -89,7 +89,7 @@ pub(super) fn write_encoded(path: Option<&str>, name: &str, doc: &vectorcraft_do
     let Some((first, bytes)) = main.first() else { return Err(EngineError::Other("the export wrote no file".into())) };
     let mut out = match path {
         Some(_) => json!({ "path": first, "bytes": bytes.len() }),
-        None => json!({ "dataBase64": vectorcraft_format::base64_encode(bytes), "bytes": bytes.len() }),
+        None => json!({ "dataBase64": etcfile::base64::encode(bytes), "bytes": bytes.len() }),
     };
     if main.len() > 1 {
         out["files"] = main.iter().map(row).collect();
@@ -127,7 +127,7 @@ pub(crate) fn write_or_return(path: Option<&str>, bytes: &[u8], extra: Value) ->
             write_file(path, bytes)?;
             json!({ "path": path, "bytes": bytes.len() })
         }
-        None => json!({ "dataBase64": vectorcraft_format::base64_encode(bytes), "bytes": bytes.len() }),
+        None => json!({ "dataBase64": etcfile::base64::encode(bytes), "bytes": bytes.len() }),
     };
     Ok(merge(out, extra))
 }

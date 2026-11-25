@@ -142,7 +142,7 @@ fn mesh_handles_turn_with_the_envelope_and_round_trip() {
     let want = Affine::rotate(-std::f64::consts::FRAC_PI_2) * Point::new(50.0, 0.0);
     assert!((h - want.to_vec2()).hypot() < 1e-9, "{h:?}");
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert_eq!(back.node(e), d.node(e));
     // Mesh envelopes saved before handles existed load as smooth meshes.
     let mut old = serde_json::to_value(node(&s, e)).unwrap();
@@ -229,7 +229,7 @@ fn an_edited_warp_saves_resets_releases_and_expands_as_edited() {
     };
     assert_eq!((c0, o0, f0), (c1, o1, f1), "content, options and fidelity stay");
     let d = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&d, false)).unwrap();
     assert_eq!(back.node(e), d.node(e), "a save opens again as edited");
     // Reset with Mesh, keeping the shape: the edited points.
     let (_, _, points, _) = mesh(&s, e);

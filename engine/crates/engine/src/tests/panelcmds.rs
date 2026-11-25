@@ -273,12 +273,12 @@ fn artboard_color_round_trips_through_the_native_format() {
     let mut s = session();
     s.execute("artboard.new", &json!({})).unwrap();
     s.execute("artboard.setProps", &json!({"index": 1, "color": {"c": 10, "m": 20, "y": 30, "k": 40}})).unwrap();
-    let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let bytes = etcfile::save(&s.doc().unwrap().doc, false);
     let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     let keys = |i: usize| saved["document"]["artboards"][i].as_object().unwrap().keys().cloned().collect::<Vec<_>>();
     assert_eq!(keys(0), ["id", "name", "rect", "show_center_mark", "show_cross_hairs"]);
     assert!(keys(1).contains(&"color".to_string()), "{:?}", keys(1));
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.artboards[0].color, None);
     assert_eq!(back.artboards[1].color, Some(Color::cmyk(0.1, 0.2, 0.3, 0.4)));
     assert_eq!(back.artboards, s.doc().unwrap().doc.artboards);
@@ -1284,7 +1284,7 @@ fn a_list_of_artboards_takes_each_entrys_lock() {
 fn artboard_lock_round_trips_through_the_native_format() {
     let mut s = session();
     s.execute("artboard.new", &json!({})).unwrap();
-    let save = |s: &Session| vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let save = |s: &Session| etcfile::save(&s.doc().unwrap().doc, false);
     let before = save(&s);
     s.execute("artboard.setProps", &json!({"index": 1, "locked": true})).unwrap();
     let bytes = save(&s);
@@ -1292,7 +1292,7 @@ fn artboard_lock_round_trips_through_the_native_format() {
     let keys = saved["document"]["artboards"][0].as_object().unwrap().keys().cloned().collect::<Vec<_>>();
     assert_eq!(keys, ["id", "name", "rect", "show_center_mark", "show_cross_hairs"]);
     assert_eq!(saved["document"]["artboards"][1]["locked"], true);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert!(back.artboards[1].locked && !back.artboards[0].locked);
     assert_eq!(back.artboards, s.doc().unwrap().doc.artboards);
     s.execute("artboard.setProps", &json!({"index": 1, "locked": false})).unwrap();
@@ -1364,7 +1364,7 @@ fn artboard_display_marks_are_set_and_cleared_in_one_undo_step() {
 fn artboard_display_marks_round_trip_through_the_native_format() {
     let mut s = session();
     s.execute("artboard.new", &json!({})).unwrap();
-    let save = |s: &Session| vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let save = |s: &Session| etcfile::save(&s.doc().unwrap().doc, false);
     let before = save(&s);
     s.execute("artboard.setProps", &json!({"artboards": [{"index": 0, "showCenterMark": true}, {"index": 1, "showCrossHairs": true}]})).unwrap();
     let bytes = save(&s);
@@ -1372,7 +1372,7 @@ fn artboard_display_marks_round_trip_through_the_native_format() {
     let ab = |i: usize| saved["document"]["artboards"][i].clone();
     assert_eq!((ab(0)["show_center_mark"].clone(), ab(0)["show_cross_hairs"].clone()), (json!(true), json!(false)));
     assert_eq!((ab(1)["show_center_mark"].clone(), ab(1)["show_cross_hairs"].clone()), (json!(false), json!(true)));
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.artboards, s.doc().unwrap().doc.artboards);
     s.execute("artboard.setProps", &json!({"artboards": [{"index": 0, "showCenterMark": false}, {"index": 1, "showCrossHairs": false}]})).unwrap();
     assert_eq!(save(&s), before, "off again, the file is as it was");
@@ -1383,7 +1383,7 @@ fn artboard_display_marks_round_trip_through_the_native_format() {
         a.remove("show_center_mark");
         a.remove("show_cross_hairs");
     }
-    let back = vectorcraft_format::load(&serde_json::to_vec(&old).unwrap()).unwrap();
+    let back = etcfile::load(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert!(back.artboards.iter().all(|a| !a.show_center_mark && !a.show_cross_hairs));
 }
 
@@ -1574,7 +1574,7 @@ fn artboard_guide_labels_round_trip_through_the_native_format() {
     let mut s = session();
     rect(&mut s);
     s.execute("artboard.new", &json!({})).unwrap();
-    let save = |s: &Session| vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let save = |s: &Session| etcfile::save(&s.doc().unwrap().doc, false);
     let before = save(&s);
     let plain = (*s.doc().unwrap().doc).clone();
     s.execute("artboard.setProps", &json!({"artboards": [{"index": 0, "guideLabel": "Green"}, {"index": 1, "guideLabel": "#102030"}]})).unwrap();
@@ -1582,7 +1582,7 @@ fn artboard_guide_labels_round_trip_through_the_native_format() {
     let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     let ab = |i: usize| saved["document"]["artboards"][i]["guide_label"].clone();
     assert_eq!((ab(0), ab(1)), (json!({"Preset": 2}), json!({"Custom": [16, 32, 48]})));
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.artboards, s.doc().unwrap().doc.artboards);
     // Screen-only: SVG and PDF exports are the same as without the labels.
     let on = (*s.doc().unwrap().doc).clone();
@@ -1596,14 +1596,14 @@ fn artboard_guide_labels_round_trip_through_the_native_format() {
     let mut edited = saved.clone();
     edited["document"]["artboards"][0]["guide_label"] = json!({"Preset": 27});
     edited["document"]["artboards"][1]["guide_label"] = json!({"Preset": 26});
-    let back = vectorcraft_format::load(&serde_json::to_vec(&edited).unwrap()).unwrap();
+    let back = etcfile::load(&serde_json::to_vec(&edited).unwrap()).unwrap();
     assert_eq!((back.artboards[0].guide_label, back.artboards[1].guide_label), (None, Some(LayerColor::Preset(26))));
     for bad in [json!({"Preset": 256}), json!({"Custom": [1, 2]}), json!("Red"), json!({"Custom": [1, 2, 300]})] {
         edited["document"]["artboards"][0]["guide_label"] = bad.clone();
-        assert!(vectorcraft_format::load(&serde_json::to_vec(&edited).unwrap()).is_err(), "{bad}");
+        assert!(etcfile::load(&serde_json::to_vec(&edited).unwrap()).is_err(), "{bad}");
     }
     edited["document"]["artboards"][0]["guide_label"] = json!(null);
-    let back = vectorcraft_format::load(&serde_json::to_vec(&edited).unwrap()).unwrap();
+    let back = etcfile::load(&serde_json::to_vec(&edited).unwrap()).unwrap();
     assert_eq!(back.artboards[0].guide_label, None);
 }
 
@@ -1615,7 +1615,7 @@ fn artboard_guide_labels_round_trip_through_the_native_format() {
 fn artboard_video_display_options_round_trip_through_the_native_format() {
     let mut s = session();
     s.execute("artboard.new", &json!({})).unwrap();
-    let save = |s: &Session| vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let save = |s: &Session| etcfile::save(&s.doc().unwrap().doc, false);
     let before = save(&s);
     s.execute(
         "artboard.setProps",
@@ -1629,7 +1629,7 @@ fn artboard_video_display_options_round_trip_through_the_native_format() {
     assert!(ab(0).get("video_ruler_pixel_aspect_ratio").is_none(), "square pixels aren't written: {}", ab(0));
     assert_eq!(ab(1)["video_ruler_pixel_aspect_ratio"], json!(0.9));
     assert!(ab(1).get("show_video_safe_areas").is_none(), "hidden safe areas aren't written: {}", ab(1));
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.artboards, s.doc().unwrap().doc.artboards);
     assert_eq!((back.artboards[0].show_video_safe_areas, back.artboards[1].video_ruler_pixel_aspect_ratio), (true, 0.9));
     s.execute("artboard.setProps", &json!({"artboards": [{"index": 0, "showVideoSafeAreas": false}, {"index": 1, "videoRulerPixelAspectRatio": 1}]}))
@@ -1642,12 +1642,12 @@ fn artboard_video_display_options_round_trip_through_the_native_format() {
         a.remove("show_video_safe_areas");
         a.remove("video_ruler_pixel_aspect_ratio");
     }
-    let back = vectorcraft_format::load(&serde_json::to_vec(&old).unwrap()).unwrap();
+    let back = etcfile::load(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert!(back.artboards.iter().all(|a| !a.show_video_safe_areas && a.video_ruler_pixel_aspect_ratio == 1.0));
     for (written, opens) in [(json!(0), 0.1), (json!(-3), 0.1), (json!(1e9), 10.0), (json!(2.5), 2.5)] {
         let mut file: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         file["document"]["artboards"][1]["video_ruler_pixel_aspect_ratio"] = written.clone();
-        let back = vectorcraft_format::load(&serde_json::to_vec(&file).unwrap()).unwrap();
+        let back = etcfile::load(&serde_json::to_vec(&file).unwrap()).unwrap();
         assert_eq!(back.artboards[1].video_ruler_pixel_aspect_ratio, opens, "{written}");
     }
 }

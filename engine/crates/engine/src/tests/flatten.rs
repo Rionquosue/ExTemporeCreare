@@ -290,6 +290,44 @@ fn the_region_limit_is_the_most_regions_the_balance_keeps() {
     }
 }
 
+/// A row of four half-transparent rectangles splits into 7 regions. Under the balance's region
+/// limit (10), at it (7), just over it (6) and far over it (1), Flatten Transparency, the flattened
+/// document and the EPS file come out as they do when every region is built.
+#[test]
+fn groups_over_the_region_limit_flatten_as_with_every_region_built() {
+    use crate::cmd::FlattenOptions;
+    use crate::cmd::flatten::{flatten_document, with_every_region as every};
+    let _settings = settings_lock();
+    let setup = || {
+        let mut s = session();
+        let ids: Vec<u64> = (0..4).map(|k| rect(&mut s, 10.0 + 30.0 * f64::from(k), 10.0, 40.0, 60.0, "#ff8000")).collect();
+        run(&mut s, "transparency.set", json!({"ids": ids, "opacity": 50}));
+        (s, ids)
+    };
+    let eps = |s: &mut Session, balance: u32| {
+        let r = run(s, "document.exportEps", json!({"flattener": {"balance": balance}, "previewFormat": "none", "thumbnails": false}));
+        let bytes = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
+        String::from_utf8_lossy(&bytes).lines().filter(|l| !l.contains("CreationDate")).collect::<Vec<_>>().join("\n")
+    };
+    for (balance, vector, rasterized) in [(20, 7, 0), (17, 7, 0), (16, 0, 1), (5, 0, 1)] {
+        let (mut s, _) = setup();
+        let o = FlattenOptions::from_params(&json!({"balance": balance})).unwrap();
+        let src = s.doc().unwrap().doc.clone();
+        let flat = flatten_document(&src, &o).unwrap();
+        assert!(flat == every(|| flatten_document(&src, &o).unwrap()), "balance {balance}: flattened document");
+        assert_eq!(eps(&mut s, balance), every(|| eps(&mut s, balance)), "balance {balance}: EPS");
+        let (mut s, ids) = setup();
+        let got = flatten(&mut s, json!({"ids": ids, "balance": balance}));
+        assert_eq!((got.1, got.2), (vector, rasterized), "balance {balance}");
+        let (mut t, ids) = setup();
+        let want = every(|| flatten(&mut t, json!({"ids": ids, "balance": balance})));
+        assert_eq!(got, want, "balance {balance}");
+        // The two documents were made apart, so their creation times can differ.
+        let (a, b) = (&s.doc().unwrap().doc, &t.doc().unwrap().doc);
+        assert!(a.layers == b.layers && a.images == b.images, "balance {balance}: Flatten Transparency");
+    }
+}
+
 
 #[test]
 fn gradients_rasterize_and_flat_areas_stay_vector() {
@@ -524,7 +562,7 @@ fn outlined_type_keeps_its_gradient_on_the_outlines_its_transform_effect_moves()
         flatten(&mut s, json!({"ids": [t], "textToOutlines": true}));
         diffs.push(changed(&picture(&s), &reference));
         // The outlines draw the same after the document is saved and opened again.
-        let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+        let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
         diffs.push(changed(&Renderer::new().render_region(&back, Rect::new(0.0, 0.0, 200.0, 200.0), 1.0, true), &reference));
     }
     assert!(diffs.iter().all(|&d| d < 0.0002), "shares of the pixels that changed: {diffs:?}");
@@ -567,6 +605,27 @@ fn preserve_alpha_composites_over_nothing() {
     let (ids, ..) = flatten(&mut s, json!({"ids": [a]}));
     let r = &regions(&s, ids[0])[0];
     assert_eq!((r.opacity, shown(r)), (1.0, [255, 128, 128]));
+}
+
+#[test]
+fn single_paints_keep_their_colour_and_overprint() {
+    let _settings = settings_lock();
+    let mut s = session();
+    let a = rect(&mut s, 10.0, 10.0, 100.0, 100.0, "#000000");
+    run(&mut s, "paint.setFill", json!({"ids": [a], "color": {"c": 0, "m": 100, "y": 50, "k": 0}}));
+    run(&mut s, "object.setOverprint", json!({"ids": [a], "fill": true}));
+    let b = rect(&mut s, 60.0, 60.0, 100.0, 100.0, "#0000ff");
+    run(&mut s, "transparency.set", json!({"ids": [b], "opacity": 50}));
+    let cmyk_region = |s: &Session, ids: &[u64]| regions(s, ids[0]).into_iter().find(|r| outline(r).winding(Point::new(30.0, 30.0)) != 0).unwrap();
+    let (ids, ..) = flatten(&mut s, json!({"ids": [a, b]}));
+    let r = cmyk_region(&s, &ids);
+    let AppearanceItem::Fill(f) = &r.appearance.items[0] else { panic!() };
+    assert!(matches!(f.paint.color(), Some(Color::Cmyk { .. })) && f.overprint, "{:?}", f);
+    run(&mut s, "edit.undo", json!({}));
+    let (ids, ..) = flatten(&mut s, json!({"ids": [a, b], "preserveOverprints": false}));
+    let r = cmyk_region(&s, &ids);
+    let AppearanceItem::Fill(f) = &r.appearance.items[0] else { panic!() };
+    assert!(matches!(f.paint.color(), Some(Color::Rgb { .. })) && !f.overprint);
 }
 
 

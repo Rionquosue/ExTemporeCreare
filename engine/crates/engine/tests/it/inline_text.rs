@@ -90,7 +90,7 @@ fn svg_of(s: &mut vectorcraft_engine::Session, params: Value) -> String {
     v["text"]
         .as_str()
         .map(str::to_string)
-        .unwrap_or_else(|| String::from_utf8(vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap())
+        .unwrap_or_else(|| String::from_utf8(etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap())
 }
 
 #[test]
@@ -122,7 +122,7 @@ fn svg_keeps_live_text_and_draws_the_symbol() {
 fn pdf_draws_the_symbol_art() {
     let (mut s, id) = setup(true);
     let v = exec(&mut s, "document.serialize", json!({"format": "pdf"}));
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     let back = vectorcraft_pdf::import(&bytes).unwrap();
     let r = art_rect(&doc(&s), id);
     let img = raster::render_region(&back, Rect::new(0.0, 0.0, 200.0, 150.0), 2.0);
@@ -131,7 +131,7 @@ fn pdf_draws_the_symbol_art() {
     // Without it, nothing red.
     let (mut plain, _) = setup(false);
     let v = exec(&mut plain, "document.serialize", json!({"format": "pdf"}));
-    let back = vectorcraft_pdf::import(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let back = vectorcraft_pdf::import(&etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     let img = raster::render_region(&back, Rect::new(0.0, 0.0, 200.0, 150.0), 2.0);
     assert_eq!(img.count(|p| p[0] > 200 && p[1] < 80 && p[2] < 80 && p[3] > 200), 0);
 }

@@ -1,8 +1,8 @@
 //! Brush libraries (Window → Brush Libraries, the Brushes panel's library button): read-only sets
 //! of brushes the library panel shows. A library is a document holding the brushes with the
 //! resources their art uses (patterns, symbols, swatches, graphic styles, images); saved, it is a
-//! native `.vectorcraft` file, which File › Open also opens. The built-in libraries are generated
-//! here ([`BUILTIN`]); User Defined ones are the `.vectorcraft` files in the user library folder
+//! native `.etc` file, which File › Open also opens. The built-in libraries are generated
+//! here ([`BUILTIN`]); User Defined ones are the `.etc` files in the user library folder
 //! ([`Libraries`]), and Other Library… loads the brushes of any document VectorCraft opens.
 //! `brush.addFromLibrary` copies brushes into the document; `brush.saveLibrary` writes the
 //! document's.
@@ -28,7 +28,7 @@ use super::swatchlib::{FileData, LibraryFile, LibraryInfo, concealed_library_id,
 use super::{CommandSpec, Result, Session, always, bad, bool_or, cmd, has_doc, str_param};
 
 /// The extension of saved brush libraries: native documents.
-pub const BRUSHES_EXT: &str = vectorcraft_format::EXTENSION;
+pub const BRUSHES_EXT: &str = etcfile::EXTENSION;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -37,7 +37,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Brush Libraries",
             [],
             None,
-            "{} → {libraries: [{id, name, category: \"builtIn\"|\"user\" (User Defined: the .vectorcraft files in the user library folder, rescanned now)|\"loaded\" (brush.loadLibrary), count, path?}], userFolder} every brush library the library panel opens, in menu order",
+            "{} → {libraries: [{id, name, category: \"builtIn\"|\"user\" (User Defined: the .etc files in the user library folder, rescanned now)|\"loaded\" (brush.loadLibrary), count, path?}], userFolder} every brush library the library panel opens, in menu order",
             always,
             list
         ),
@@ -64,7 +64,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Save Brush Library…",
             ["Window", "Brushes"],
             None,
-            "{path?, names?: [brush names] (default: all), name?: library name (default: the document's), user?: false (save into the user library folder, listed under User Defined)} save the document's brushes, with the resources their art uses, as a brush library: a .vectorcraft document holding only them → {path, count, library?: id when saved to the user folder}; without path or user → {dataBase64: the file's bytes, count}",
+            "{path?, names?: [brush names] (default: all), name?: library name (default: the document's), user?: false (save into the user library folder, listed under User Defined)} save the document's brushes, with the resources their art uses, as a brush library: a .etc document holding only them → {path, count, library?: id when saved to the user folder}; without path or user → {dataBase64: the file's bytes, count}",
             has_doc,
             save
         ),
@@ -138,7 +138,7 @@ impl BrushLibrary {
 impl LibraryFile for BrushLibrary {
     const EXTS: &'static [&'static str] = &[BRUSHES_EXT];
     fn read(bytes: &[u8], stem: &str) -> std::result::Result<Self, String> {
-        let doc = vectorcraft_format::load(bytes).map_err(|e| e.to_string())?;
+        let doc = etcfile::load(bytes).map_err(|e| e.to_string())?;
         BrushLibrary::from_document(&doc, &[], stem.to_string())
     }
     fn name(&self) -> &str {
@@ -1336,7 +1336,7 @@ fn save(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(C, "the document has no brushes to save"));
     }
     let mut out = json!({ "count": lib.len() });
-    let bytes = vectorcraft_format::save_file(&lib.doc);
+    let bytes = etcfile::save_file(&lib.doc);
     s.brush_libraries.write(p, &lib.name, BRUSHES_EXT, FileData::Binary(bytes), &mut out, C)?;
     Ok(out)
 }

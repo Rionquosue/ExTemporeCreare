@@ -347,7 +347,7 @@ fn start_points_round_trip_and_old_blends_load() {
     let (a, b) = (rect(&mut s, 0.0, 0.0, 10.0), rect(&mut s, 100.0, 0.0, 10.0));
     s.execute("object.blend.make", &json!({"ids": [a.0, b.0], "starts": [null, 3]})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     // A blend saved before start points has none.
     let old: BlendSpec = serde_json::from_value(json!({"spacing": {"steps": 4}, "orientation": "alignToPage"})).unwrap();
@@ -378,7 +378,7 @@ fn easing_is_set_validated_saved_and_old_blends_are_even() {
         assert_eq!(s.doc().unwrap().history.undo.len(), depth);
     }
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     s.execute("object.blend.options", &json!({"ramp": 0})).unwrap();
     let zero = spec(&s, g).1;
@@ -396,7 +396,7 @@ fn a_document_with_bad_blend_easing_numbers_opens_clamped_while_commands_refuse(
     let (a, b) = (rect(&mut s, 0.0, 0.0, 10.0), rect(&mut s, 100.0, 0.0, 10.0));
     sel(&mut s, &[a, b]);
     let g = id_of(&s.execute("object.blend.make", &json!({"steps": 3, "easingType": "easeOut", "ramp": 40, "colorShift": -50})).unwrap());
-    let text = String::from_utf8(vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let text = String::from_utf8(etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let blend_of = |doc: &vectorcraft_doc::Document| match doc.node(g).unwrap().kind.clone() {
         NodeKind::Blend { spec, .. } => *spec,
         _ => panic!("not a blend"),
@@ -404,7 +404,7 @@ fn a_document_with_bad_blend_easing_numbers_opens_clamped_while_commands_refuse(
     for (ramp, shift, want) in [("12.5", "-9000.0", (1.0, -100.0)), ("-3.0", "250.0", (0.0, 100.0)), ("null", "\"NaN\"", (0.0, 0.0))] {
         let t = text.replacen("\"ramp\":0.4", &format!("\"ramp\":{ramp}"), 1).replacen("\"colorShift\":-50.0", &format!("\"colorShift\":{shift}"), 1);
         assert!(t != text && t.contains("\"ramp\":") && t.contains(shift), "the saved blend carries ramp and colorShift");
-        let doc = vectorcraft_format::load(t.as_bytes()).expect("one bad blend number must not fail the document");
+        let doc = etcfile::load(t.as_bytes()).expect("one bad blend number must not fail the document");
         let spec = blend_of(&doc);
         assert_eq!((spec.ease.ramp, spec.color_shift), want, "{ramp} / {shift}");
     }
@@ -768,7 +768,7 @@ fn whether_a_blend_has_a_spine_is_saved_and_old_blends_have_one() {
     let bare = make(&mut s, 0.0, json!({"createSpine": "never"}));
     let spined = make(&mut s, 50.0, json!({}));
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     let saved = |g: NodeId| match &back.node(g).unwrap().kind {
         NodeKind::Blend { spec, .. } => spec.no_spine,

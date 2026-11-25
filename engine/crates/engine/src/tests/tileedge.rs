@@ -34,8 +34,8 @@ fn show_swatch_bounds_is_a_pattern_option_that_saves() {
     assert!(!def(&s).show_swatch_bounds);
     run(&mut s, "edit.redo", json!({}));
     // Saved with the document; files from before the option load with it off.
-    let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(&s.doc().unwrap().doc, false);
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.patterns, s.doc().unwrap().doc.patterns);
     assert!(back.pattern("Dots").unwrap().show_swatch_bounds);
     let mut old = serde_json::to_value(def(&s)).unwrap();

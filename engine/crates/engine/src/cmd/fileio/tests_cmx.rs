@@ -58,7 +58,7 @@ fn detection_by_content_and_place() {
     assert_eq!(detect("drawing.png", &bytes).map(|f| f.id), Some("cmx"));
     assert_eq!(detect("drawing.cmx", b"").map(|f| f.id), Some("cmx"));
     s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-    s.execute("file.place", &json!({"name":"art.cmx", "dataBase64":vectorcraft_format::base64_encode(&bytes)})).unwrap();
+    s.execute("file.place", &json!({"name":"art.cmx", "dataBase64":etcfile::base64::encode(&bytes)})).unwrap();
     assert!(s.doc().unwrap().doc.layers.iter().any(|l| !l.children().unwrap().is_empty()));
     let f = format("cmx").unwrap();
     assert!(f.read && !f.write);

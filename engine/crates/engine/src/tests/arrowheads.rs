@@ -247,9 +247,9 @@ fn a_document_keeps_its_custom_heads_without_the_arrowheads_file() {
     };
     let with_head = ink(&s);
     // Saved and opened in a session that has no arrowheads file: the head is drawn the same.
-    let saved = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
+    let saved = s.execute("document.export", &json!({"format": "etc"})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "a.vectorcraft", "dataBase64": saved})).unwrap();
+    o.execute("document.open", &json!({"name": "a.etc", "dataBase64": saved})).unwrap();
     assert_eq!(stroke(&o, id).start_arrow, Some(head));
     assert_eq!(ink(&o).pixels, with_head.pixels);
     // SVG and PDF write it as they write the built-in heads.
@@ -309,7 +309,7 @@ fn an_agent_outside_the_arrowheads_files_folder_sees_its_file_name_alone_and_can
     assert_eq!(list["file"].as_str(), Some(file.as_str()));
     assert!(list["error"].as_str().unwrap().starts_with(&file), "{list}");
     // A good file now: an agent outside the folder cannot have it read.
-    std::fs::write(&file, vectorcraft_format::save_file(&arrowheads::starter())).unwrap();
+    std::fs::write(&file, etcfile::save_file(&arrowheads::starter())).unwrap();
     let e = crate::file_access::confine(Some(&outside), || s.execute("stroke.arrowheads.reload", &json!({}))).unwrap_err().to_string();
     assert!(e.contains("outside the read root") && e.ends_with(arrowheads::FILE_NAME) && !e.contains(&prefs_text), "{e}");
     let list = s.execute("stroke.arrowheads.list", &json!({})).unwrap();
@@ -395,7 +395,7 @@ fn an_arrowheads_file_that_unpacks_past_the_size_limit_is_not_read() {
     let file = dir.join(arrowheads::FILE_NAME);
     let mut d = arrowheads::starter();
     d.title = "a".repeat(arrowheads::MAX_FILE_BYTES as usize);
-    let bytes = vectorcraft_format::save_with(&d, &vectorcraft_format::SaveOptions { compress: true, ..Default::default() }).unwrap();
+    let bytes = etcfile::save_with(&d, &etcfile::SaveOptions::default()).unwrap();
     assert!((bytes.len() as u64) < arrowheads::MAX_FILE_BYTES / 16, "compressed small: {}", bytes.len());
     std::fs::write(&file, &bytes).unwrap();
     let mut s = Session::new();
@@ -404,7 +404,7 @@ fn an_arrowheads_file_that_unpacks_past_the_size_limit_is_not_read() {
     assert!(list["arrowheads"].as_array().unwrap().is_empty(), "{}", list["arrowheads"]);
     assert!(list["error"].is_string(), "{}", list["error"]);
     // The same head in a file of an ordinary size is read.
-    std::fs::write(&file, vectorcraft_format::save_file(&arrowheads::starter())).unwrap();
+    std::fs::write(&file, etcfile::save_file(&arrowheads::starter())).unwrap();
     assert_eq!(s.execute("stroke.arrowheads.reload", &json!({})).unwrap()["count"], 1);
     let _ = std::fs::remove_dir_all(&dir);
 }

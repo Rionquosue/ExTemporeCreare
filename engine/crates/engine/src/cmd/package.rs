@@ -24,7 +24,7 @@ pub fn specs() -> Vec<CommandSpec> {
         "Package",
         [],
         None,
-        "{folder?, name?: (default: \"<document> Folder\"), copyLinks?: true, linksFolder?: true (the linked files go in Links/, else next to the document), relink?: true (the packaged document links to the copies), copyFonts?: true (the fonts its type uses go in Fonts/; fonts whose licence doesn't allow embedding are left out), report?: true (<document> Report.txt)} copy the saved document as it is now into folder/name as <document>.vectorcraft with its linked files and fonts; the open document doesn't change → {folder, files: [paths relative to folder/name], links, fonts (counts copied), missingLinks: [file names not found], skippedFonts: [{font, reason}], warnings: [nested files copied unchanged or cycles/depth stopped]}; no folder → the same with {name: \"<name>.zip\", dataBase64} (a zip of the files in <name>/) instead of folder. The warnings and the report name a file outside the automation read roots by its file name. Under automation read roots, the package is refused, before any file is written, while the document, or a linked native document or a linked PDF, .ai or EPS file's native document, links a JavaScript file outside them (svgInteractivity; a URL is not checked), or while a linked native document, or a linked PDF, .ai or EPS file that carries one, can't be read to check it (a damaged file, or a PDF that needs a password to open); a PDF or EPS file without editing data is copied",
+        "{folder?, name?: (default: \"<document> Folder\"), copyLinks?: true, linksFolder?: true (the linked files go in Links/, else next to the document), relink?: true (the packaged document links to the copies), copyFonts?: true (the fonts its type uses go in Fonts/; fonts whose licence doesn't allow embedding are left out), report?: true (<document> Report.txt)} copy the saved document as it is now into folder/name as <document>.etc with its linked files and fonts; the open document doesn't change → {folder, files: [paths relative to folder/name], links, fonts (counts copied), missingLinks: [file names not found], skippedFonts: [{font, reason}], warnings: [nested files copied unchanged or cycles/depth stopped]}; no folder → the same with {name: \"<name>.zip\", dataBase64} (a zip of the files in <name>/) instead of folder. The warnings and the report name a file outside the automation read roots by its file name. Under automation read roots, the package is refused, before any file is written, while the document, or a linked native document or a linked PDF, .ai or EPS file's native document, links a JavaScript file outside them (svgInteractivity; a URL is not checked), or while a linked native document, or a linked PDF, .ai or EPS file that carries one, can't be read to check it (a damaged file, or a PDF that needs a password to open); a PDF or EPS file without editing data is copied",
         has_doc,
         package
     )]
@@ -108,7 +108,7 @@ type PlacedPages = Vec<(u32, bool, vectorcraft_doc::PageBox)>;
 thread_local! {
     /// Tests: how many placed PDF or `.ai` pages [`page_fonts`] read on this thread.
     pub(crate) static PAGES_READ: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
-    /// Tests: how many linked `.vectorcraft` files had their preview and PDF read on this thread,
+    /// Tests: how many linked `.etc` files had their preview and PDF read on this thread,
     /// to keep them in the rewritten copy.
     pub(crate) static PARTS_READ: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
@@ -131,9 +131,9 @@ enum Carried {
 /// The native document that the linked file `name` (`bytes`) is, or carries as the editing data of
 /// a PDF, `.ai` or EPS file.
 fn carried_document(name: &str, bytes: &[u8]) -> Carried {
-    let read = |data: &[u8]| vectorcraft_format::load(data).map_or(Carried::Unreadable, |d| Carried::Readable(Box::new(d)));
+    let read = |data: &[u8]| etcfile::load(data).map_or(Carried::Unreadable, |d| Carried::Readable(Box::new(d)));
     if super::place::document::is_native(name, bytes) {
-        return vectorcraft_format::load_file(bytes).map_or(Carried::Unreadable, |f| Carried::Readable(Box::new(f.doc)));
+        return etcfile::load_file(bytes).map_or(Carried::Unreadable, |f| Carried::Readable(Box::new(f.doc)));
     }
     if super::place::document::is_pdf(name, bytes) {
         // A PDF that can't be opened may carry editing data all the same.
@@ -395,9 +395,8 @@ impl<'a> Collector<'a> {
                     if depth >= vectorcraft_doc::placed_document::MAX_DEPTH {
                         self.warn(&mut lines, format!("{shown}: nesting limit reached; copied unchanged without collecting its own links"));
                     } else {
-                        match vectorcraft_format::load_file(&bytes) {
+                        match etcfile::load_file(&bytes) {
                             Ok(saved) => {
-                                let compressed = bytes.starts_with(&[0x1f, 0x8b]);
                                 let include_linked =
                                     saved.doc.linked_only_images().iter().any(|key| saved.doc.images.get(key).is_some_and(|blob| !blob.is_proxy()));
                                 let mut nested = saved.doc;
@@ -406,14 +405,13 @@ impl<'a> Collector<'a> {
                                     #[cfg(test)]
                                     PARTS_READ.with(|c| c.set(c.get() + 1));
                                     // Preserve auxiliary native-file content when rewriting.
-                                    let mut options = vectorcraft_format::SaveOptions::for_doc(&nested);
-                                    options.preview = vectorcraft_format::preview(&bytes);
-                                    options.pdf = vectorcraft_format::pdf_content(&bytes);
+                                    let mut options = etcfile::SaveOptions::for_doc(&nested);
+                                    options.thumbnail = etcfile::thumbnail(&bytes);
+                                    options.merged_image = etcfile::merged_image(&bytes);
                                     options.profiles = saved.profiles;
-                                    options.compress = compressed;
                                     options.include_linked = include_linked;
                                     let nested = super::fileio::with_readable_settings_folder(&nested);
-                                    match vectorcraft_format::save_with(&nested, &options) {
+                                    match etcfile::save_with(&nested, &options) {
                                         Ok(rewritten) => bytes = rewritten,
                                         Err(e) => self.warn(
                                             &mut lines,
@@ -566,7 +564,7 @@ fn prepare(s: &mut Session, p: &Value) -> Result<Package> {
     let folder = text_param(p, "folder", C)?;
     let doc_path = s.doc()?.path.clone().ok_or_else(|| bad(C, "save the document first: Package collects a saved document"))?;
     // Before anything is collected or written, here where the request's read roots are in force.
-    super::fileio::check_linked_scripts(C, "vectorcraft", s.doc()?, &Value::Null)?;
+    super::fileio::check_linked_scripts(C, "etc", s.doc()?, &Value::Null)?;
     let stem = Path::new(&doc_path).file_stem().map_or_else(|| "Untitled".into(), |s| s.to_string_lossy().into_owned());
     let name = given_name.map_or_else(|| format!("{stem} Folder"), str::to_string);
     if name.trim().is_empty() || name == "." || name == ".." || name.contains(['/', '\\', ':', '*', '?', '"', '<', '>', '|']) {
@@ -595,7 +593,7 @@ impl Package {
 fn collect_and_write(package: Package, write: &mut dyn FnMut(&str, &[u8]) -> Result<()>) -> Result<Value> {
     let Package { o, doc_path, links_from, stem, name, root, info, doc: original, scope: _ } = package;
     let mut doc = (*original).clone();
-    let doc_name = format!("{stem}.{}", vectorcraft_format::EXTENSION);
+    let doc_name = format!("{stem}.{}", etcfile::EXTENSION);
     let base = LinkBase { doc: Some(&doc_path), relative: Some(&links_from) };
     // After a save in another folder, links found away from their paths take the paths where they
     // were found, as a copy of the document has them.
@@ -615,7 +613,7 @@ fn collect_and_write(package: Package, write: &mut dyn FnMut(&str, &[u8]) -> Res
     // The files are looked for where the links name them before the rebasing above.
     collector.collect(&mut doc, &doc_path, &doc_name, 0, false, Some((looked, base)))?;
     let mut entries = std::mem::take(&mut collector.entries);
-    entries.insert(0, (doc_name.clone(), vectorcraft_format::save_file(&doc)));
+    entries.insert(0, (doc_name.clone(), etcfile::save_file(&doc)));
     let mut taken = std::mem::take(&mut collector.taken);
     let lines = collector.sections.concat();
     let missing = std::mem::take(&mut collector.missing);
@@ -655,7 +653,7 @@ fn collect_and_write(package: Package, write: &mut dyn FnMut(&str, &[u8]) -> Res
             let zip = zip(&named)?;
             out["name"] = json!(format!("{name}.zip"));
             out["bytes"] = json!(zip.len());
-            out["dataBase64"] = json!(vectorcraft_format::base64_encode(&zip));
+            out["dataBase64"] = json!(etcfile::base64::encode(&zip));
         }
     }
     Ok(out)

@@ -282,9 +282,9 @@ fn a_move_that_changes_nothing_records_nothing_and_orders_survive_undo_and_save(
     assert_eq!(order(&s), [c, a, b]);
     s.execute("edit.redo", &json!({})).unwrap();
     assert_eq!(order(&s), [c, b, a]);
-    let data = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
+    let data = s.execute("document.export", &json!({"format": "etc"})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "rings.vectorcraft", "dataBase64": data})).unwrap();
+    o.execute("document.open", &json!({"name": "rings.etc", "dataBase64": data})).unwrap();
     assert_eq!(order_at(&o.doc().unwrap().doc, g, 50.0, 30.0), [c, b, a]);
     assert!(red(&render(&o), 50, 30) && blue(&render(&o), 50, 70));
     // Expand draws the same.
@@ -416,7 +416,7 @@ fn the_woven_rings_survive_save_and_export() {
     let mut s = session();
     intertwined(&mut s);
     arrange(&mut s, json!({"at": [50, 30]}));
-    for format in ["vectorcraft", "svg", "pdf"] {
+    for format in ["etc", "svg", "pdf"] {
         let data = s.execute("document.export", &json!({"format": format})).unwrap()["dataBase64"].clone();
         let mut o = Session::new();
         o.execute("document.open", &json!({"name": format!("rings.{format}"), "dataBase64": data})).unwrap();
@@ -501,7 +501,7 @@ fn layer_move_adds_a_member_without_losing_existing_weave() {
     // A live member: its overlap with B can be arranged.
     assert_eq!(arrange(&mut s, json!({"id": g.0, "at": [90, 50]}))["count"], 1);
     assert!(blue(&render(&s), 90, 50));
-    for format in ["vectorcraft", "svg"] {
+    for format in ["etc", "svg"] {
         let data = s.execute("document.export", &json!({"format": format})).unwrap()["dataBase64"].clone();
         let mut o = Session::new();
         o.execute("document.open", &json!({"name": format!("woven.{format}"), "dataBase64": data})).unwrap();

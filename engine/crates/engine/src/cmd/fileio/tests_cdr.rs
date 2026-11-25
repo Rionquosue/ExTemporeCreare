@@ -109,7 +109,7 @@ fn versions_3_and_4_open_and_place_as_editable_art() {
         assert!((stroke.width - 2.0).abs() < 0.05, "{version}: {}", stroke.width);
         assert_eq!((stroke.cap, stroke.join), (LineCap::Round, LineJoin::Round), "{version}");
         s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-        s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)})).unwrap();
+        s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":etcfile::base64::encode(&bytes)})).unwrap();
         assert!(s.doc().unwrap().doc.layers.iter().any(|l| !l.children().unwrap().is_empty()), "{version}");
     }
 }
@@ -152,7 +152,7 @@ fn versions_1_and_2_open_and_place_as_editable_art() {
         assert!((path.bounds().unwrap().width() - 100.0).abs() < 0.2);
         assert_eq!(doc.color_mode, vectorcraft_doc::ColorMode::Cmyk);
         s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-        s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)})).unwrap();
+        s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":etcfile::base64::encode(&bytes)})).unwrap();
         assert!(s.doc().unwrap().doc.layers.iter().any(|l| !l.children().unwrap().is_empty()));
     }
     // The two letters alone are not taken for a drawing.
@@ -230,13 +230,13 @@ fn detection_by_content_place_and_template() {
     assert_eq!(r["format"], "cdt");
     assert!(s.doc().unwrap().path.is_none(), "a template opens untitled");
     s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-    s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":vectorcraft_format::base64_encode(&bytes)})).unwrap();
+    s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":etcfile::base64::encode(&bytes)})).unwrap();
     assert!(s.doc().unwrap().doc.layers.iter().any(|l| !l.children().unwrap().is_empty()));
     // Packages place too.
     for version in [1400, 2700] {
         s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
         let package = synth::sample_file(version, true);
-        s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":vectorcraft_format::base64_encode(&package)})).unwrap();
+        s.execute("file.place", &json!({"name":"art.cdr", "dataBase64":etcfile::base64::encode(&package)})).unwrap();
         assert!(s.doc().unwrap().doc.layers.iter().any(|l| !l.children().unwrap().is_empty()), "{version}");
     }
     for ext in ["cdr", "cdt"] {

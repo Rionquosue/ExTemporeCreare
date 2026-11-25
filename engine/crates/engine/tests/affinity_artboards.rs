@@ -88,7 +88,7 @@ fn nested_boards_keep_order_and_negative_origins_at_document_resolution() {
         assert_eq!(boards[0].rect, Rect::new(-20.0, -10.0, 30.0, 20.0));
         assert_eq!(boards[1].rect, Rect::new(-15.0, -7.5, -5.0, -2.5));
         assert_eq!(boards[2].rect, Rect::new(75.0, 0.0, 95.0, 40.0));
-        let reopened = vectorcraft_format::load_file(&vectorcraft_format::save_file(&loaded.doc)).unwrap();
+        let reopened = etcfile::load_file(&etcfile::save_file(&loaded.doc)).unwrap();
         assert_eq!(reopened.doc.artboards, loaded.doc.artboards);
         assert_eq!(reopened.doc.layers, loaded.doc.layers);
     }

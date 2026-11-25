@@ -164,13 +164,13 @@ fn compound_shapes_survive_a_save() {
     let (mut s, _, front) = two_squares();
     let id = NodeId(run(&mut s, "object.compoundShape.make", json!({"mode": "subtract"}))["id"].as_u64().unwrap());
     let doc = s.doc().unwrap().doc.clone();
-    let bytes = vectorcraft_format::save(&doc, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(&doc, false);
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(back.node(id), doc.node(id));
     assert!(back.node(id).unwrap().is_compound_shape());
     assert_eq!(back.node(front).unwrap().extras().shape_mode, ShapeMode::Subtract);
     let text = String::from_utf8(bytes).unwrap().replace("\"shape_mode\":\"subtract\"", "\"shape_mode\":\"divide\"");
-    let odd = vectorcraft_format::load(text.as_bytes()).unwrap();
+    let odd = etcfile::load(text.as_bytes()).unwrap();
     assert_eq!(odd.node(front).unwrap().extras().shape_mode, ShapeMode::Add);
 }
 
@@ -241,7 +241,7 @@ fn a_blend_is_a_member_as_its_steps() {
         run(&mut s, "object.blend.options", json!({"spacing": "steps", "value": 3}));
         assert!((drawn(&s, id) - more).abs() < 0.5, "{mode}, three steps: {}", drawn(&s, id));
         let doc = s.doc().unwrap().doc.clone();
-        let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+        let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
         assert_eq!(back.node(id), doc.node(id));
         assert!((area(&effects::compound_shape_area(None, back.node(id).unwrap(), None).unwrap()) - more).abs() < 0.5);
         run(&mut s, "select.set", json!({"ids": [id.0]}));

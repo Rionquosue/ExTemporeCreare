@@ -209,8 +209,8 @@ fn feature_values_are_set_replaced_and_saved() {
     range(&mut s, json!({"featureChanges": ["salt=1"]})).unwrap();
     assert_eq!(features(&s)[1].1, ["ss01", "salt"], "salt=1 is a plain salt");
     range(&mut s, json!({"featureChanges": ["salt=2"]})).unwrap();
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-    let back = vectorcraft_format::load(&saved).unwrap();
+    let saved = etcfile::save(&s.doc().unwrap().doc, false);
+    let back = etcfile::load(&saved).unwrap();
     let Some(NodeKind::Text(t)) = back.node(id).map(|n| &n.kind) else { panic!("the text survives") };
     assert_eq!(t.runs[1].style.features, ["ss01", "salt=2"], "the native format keeps the string");
     assert!(String::from_utf8_lossy(&saved).contains("\"salt=2\""));
@@ -297,8 +297,8 @@ fn optical_command_manual_pair_undo_redo_and_native_reopen() {
     let styled = obj(&s, id);
     assert_eq!(styled.runs.iter().map(|r| r.style.kerning).collect::<Vec<_>>(), vec![None, Some(0.0), None]);
     assert!(styled.runs.iter().all(|r| r.style.optical_kerning));
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
-    let opened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save_file(&s.doc().unwrap().doc);
+    let opened = etcfile::load(&bytes).unwrap();
     let NodeKind::Text(reopened) = &opened.node(id).unwrap().kind else { panic!("text missing") };
     assert_eq!(
         reopened.runs.iter().map(|r| (r.style.optical_kerning, r.style.kerning)).collect::<Vec<_>>(),
@@ -958,7 +958,7 @@ fn touch_type_moves_a_character_turned_near_a_quarter_turn_across_its_line() {
             s.execute("edit.redo", &json!({})).unwrap();
             s.execute("edit.undo", &json!({})).unwrap();
             // The native format keeps both attributes and the place they give.
-            let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+            let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
             let NodeKind::Text(reopened) = &back.node(id).unwrap().kind else { panic!("not text") };
             assert_eq!(reopened.runs, obj(&s, id).runs, "{case}");
             let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), reopened);
@@ -3393,8 +3393,8 @@ fn a_glyph_alternate_replaces_one_character_through_undo_and_reopen() {
     assert_ne!(outlines(&mut s), default, "Create Outlines draws the chosen glyph");
 
     // Native files keep the choice.
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
-    let opened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save_file(&s.doc().unwrap().doc);
+    let opened = etcfile::load(&bytes).unwrap();
     let NodeKind::Text(reopened) = &opened.node(id).unwrap().kind else { panic!("text missing") };
     assert_eq!(gids(reopened), [g('x'), g('a'), u1, g('y')], "reopened");
     // A font that is not installed draws the fallback font's default glyph.
@@ -3922,8 +3922,8 @@ fn a_contextual_fallback_glyph_choice_draws_through_undo_and_reopen() {
         wrong_face.runs.iter_mut().find(|r| r.style.glyph_alternate.is_some()).unwrap().style.glyph_alternate = Some(primary.choice(CH, alternate));
         assert_eq!(drawn(&wrong_face), Some((fallback.id(), default)), "another face's choice is not drawn");
 
-        let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
-        let reopened = vectorcraft_format::load(&bytes).unwrap();
+        let bytes = etcfile::save_file(&s.doc().unwrap().doc);
+        let reopened = etcfile::load(&bytes).unwrap();
         let NodeKind::Text(reopened) = &reopened.node(id).unwrap().kind else { panic!("text missing") };
         assert_eq!(drawn(reopened), Some((fallback.id(), alternate)), "native restore retains the face and glyph");
         s.execute("edit.undo", &json!({})).unwrap();

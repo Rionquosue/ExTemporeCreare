@@ -1522,7 +1522,7 @@ fn halves_image(s: &mut Session, w: u32, h: u32, left: [u8; 4], right: [u8; 4]) 
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    let r = run(s, "file.place", json!({"name": "halves.png", "dataBase64": vectorcraft_format::base64_encode(&png)}));
+    let r = run(s, "file.place", json!({"name": "halves.png", "dataBase64": etcfile::base64::encode(&png)}));
     let id = NodeId(r["ids"][0].as_u64().unwrap());
     let b = s.doc().unwrap().doc.node(id).unwrap().visual_bounds().unwrap();
     (id, b)
@@ -1701,7 +1701,7 @@ fn theme_picker_reads_the_color_of_a_colorized_image() {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    let r = run(&mut s, "file.place", json!({"name": "gray.png", "dataBase64": vectorcraft_format::base64_encode(&png)}));
+    let r = run(&mut s, "file.place", json!({"name": "gray.png", "dataBase64": etcfile::base64::encode(&png)}));
     let id = NodeId(r["ids"][0].as_u64().unwrap());
     let b = s.doc().unwrap().doc.node(id).unwrap().visual_bounds().unwrap();
     let at = json!({"picks": [{"at": [(b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0]}]});
@@ -1790,7 +1790,7 @@ fn theme_picker_reads_an_image_inside_its_clipping_path() {
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    let r = run(&mut s, "file.place", json!({"name": "corners.png", "dataBase64": vectorcraft_format::base64_encode(&png)}));
+    let r = run(&mut s, "file.place", json!({"name": "corners.png", "dataBase64": etcfile::base64::encode(&png)}));
     let id = NodeId(r["ids"][0].as_u64().unwrap());
     let b = s.doc().unwrap().doc.node(id).unwrap().visual_bounds().unwrap();
     let all = json!({"picks": [{"rect": [b.x0, b.y0, b.x1, b.y1]}]});

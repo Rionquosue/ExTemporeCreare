@@ -3,7 +3,7 @@
 use serde_json::{Value, json};
 use vectorcraft_doc::RulerMode;
 use vectorcraft_engine::Session;
-use vectorcraft_format::{SaveOptions, load, save, save_with};
+use etcfile::{SaveOptions, load, save, save_with};
 
 fn session() -> Session {
     let mut s = Session::new();
@@ -65,18 +65,16 @@ fn reset_uses_the_requested_artboards_top_left_and_ignores_noops() {
 }
 
 #[test]
-fn native_versions_and_compression_keep_the_origin_and_old_files_default_to_zero() {
+fn native_files_keep_the_origin() {
     let mut s = session();
-    let legacy = String::from_utf8(save(&s.doc().unwrap().doc, false)).unwrap().replacen("\"format\":\"vectorcraft\"", "\"format\":\"drawcraft\"", 1);
-    assert!(serde_json::to_value(load(legacy.as_bytes()).unwrap()).unwrap().get("ruler_origin").is_none());
     let p = json!({"x": -12.5, "y": 27.75});
     s.execute("document.setRulerOrigin", &p).unwrap();
     let doc = &s.doc().unwrap().doc;
-    for (version, compress) in [(1, false), (2, false), (3, false), (4, false), (4, true)] {
-        let bytes = save_with(doc, &SaveOptions { version, compress, ..Default::default() }).unwrap();
+    for pretty in [false, true] {
+        let bytes = save_with(doc, &SaveOptions { pretty, ..Default::default() }).unwrap();
         let back = load(&bytes).unwrap();
-        assert_eq!(back.ruler_origin_for(0), doc.ruler_origin_for(0), "v{version}, compression {compress}");
-        assert_eq!((back.rulers, &back.artboard_ruler_origins), (doc.rulers, &doc.artboard_ruler_origins), "v{version}, compression {compress}");
+        assert_eq!(back.ruler_origin_for(0), doc.ruler_origin_for(0), "pretty {pretty}");
+        assert_eq!((back.rulers, &back.artboard_ruler_origins), (doc.rulers, &doc.artboard_ruler_origins), "pretty {pretty}");
         assert_eq!(back.layers, doc.layers);
         assert_eq!(back.ruler_guides(), doc.ruler_guides());
     }

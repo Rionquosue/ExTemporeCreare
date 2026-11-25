@@ -21,7 +21,7 @@ use vectorcraft_pathops::BoolOp;
 use super::{CommandSpec, EngineError, Result, Session, always, bad, cmd};
 
 /// The arrowheads file's name, in the folder of the preferences.
-pub const FILE_NAME: &str = "Arrowheads.vectorcraft";
+pub const FILE_NAME: &str = "Arrowheads.etc";
 /// The largest arrowheads file read, and the most its document or its images may unpack to when
 /// compressed.
 pub const MAX_FILE_BYTES: u64 = 64 << 20;
@@ -398,7 +398,7 @@ pub(super) fn read(path: &str) -> std::result::Result<Option<Document>, String> 
     let bytes = crate::file_access::unconfined(|| super::fileio::read_file(path)).map_err(|e| e.to_string())?;
     // A compressed file's document, and its images, may unpack to no more than an uncompressed
     // file may hold.
-    let parse = || vectorcraft_format::load_file_capped(&bytes, MAX_FILE_BYTES).map(|f| f.doc).map_err(|e| format!("{path}: {e}"));
+    let parse = || etcfile::load_file_capped(&bytes, MAX_FILE_BYTES).map(|f| f.doc).map_err(|e| format!("{path}: {e}"));
     crate::guard::catch_panic(parse).map_err(|_| format!("{path}: could not be read"))?.map(Some)
 }
 
@@ -457,7 +457,7 @@ fn edit(s: &mut Session, _: &Value) -> Result<Value> {
         std::fs::create_dir_all(&*dir).map_err(|e| super::fileio::naming_in_error(bad(C, format!("{dir}: {e}")), &dir))?;
     }
     // Made only when no file is there, also when another run makes one at the same moment.
-    let bytes = vectorcraft_format::save_file(&starter());
+    let bytes = etcfile::save_file(&starter());
     let created = match crate::file_access::unconfined(|| super::fileio::write_new_file(&path, &bytes)) {
         Ok(()) => true,
         Err(_) if std::path::Path::new(&path).exists() => false,

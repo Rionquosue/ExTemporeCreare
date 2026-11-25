@@ -12,7 +12,7 @@ fn session(width: f64, height: f64, artboards: usize) -> Session {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 fn rgba(bytes: &[u8]) -> image::RgbaImage {
@@ -132,7 +132,7 @@ fn formats_list_use_artboards() {
         assert!(opts(id).get("useArtboards").is_some(), "{id} lists useArtboards");
         assert!(opts(id).get("range").is_some(), "{id} lists range");
     }
-    assert!(opts("vectorcraft").get("useArtboards").is_none());
+    assert!(opts("etc").get("useArtboards").is_none());
 }
 
 /// An export's reply gives what the file loses before its notes on the options: the type the
@@ -169,6 +169,66 @@ fn unused(r: &Value) -> Vec<String> {
     r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).filter(|w| w.contains("was not used")).map(str::to_string).collect()
 }
 
+/// An option that only another format reads is accepted, and the reply's warnings name it in the
+/// words of a save's note; `document.export`, `document.serialize` and `document.exportSelection`
+/// give the same note.
+#[test]
+fn an_option_only_another_format_reads_gets_a_note() {
+    let (mut s, notes) = (with_art(), unused);
+    for cmd in ["document.export", "document.serialize", "document.exportSelection"] {
+        let r = s.execute(cmd, &json!({"format": "pdf", "quality": 80, "outlineText": true})).unwrap();
+        assert_eq!(
+            notes(&r),
+            ["`outlineText` was not used: PDF files don't read it", "`quality` was not used: PDF files don't read it"],
+            "{cmd}: {r}"
+        );
+    }
+    // The format's own options, the keys every export takes and null values get none.
+    for p in [
+        json!({"format": "jpg", "quality": 80, "scale": 2}),
+        json!({"format": "ai", "compatibility": "1.7"}),
+        json!({"format": "pdf", "quality": null, "selectedOnly": false, "includeArtboardFill": false, "useArtboards": true}),
+        json!({"format": "svg", "outlineText": true, "svg": {"decimals": 2}}),
+    ] {
+        let r = s.execute("document.export", &p).unwrap();
+        assert!(notes(&r).is_empty(), "{p}: {r}");
+    }
+    let r = s.execute("document.serialize", &json!({"format": "png", "marks": {"trim": true}, "svg": {"minify": true}})).unwrap();
+    assert_eq!(
+        notes(&r),
+        [
+            "`compress` was not used: PNG files don't read it",
+            "`marks` was not used: PNG files don't read it",
+            "`svg` was not used: PNG files don't read it"
+        ],
+        "{r}"
+    );
+    // The note names the kind of file written, as a save's does.
+    let r = s.execute("document.export", &json!({"format": "ai", "quality": 80})).unwrap();
+    assert_eq!(notes(&r), ["`quality` was not used: non-PDF-compatible .ai files don't read it"], "{r}");
+    let r = s.execute("document.export", &json!({"format": "pdf", "preserveEditing": false, "range": "1"})).unwrap();
+    assert!(notes(&r).is_empty(), "{r}");
+    let r = s.execute("document.export", &json!({"format": "etc", "artboard": 0})).unwrap();
+    assert_eq!(notes(&r), ["`artboard` was not used: VectorCraft files don't read it"], "{r}");
+}
+
+/// An export writes one file: only a save writes each artboard to a file of its own, so an export
+/// notes `separateArtboards`, and the `range` that names those files for a native file.
+#[test]
+fn an_export_notes_the_options_that_only_a_save_reads() {
+    let (mut s, notes) = (with_art(), unused);
+    let r = s.execute("document.export", &json!({"format": "ai", "separateArtboards": true, "range": "1"})).unwrap();
+    assert_eq!(notes(&r), ["`separateArtboards` was not used: PDF-compatible .ai files don't read it"], "{r}");
+    for (format, label) in [("etc", "VectorCraft"), ("template", "VectorCraft Template")] {
+        let r = s.execute("document.export", &json!({"format": format, "separateArtboards": true, "range": "1"})).unwrap();
+        assert_eq!(
+            notes(&r),
+            [format!("`range` was not used: {label} files don't read it"), format!("`separateArtboards` was not used: {label} files don't read it")],
+            "{r}"
+        );
+    }
+}
+
 
 
 
@@ -190,7 +250,7 @@ fn note_texts_give_the_losses_first_each_kind_in_order() {
 #[test]
 fn a_save_notes_an_option_beside_the_path_that_only_another_save_format_takes() {
     let (mut s, notes) = (with_art(), unused);
-    let r = s.execute("file.saveCopy", &json!({"format": "vectorcraft", "marks": {"trim": true}, "svg": {"minify": true}})).unwrap();
+    let r = s.execute("file.saveCopy", &json!({"format": "etc", "marks": {"trim": true}, "svg": {"minify": true}})).unwrap();
     assert_eq!(notes(&r), ["`marks` was not used: VectorCraft files don't read it", "`svg` was not used: VectorCraft files don't read it"], "{r}");
 }
 

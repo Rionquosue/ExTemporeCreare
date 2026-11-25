@@ -342,7 +342,7 @@ fn export_3d(s: &mut Session, p: &Value) -> Result<Value> {
                 write_file(&path, &archive)?;
                 Ok(json!({ "path": path, "bytes": archive.len(), "files": names }))
             }
-            None => Ok(json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(&archive), "bytes": archive.len(), "files": names })),
+            None => Ok(json!({ "name": name, "dataBase64": etcfile::base64::encode(&archive), "bytes": archive.len(), "files": names })),
         };
     }
     match folder {
@@ -358,7 +358,7 @@ fn export_3d(s: &mut Session, p: &Value) -> Result<Value> {
         }
         None => {
             let files: Vec<Value> =
-                files.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })).collect();
+                files.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": etcfile::base64::encode(bytes) })).collect();
             Ok(json!({ "files": files }))
         }
     }

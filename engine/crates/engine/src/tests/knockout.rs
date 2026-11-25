@@ -108,12 +108,12 @@ fn knockout_settings_round_trip_and_old_bools_load() {
     run(&mut s, "transparency.set", json!({"ids": [child], "knockout": "on", "knockoutShape": true}));
     run(&mut s, "transparency.togglePageIsolatedBlending", json!({}));
     run(&mut s, "transparency.togglePageKnockoutGroup", json!({}));
-    let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(&s.doc().unwrap().doc, false);
+    let back = etcfile::load(&bytes).unwrap();
     let (bg, bc) = (back.node(NodeId(g)).unwrap(), back.node(NodeId(child)).unwrap());
     assert_eq!((bg.knockout, bc.knockout, bc.knockout_shape, back.page_isolate, back.page_knockout), (Knockout::Off, Knockout::On, true, true, true));
     // Defaults are not written.
-    let text = String::from_utf8(vectorcraft_format::save(&session().doc().unwrap().doc, false)).unwrap();
+    let text = String::from_utf8(etcfile::save(&session().doc().unwrap().doc, false)).unwrap();
     assert!(!text.contains("knockout") && !text.contains("page_isolate"), "{text}");
     // Files from before the three states stored a bool: true is On, false is Neutral.
     let mut v: Value = serde_json::from_slice(&bytes).unwrap();
@@ -133,7 +133,7 @@ fn knockout_settings_round_trip_and_old_bools_load() {
     }
     patch(&mut v, &mut patched);
     assert_eq!(patched, 2);
-    let old = vectorcraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let old = etcfile::load(&serde_json::to_vec(&v).unwrap()).unwrap();
     assert_eq!((old.node(NodeId(g)).unwrap().knockout, old.node(NodeId(child)).unwrap().knockout), (Knockout::Neutral, Knockout::On));
 }
 

@@ -392,5 +392,5 @@ fn thumbnail(doc: &Document, p: &Value) -> Result<String> {
     let size = number_or(p, "thumbnailSize", 160.0, INFO)?.clamp(16.0, 1024.0);
     let r = doc.artboards.first().map(|a| a.rect).ok_or_else(|| err("the page has no area"))?;
     let png = super::encode(doc, "png", &json!({"scale": size / r.width().max(r.height()).max(1.0)}))?;
-    Ok(vectorcraft_format::base64_encode(&png))
+    Ok(etcfile::base64::encode(&png))
 }

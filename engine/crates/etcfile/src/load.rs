@@ -152,8 +152,7 @@ pub fn load_file_capped(bytes: &[u8], max: u64) -> Result<EtcFile, EtcError> {
         profiles.insert(p.name, icc);
     }
     tidy(&mut doc, &mut notes)?;
-    let project_id = if project.project_id.is_empty() { crate::save::new_project_id() } else { project.project_id };
-    doc.extra.insert(PROJECT_ID_KEY.into(), project_id.clone().into());
+    let project_id = doc.extra.get(PROJECT_ID_KEY).and_then(|v| v.as_str()).map_or(project.project_id, str::to_owned);
     Ok(EtcFile { doc, notes, info: FileInfo { format_version: id.format_version, project_id }, profiles })
 }
 

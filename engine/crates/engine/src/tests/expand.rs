@@ -394,7 +394,7 @@ fn image_with_shaped_fill(s: &mut Session) -> NodeId {
     image::RgbaImage::from_pixel(30, 30, image::Rgba([255, 0, 0, 255]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    let r = run(s, "file.place", json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [100, 100]}));
+    let r = run(s, "file.place", json!({"name": "red.png", "dataBase64": etcfile::base64::encode(&png), "at": [100, 100]}));
     let im = NodeId(r["ids"][0].as_u64().unwrap());
     run(s, "select.set", json!({"ids": [im.0]}));
     run(s, "appearance.addFill", json!({}));
@@ -1073,7 +1073,7 @@ fn a_color_adjusted_image_left_by_the_image_limit_adds_no_pixels() {
     image::RgbaImage::from_pixel(30, 30, image::Rgba([255, 0, 0, 255]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    let r = run(&mut s, "file.place", json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [100, 100]}));
+    let r = run(&mut s, "file.place", json!({"name": "red.png", "dataBase64": etcfile::base64::encode(&png), "at": [100, 100]}));
     let id = NodeId(r["ids"][0].as_u64().unwrap());
     let images: Vec<String> = s.doc().unwrap().doc.images.keys().cloned().collect();
     let before = adjusted_and_left_by_the_image_limit(&mut s, id);

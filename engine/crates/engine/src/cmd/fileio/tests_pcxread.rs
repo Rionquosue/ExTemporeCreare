@@ -158,7 +158,7 @@ fn every_depth_and_plane_layout_reads() {
 #[test]
 fn pcx_files_open_place_and_paste_at_their_resolution() {
     use crate::cmd::clipboard::{PASTE_ORDER, file_flavour};
-    let b64 = vectorcraft_format::base64_encode;
+    let b64 = etcfile::base64::encode;
     let f = pcx(5, 8, 3, 0, (2, 1), 2, 144, &[], &rle(&[10, 20, 30, 40, 50, 60]));
     assert_eq!(ppi::resolution(&f), Some((144.0, 144.0)));
     assert_eq!(ppi::resolution(&pcx(5, 8, 3, 0, (2, 1), 2, 0, &[], &[])), None, "no resolution");
@@ -209,7 +209,7 @@ fn damaged_and_unsupported_files_are_refused_with_a_message() {
     assert_eq!(message(&cut_palette), "the PCX file is cut short", "a palette cut short");
     assert_eq!(message(&[&gray[..], &[0x0c]].concat()), "the PCX file is cut short", "a marker alone");
     let mut s = Session::new();
-    let e = s.execute("document.open", &json!({"name": "a.pcx", "dataBase64": vectorcraft_format::base64_encode(&gray[..131])}));
+    let e = s.execute("document.open", &json!({"name": "a.pcx", "dataBase64": etcfile::base64::encode(&gray[..131])}));
     assert!(e.expect_err("refused").to_string().contains("the PCX file is cut short"));
 
     // Planes and depths the manual doesn't define.

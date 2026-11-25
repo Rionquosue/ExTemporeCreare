@@ -1269,7 +1269,7 @@ fn load(s: &mut Session, p: &Value, kinds: &[Kind]) -> Result<Value> {
     let bytes = match (path, str_param(p, "data"), str_param(p, "dataBase64")) {
         (Some(path), ..) => super::fileio::read_file(path)?,
         (None, Some(text), _) => text.as_bytes().to_vec(),
-        (None, None, Some(b64)) => vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(c, "bad dataBase64"))?,
+        (None, None, Some(b64)) => etcfile::base64::decode(b64).ok_or_else(|| bad(c, "bad dataBase64"))?,
         _ => return Err(bad(c, "give `path`, `data` or `dataBase64`")),
     };
     let file = str_param(p, "name").or(path).unwrap_or("Styles");

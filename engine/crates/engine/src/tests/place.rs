@@ -62,7 +62,7 @@ fn png(w: u32, h: u32, rgba: [u8; 4], ppi: Option<f64>) -> Vec<u8> {
 }
 
 fn file(name: &str, bytes: &[u8]) -> Value {
-    json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })
+    json!({ "name": name, "dataBase64": etcfile::base64::encode(bytes) })
 }
 
 /// `file.place` of `bytes` named `name`, with `extra` params.
@@ -88,12 +88,12 @@ fn close(a: f64, b: f64) -> bool {
 
 fn serialize(s: &mut Session, format: &str) -> Vec<u8> {
     let v = s.execute("document.serialize", &json!({"format": format})).unwrap();
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 fn eps_of(s: &mut Session) -> Vec<u8> {
     let v = s.execute("document.exportEps", &json!({})).unwrap();
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 /// `file.place.info`'s width and height for `bytes` named `name`, with `extra` params.
@@ -202,7 +202,7 @@ fn svg_with_a_data_png_renders_and_leaves_the_clipboard_alone() {
     s.execute("select.set", &json!({"ids": [rect]})).unwrap();
     s.execute("edit.copy", &json!({})).unwrap();
     let clipboard = s.clipboard.clone();
-    let red = vectorcraft_format::base64_encode(&png(4, 2, [255, 0, 0, 255], None));
+    let red = etcfile::base64::encode(&png(4, 2, [255, 0, 0, 255], None));
     let svg = format!(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><image width="40" height="20" href="data:image/png;base64,{red}"/><rect width="10" height="10" fill="#0000ff"/></svg>"##
     );
@@ -251,7 +251,7 @@ fn replace_keeps_the_transform_and_the_stacking_place() {
 fn replace_needs_exactly_one_selected_object() {
     let mut s = session();
     let r = s
-        .execute("file.place", &json!({"replace": true, "name": "b.png", "dataBase64": vectorcraft_format::base64_encode(&png(2, 2, [0; 4], None))}));
+        .execute("file.place", &json!({"replace": true, "name": "b.png", "dataBase64": etcfile::base64::encode(&png(2, 2, [0; 4], None))}));
     assert!(r.unwrap_err().to_string().contains("select the one object"));
 }
 
@@ -261,6 +261,78 @@ fn with(mut p: Value, extra: Value) -> Value {
         o.extend(e);
     }
     p
+}
+
+/// A file read apart from the session ([`Session::prepare_place`], then [`cmd::place::PlaceJob::read`]
+/// on another thread and [`Session::place_read`]), as File › Place reads one off the UI thread, is
+/// placed as `file.place` places it: the same reply, document, selection and undo step, and the
+/// same journal entry.
+#[test]
+fn a_file_read_apart_from_the_session_places_as_file_place_does() {
+    let mut src = Session::new();
+    src.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
+    src.execute("shape.rectangle", &json!({"x": 5, "y": 5, "width": 20, "height": 10})).unwrap();
+    let (pdf, native, eps) = (serialize(&mut src, "pdf"), serialize(&mut src, "etc"), eps_of(&mut src));
+    // SVG is serialized as text.
+    let svg = src.execute("document.serialize", &json!({"format": "svg"})).unwrap()["text"].as_str().unwrap().as_bytes().to_vec();
+    let dxf = serialize(&mut src, "dxf");
+    let dir = std::env::temp_dir().join(format!("vc-place-apart-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let saved = |name: &str, bytes: &[u8]| {
+        let p = dir.join(name);
+        std::fs::write(&p, bytes).unwrap();
+        p.to_string_lossy().into_owned()
+    };
+    let (pdf_path, native_path) = (saved("page.pdf", &pdf), saved("art.etc", &native));
+    let words = crate::tests_textimport::docx(r#"<w:p><w:r><w:t>Placed words</w:t></w:r></w:p>"#, crate::tests_textimport::STYLES);
+    let cases = [
+        with(file("red.png", &png(30, 20, [255, 0, 0, 255], Some(144.0))), json!({"at": [150, 100]})),
+        with(file("notes.txt", b"Two lines\nof text"), json!({"text": {}})),
+        file("note.rtf", br"{\rtf1\ansi {\b Bold} words\par}"),
+        file("words.docx", &words),
+        with(file("art.svg", &svg), json!({"rect": [10, 10, 80, 40]})),
+        file("art.eps", &eps),
+        file("plan.dxf", &dxf),
+        json!({"path": pdf_path}),
+        json!({"path": pdf_path, "link": false, "crop": "bounding"}),
+        json!({"path": native_path}),
+        with(file("page.pdf", &pdf), json!({"template": true})),
+        with(file("blue.png", &png(8, 8, [0, 0, 255, 255], None)), json!({"replace": true})),
+    ];
+    for p in cases {
+        let name = p["name"].as_str().or(p["path"].as_str()).map(cmd::fileio::file_name).unwrap_or_default();
+        let (mut a, mut b) = (session(), session());
+        for s in [&mut a, &mut b] {
+            let id = s.execute("shape.rectangle", &json!({"x": 40, "y": 40, "width": 30, "height": 30})).unwrap()["id"].clone();
+            s.execute("select.set", &json!({"ids": [id]})).unwrap();
+        }
+        let at_once = a.execute("file.place", &p).map_err(|e| e.to_string());
+        assert!(at_once.is_ok(), "{name}: {at_once:?}");
+        let job = b.prepare_place(&p).unwrap();
+        assert_eq!(job.name(), name);
+        let read = std::thread::spawn(move || job.read()).join().unwrap().unwrap();
+        assert_eq!(b.place_read(read).map_err(|e| e.to_string()), at_once, "{name}: the same reply");
+        let (sa, sb) = (a.doc().unwrap(), b.doc().unwrap());
+        // `file.new` stamps each document with the second it was made in, which can differ by one.
+        let undated = |d: &vectorcraft_doc::Document| {
+            let mut d = d.clone();
+            d.metadata.created = None;
+            d
+        };
+        assert!(undated(&sa.doc) == undated(&sb.doc), "{name}: the same document");
+        assert_eq!(sa.selection.objects, sb.selection.objects, "{name}");
+        assert_eq!(sa.history.undo.len(), sb.history.undo.len(), "{name}: one undo step");
+        assert_eq!(a.journal.last(), b.journal.last(), "{name}");
+        assert_eq!(b.journal.last().map(|(id, _)| id.as_str()), Some("file.place"), "{name}: journaled as file.place");
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+    // With no document open, the error the commands give.
+    let mut none = Session::new();
+    let p = file("red.png", &png(2, 2, [0; 4], None));
+    let err = |r: Result<Value>| r.err().map(|e| e.to_string());
+    assert_eq!(none.prepare_place(&p).err().map(|e| e.to_string()), err(none.execute("file.place", &p)));
+    let q = json!({"files": [p]});
+    assert_eq!(none.prepare_place_queue(&q).err().map(|e| e.to_string()), err(none.execute("file.place.queue", &q)));
 }
 
 
@@ -516,6 +588,37 @@ fn an_image_whose_pixels_cant_be_read_is_not_placed() {
     assert_eq!(top_children(&s).len(), 1);
 }
 
+/// Type and a DXF drawing fitted to the artboard, read apart from the session while the artboard
+/// under `at` changes size, are placed against the artboard as it is when they are placed: as
+/// `file.place` places them after the change, which is what a replay of the journal does.
+#[test]
+fn a_file_read_apart_from_the_session_is_placed_against_the_artboard_as_it_is_then() {
+    let mut src = Session::new();
+    src.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
+    src.execute("shape.rectangle", &json!({"x": 5, "y": 5, "width": 20, "height": 10})).unwrap();
+    let dxf = serialize(&mut src, "dxf");
+    let text = with(file("notes.txt", b"Words to place"), json!({"text": {}, "at": [100, 150]}));
+    for p in [text, with(file("plan.dxf", &dxf), json!({"dxf": {"fit": true}, "at": [100, 150]}))] {
+        let (mut a, mut b) = (session(), session());
+        let read = b.prepare_place(&p).unwrap().read().unwrap();
+        for s in [&mut a, &mut b] {
+            s.execute("artboard.setProps", &json!({"index": 0, "width": 200})).unwrap();
+        }
+        let at_once = a.execute("file.place", &p).unwrap();
+        assert_eq!(b.place_read(read).unwrap(), at_once, "{}", at_once["name"]);
+        let undated = |s: &Session| {
+            let mut d = (*s.doc().unwrap().doc).clone();
+            d.metadata.created = None;
+            d
+        };
+        assert!(undated(&a) == undated(&b), "{}", at_once["name"]);
+        if at_once["format"] == "txt" {
+            // The 200 × 300 pt artboard less a 36 pt margin on each side.
+            assert!(close(at_once["width"].as_f64().unwrap(), 128.0) && close(at_once["height"].as_f64().unwrap(), 228.0), "{at_once}");
+        }
+    }
+}
+
 
 #[test]
 fn template_puts_the_art_on_a_locked_template_layer_below_the_current_one() {
@@ -542,17 +645,65 @@ fn pdf_pages_and_native_artboards_place_as_clipped_groups() {
     let b1 = src.doc().unwrap().doc.artboards[1].rect;
     src.execute("shape.rectangle", &json!({"x": b1.x0 + 5.0, "y": 5, "width": 20, "height": 10})).unwrap();
     let pdf = serialize(&mut src, "pdf");
-    let native = serialize(&mut src, "vectorcraft");
+    let native = serialize(&mut src, "etc");
     let mut s = session();
-    for (name, bytes) in [("two.pdf", &pdf), ("two.vectorcraft", &native)] {
+    for (name, bytes) in [("two.pdf", &pdf), ("two.etc", &native)] {
         let r = place(&mut s, name, bytes, json!({"page": 2}));
         assert!(close(r["width"].as_f64().unwrap(), 40.0) && close(r["height"].as_f64().unwrap(), 50.0), "{name}: {r}");
         let g = node(&s, &r["ids"][0]);
         assert!(matches!(g.kind, NodeKind::Group { clip: true, .. }), "{name}: clipped to the page");
         let r = place(&mut s, name, bytes, json!({"page": 2, "crop": "bounding"}));
         assert!((r["width"].as_f64().unwrap() - 20.0).abs() < 1.5, "{name}: the art's bounds: {r}");
-        let err = s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes), "page": 3})).unwrap_err();
+        let err = s.execute("file.place", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes), "page": 3})).unwrap_err();
         assert!(err.to_string().contains("has 2"), "{name}: {err}");
+    }
+}
+
+/// With crop "bounding", the art's box is the box of what shows, as an export measures it: a hidden
+/// member of a group does not count, and is still placed, hidden.
+#[test]
+fn bounding_box_placement_measures_only_the_art_that_shows() {
+    let (mut src, shown) = group_with_a_hidden_member();
+    let eps = eps_of(&mut src);
+    let native = serialize(&mut src, "etc");
+    let svg = br#"<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><g><rect x="20" y="20" width="40" height="40"/><rect x="100" y="100" width="170" height="42" style="display:none"/></g></svg>"#;
+    // The sample's group `Pair` has a hidden member 42 pt tall; what shows is 170 × 40 pt.
+    let sample = vectorcraft_testkit::ai::eps(&vectorcraft_testkit::ai::sample_data(), vectorcraft_testkit::ai::page_ps());
+    let cases: [(&str, &[u8], (f64, f64)); 4] = [
+        ("pair.eps", &eps, (shown.width(), shown.height())),
+        ("pair.etc", &native, (shown.width(), shown.height())),
+        ("pair.svg", svg, (40.0, 40.0)),
+        ("art.eps", &sample, (170.0, 40.0)),
+    ];
+    for (name, bytes, (w, h)) in cases {
+        let mut s = session();
+        let (iw, ih) = info_size(&mut s, name, bytes, json!({"crop": "bounding"}));
+        assert!(close(iw, w) && close(ih, h), "{name}: {iw} × {ih}, not {w} × {h}");
+        // `rect` fits what shows, centered.
+        let r = place(&mut s, name, bytes, json!({"crop": "bounding", "rect": [100, 100, 80, 80]}));
+        let k = (80.0 / w).min(80.0 / h);
+        let want = Rect::from_center_size((140.0, 140.0), (w * k, h * k));
+        assert!(drawn_at(&s, want), "{name}: not {want:?}");
+        assert_eq!(hidden_in(&node(&s, &r["ids"][0])), 1, "{name}: the hidden member is placed, hidden");
+    }
+}
+
+/// With crop "bounding", an effect's reach counts in the art's box, as in an export of the art.
+#[test]
+fn bounding_box_placement_counts_a_drop_shadow() {
+    let mut src = session();
+    let id = src.execute("shape.rectangle", &json!({"x": 20, "y": 20, "width": 40, "height": 40})).unwrap()["id"].clone();
+    let square = node(&src, &id).visual_bounds().unwrap();
+    src.execute("effect.apply", &json!({"effect": "stylize.dropShadow", "ids": [id], "params": {"x": 8, "y": 0, "blur": 0}})).unwrap();
+    let export = vectorcraft_render::encode::art_bounds(&src.doc().unwrap().doc).unwrap();
+    assert!(export.width() > square.width() + 7.0, "{export:?}");
+    let eps = eps_of(&mut src);
+    let native = serialize(&mut src, "etc");
+    let cases: [(&str, &[u8]); 2] = [("shadow.eps", &eps), ("shadow.etc", &native)];
+    for (name, bytes) in cases {
+        let mut s = session();
+        let (w, h) = info_size(&mut s, name, bytes, json!({"crop": "bounding"}));
+        assert!(close(w, export.width()) && close(h, export.height()), "{name}: {w} × {h}, not {export:?}");
     }
 }
 
@@ -580,6 +731,34 @@ fn a_placed_symbol_instance_is_measured_by_its_art() {
     assert!(close(frame.width(), 200.0) && close(frame.height(), 20.0), "{frame:?}");
 }
 
+/// A page's or artboard's art is the objects whose visible art lies on it: a group whose only part
+/// on the artboard is hidden stays out, and a hidden object on the artboard is still placed, hidden.
+#[test]
+fn a_group_whose_only_part_on_the_artboard_is_hidden_is_left_out() {
+    let mut src = session();
+    let off = src.execute("shape.rectangle", &json!({"x": -300, "y": 20, "width": 40, "height": 40})).unwrap()["id"].clone();
+    let under = src.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 170, "height": 42})).unwrap()["id"].clone();
+    src.execute("object.group", &json!({"ids": [off, under]})).unwrap();
+    src.execute("object.hide", &json!({"ids": [under]})).unwrap();
+    let dot = src.execute("shape.ellipse", &json!({"x": 50, "y": 50, "width": 30, "height": 30})).unwrap()["id"].clone();
+    let shown = node(&src, &dot).visual_bounds().unwrap();
+    let ghost = src.execute("shape.rectangle", &json!({"x": 300, "y": 200, "width": 20, "height": 20})).unwrap()["id"].clone();
+    src.execute("object.hide", &json!({"ids": [ghost]})).unwrap();
+    let eps = eps_of(&mut src);
+    let native = serialize(&mut src, "etc");
+    let cases: [(&str, &[u8]); 2] = [("parts.eps", &eps), ("parts.etc", &native)];
+    for (name, bytes) in cases {
+        let mut s = session();
+        let (w, h) = info_size(&mut s, name, bytes, json!({"crop": "bounding"}));
+        assert!(close(w, shown.width()) && close(h, shown.height()), "{name}: {w} × {h}");
+        let r = place(&mut s, name, bytes, json!({"crop": "bounding"}));
+        let g = node(&s, &r["ids"][0]);
+        let kids = g.children().unwrap();
+        assert_eq!(kids.len(), 2, "{name}: the circle and the hidden square");
+        assert!(kids[0].visible && !kids[1].visible, "{name}");
+    }
+}
+
 
 
 #[test]
@@ -591,13 +770,13 @@ fn placed_art_brings_its_symbols_and_swatches_renaming_on_conflict() {
     src.execute("paint.setFill", &json!({"swatch": "Brand"})).unwrap();
     src.execute("shape.ellipse", &json!({"x": 50, "y": 10, "width": 20, "height": 20})).unwrap();
     src.execute("symbol.new", &json!({"name": "Star"})).unwrap();
-    let bytes = serialize(&mut src, "vectorcraft");
+    let bytes = serialize(&mut src, "etc");
     // The document: its own, different "Brand" and "Star".
     let mut s = session();
     s.execute("swatch.new", &json!({"name": "Brand", "color": "#00ff00", "global": true})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 5, "height": 5})).unwrap();
     s.execute("symbol.new", &json!({"name": "Star"})).unwrap();
-    let r = place(&mut s, "logo.vectorcraft", &bytes, json!({"crop": "bounding"}));
+    let r = place(&mut s, "logo.etc", &bytes, json!({"crop": "bounding"}));
     let g = node(&s, &r["ids"][0]);
     let (mut fill, mut symbol) = (None, None);
     g.walk(&mut |n| match &n.kind {
@@ -615,7 +794,7 @@ fn placed_art_brings_its_symbols_and_swatches_renaming_on_conflict() {
     assert_eq!(doc.swatch("Brand").and_then(|w| w.paint.color()).map(|c| c.to_hex()).as_deref(), Some("#00ff00"));
     // A document without them gets them as they are.
     let mut fresh = session();
-    let r = place(&mut fresh, "logo.vectorcraft", &bytes, json!({}));
+    let r = place(&mut fresh, "logo.etc", &bytes, json!({}));
     let doc = &fresh.doc().unwrap().doc;
     assert!(doc.symbols.iter().any(|x| x.name == "Star") && doc.swatch("Brand").is_some());
     let mut linked = false;
@@ -640,14 +819,14 @@ fn placed_art_brings_its_symbols_and_patterns_with_ids_of_the_documents_own() {
     let tile = src.doc().unwrap().selection.objects[0];
     src.execute("object.pattern.make", &json!({"ids": [tile.0], "edit": false, "name": "Dots"})).unwrap();
     src.execute("paint.setFill", &json!({"ids": [tile.0], "swatch": "Dots"})).unwrap();
-    let bytes = serialize(&mut src, "vectorcraft");
+    let bytes = serialize(&mut src, "etc");
     // The document's objects take the same ids the file's do.
     let mut s = session();
     for x in [0, 20, 40, 60] {
         s.execute("shape.rectangle", &json!({"x": x, "y": 0, "width": 5, "height": 5})).unwrap();
     }
     s.execute("symbol.new", &json!({"name": "Box"})).unwrap();
-    place(&mut s, "logo.vectorcraft", &bytes, json!({}));
+    place(&mut s, "logo.etc", &bytes, json!({}));
     let doc = &s.doc().unwrap().doc;
     assert!(doc.symbols.iter().any(|x| x.name == "Star") && doc.pattern("Dots").is_some());
     let mut ids = vec![];
@@ -667,16 +846,16 @@ fn placing_the_same_art_again_shares_its_symbols_and_patterns() {
     let tile = src.doc().unwrap().selection.objects[0];
     src.execute("object.pattern.make", &json!({"ids": [tile.0], "edit": false, "name": "Dots"})).unwrap();
     src.execute("paint.setFill", &json!({"ids": [tile.0], "swatch": "Dots"})).unwrap();
-    let bytes = serialize(&mut src, "vectorcraft");
+    let bytes = serialize(&mut src, "etc");
     let mut s = session();
     let counts = |s: &Session| {
         let doc = &s.doc().unwrap().doc;
         (doc.symbols.len(), doc.patterns.len())
     };
-    place(&mut s, "logo.vectorcraft", &bytes, json!({}));
+    place(&mut s, "logo.etc", &bytes, json!({}));
     let once = counts(&s);
     for _ in 0..2 {
-        place(&mut s, "logo.vectorcraft", &bytes, json!({}));
+        place(&mut s, "logo.etc", &bytes, json!({}));
     }
     assert_eq!(counts(&s), once);
     let doc = &s.doc().unwrap().doc;
@@ -693,15 +872,15 @@ fn placed_art_does_not_share_a_symbol_whose_pattern_moves() {
     src.execute("object.pattern.make", &json!({"ids": [tile.0], "edit": false, "name": "Dots"})).unwrap();
     src.execute("paint.setFill", &json!({"ids": [tile.0], "swatch": "Dots"})).unwrap();
     src.execute("symbol.new", &json!({"name": "Star", "ids": [tile.0]})).unwrap();
-    let bytes = serialize(&mut src, "vectorcraft");
+    let bytes = serialize(&mut src, "etc");
     let mut s = session();
-    place(&mut s, "logo.vectorcraft", &bytes, json!({}));
+    place(&mut s, "logo.etc", &bytes, json!({}));
     // The document's "Dots" changes; its "Star" still matches the file's.
     let st = s.doc_mut().unwrap();
     let d = Arc::make_mut(&mut st.doc);
     let dots = d.pattern_mut("Dots").unwrap();
     dots.tile = Rect::new(0.0, 0.0, 50.0, 50.0);
-    let r = place(&mut s, "logo.vectorcraft", &bytes, json!({}));
+    let r = place(&mut s, "logo.etc", &bytes, json!({}));
     let mut symbol = None;
     node(&s, &r["ids"][0]).walk(&mut |n| {
         if let NodeKind::SymbolInstance { symbol: name, .. } = &n.kind {
@@ -733,7 +912,7 @@ fn placed_art_brings_its_brushes_renaming_on_conflict() {
     src.execute("brush.apply", &json!({"name": "Nib"})).unwrap();
     src.execute("shape.rectangle", &json!({"x": 50, "y": 10, "width": 20, "height": 20})).unwrap();
     src.execute("brush.apply", &json!({"name": "Charcoal"})).unwrap();
-    let bytes = serialize(&mut src, "vectorcraft");
+    let bytes = serialize(&mut src, "etc");
     let brushes = |n: &Node| {
         let mut names = vec![];
         n.walk(&mut |c| names.extend(c.appearance.stroke().and_then(|st| st.brush.clone())));
@@ -743,24 +922,24 @@ fn placed_art_brings_its_brushes_renaming_on_conflict() {
     let mut s = session();
     s.execute("brush.new", &json!({"type": "calligraphic", "name": "Nib", "params": {"angle": 90, "roundness": 100, "size": 2}})).unwrap();
     let before = s.execute("brush.list", &json!({})).unwrap()["brushes"].as_array().unwrap().len();
-    let r = place(&mut s, "art.vectorcraft", &bytes, json!({"crop": "bounding"}));
+    let r = place(&mut s, "art.etc", &bytes, json!({"crop": "bounding"}));
     assert_eq!(brushes(&node(&s, &r["ids"][0])), ["Nib 2", "Charcoal"]);
     assert_eq!(s.execute("brush.get", &json!({"name": "Nib"})).unwrap()["size"], json!(2.0), "its own stays");
     assert_eq!(s.execute("brush.get", &json!({"name": "Nib 2"})).unwrap()["size"], json!(8.0));
     assert_eq!(s.execute("brush.list", &json!({})).unwrap()["brushes"].as_array().unwrap().len(), before + 1, "the same Charcoal is shared");
     // A document without it gets it as it is.
     let mut fresh = session();
-    let r = place(&mut fresh, "art.vectorcraft", &bytes, json!({"crop": "bounding"}));
+    let r = place(&mut fresh, "art.etc", &bytes, json!({"crop": "bounding"}));
     assert_eq!(brushes(&node(&fresh, &r["ids"][0])), ["Nib", "Charcoal"]);
     assert_eq!(fresh.execute("brush.get", &json!({"name": "Nib"})).unwrap()["size"], json!(8.0));
     // The name a conflict would take is not one the art already uses.
     src.execute("brush.new", &json!({"type": "calligraphic", "name": "Nib 2", "params": {"angle": 40, "roundness": 50, "size": 5}})).unwrap();
     src.execute("shape.rectangle", &json!({"x": 90, "y": 10, "width": 20, "height": 20})).unwrap();
     src.execute("brush.apply", &json!({"name": "Nib 2"})).unwrap();
-    let bytes = serialize(&mut src, "vectorcraft");
+    let bytes = serialize(&mut src, "etc");
     let mut s = session();
     s.execute("brush.new", &json!({"type": "calligraphic", "name": "Nib", "params": {"angle": 90, "roundness": 100, "size": 2}})).unwrap();
-    let r = place(&mut s, "art.vectorcraft", &bytes, json!({"crop": "bounding"}));
+    let r = place(&mut s, "art.etc", &bytes, json!({"crop": "bounding"}));
     assert_eq!(brushes(&node(&s, &r["ids"][0])), ["Nib 3", "Charcoal", "Nib 2"]);
     assert_eq!(s.execute("brush.get", &json!({"name": "Nib 3"})).unwrap()["size"], json!(8.0));
     assert_eq!(s.execute("brush.get", &json!({"name": "Nib 2"})).unwrap()["size"], json!(5.0));
@@ -827,11 +1006,11 @@ fn a_placed_brush_whose_art_uses_a_renamed_image_is_copied() {
         })
         .unwrap();
         s.execute("brush.apply", &json!({"name": "Speck"})).unwrap();
-        serialize(&mut s, "vectorcraft")
+        serialize(&mut s, "etc")
     };
     let mut s = session();
-    let first = place(&mut s, "one.vectorcraft", &file(0), json!({"crop": "bounding"}));
-    let second = place(&mut s, "two.vectorcraft", &file(255), json!({"crop": "bounding"}));
+    let first = place(&mut s, "one.etc", &file(0), json!({"crop": "bounding"}));
+    let second = place(&mut s, "two.etc", &file(255), json!({"crop": "bounding"}));
     let brush_of = |r: &Value| {
         let mut name = None;
         node(&s, &r["ids"][0]).walk(&mut |c| name = name.take().or_else(|| c.appearance.stroke().and_then(|st| st.brush.clone())));
@@ -896,7 +1075,7 @@ fn info_reports_size_resolution_colour_mode_and_link() {
     assert_eq!((info["colorMode"].as_str(), info["pixelWidth"].as_u64()), (Some("Grayscale"), Some(300)));
     assert_eq!(info["ppi"], json!([300.0, 300.0]));
     assert!(close(info["width"].as_f64().unwrap(), 72.0));
-    let thumb = craft_image_codecs::decode(&vectorcraft_format::base64_decode(info["thumbnailBase64"].as_str().unwrap()).unwrap())
+    let thumb = craft_image_codecs::decode(&etcfile::base64::decode(info["thumbnailBase64"].as_str().unwrap()).unwrap())
         .map(|__cimg| {
             let (__w, __h) = __cimg.dimensions();
             match (__cimg.layout(), __cimg.sample_type()) {
@@ -1168,11 +1347,11 @@ fn the_place_queue_draws_a_thumbnail_without_decoding_the_image_again() {
 #[test]
 fn bad_place_params_are_errors() {
     let mut s = session();
-    let ok = vectorcraft_format::base64_encode(&png(2, 2, [0; 4], None));
+    let ok = etcfile::base64::encode(&png(2, 2, [0; 4], None));
     for p in [
         json!({}),
         json!({"name": "x.png", "dataBase64": "%%%"}),
-        json!({"name": "notes.xyz", "dataBase64": vectorcraft_format::base64_encode(b"hello")}),
+        json!({"name": "notes.xyz", "dataBase64": etcfile::base64::encode(b"hello")}),
         json!({"name": "x.png", "dataBase64": ok, "rect": [0, 0, 0, 10]}),
         json!({"name": "x.png", "dataBase64": ok, "at": [1e12, 0]}),
         json!({"name": "x.png", "dataBase64": ok, "page": 0}),

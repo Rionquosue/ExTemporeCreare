@@ -136,7 +136,7 @@ fn character_stroke_options_round_trip_natively_and_old_files_load() {
     let id = stroked_text(&mut s);
     run(&mut s, "stroke.set", json!({"cap": "round", "join": "bevel", "miterLimit": 3, "dash": [5, 1]}));
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     let NodeKind::Text(t) = &back.node(id).unwrap().kind else { panic!("not type") };
     assert_eq!(t.runs, text(&s, id).runs);
     // A character style written before stroke options existed takes the defaults.
@@ -176,7 +176,7 @@ fn align_stroke_reaches_the_characters_stroke() {
     assert_eq!(doc["layers"][0]["children"][0]["strokeOptions"]["align"], "inside", "{doc}");
     // Saved and reopened.
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     let NodeKind::Text(b) = &back.node(id).unwrap().kind else { panic!("not type") };
     assert_eq!(b.runs, text(&s, id).runs);
     // Create Outlines keeps it on the glyphs.

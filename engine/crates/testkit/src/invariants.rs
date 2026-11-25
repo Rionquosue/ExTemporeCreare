@@ -103,11 +103,11 @@ pub fn check_session(s: &Session) -> Result<(), String> {
     Ok(())
 }
 
-/// `.vectorcraft` save → load → the JSON of the document and of what loaded, without `images`: a
+/// `.etc` save → load → the JSON of the document and of what loaded, without `images`: a
 /// save keeps only the images in use, which must come back byte for byte.
 fn native_roundtrip(doc: &Document) -> Result<(Value, Value), String> {
-    let bytes = vectorcraft_format::save(doc, false);
-    let back = vectorcraft_format::load(&bytes).map_err(|e| format!("load: {e}"))?;
+    let bytes = etcfile::save(doc, false);
+    let back = etcfile::load(&bytes).map_err(|e| format!("load: {e}"))?;
     if let Some(k) = back.images.iter().find(|(k, b)| doc.images.get(*k).map(|d| &d.bytes) != Some(&b.bytes)).map(|(k, _)| k) {
         return Err(format!("native round trip changed image `{k}`"));
     }
@@ -137,7 +137,7 @@ fn native_roundtrip(doc: &Document) -> Result<(Value, Value), String> {
     Ok((strip(doc_json(doc)), strip(doc_json(&back))))
 }
 
-/// `.vectorcraft` save → load must reproduce the document (numbers compared to 1e-12 relative —
+/// `.etc` save → load must reproduce the document (numbers compared to 1e-12 relative —
 /// see [`check_native_roundtrip_exact`] for the bit-exact version).
 pub fn check_native_roundtrip(doc: &Document) -> Result<(), String> {
     let (a, b) = native_roundtrip(doc)?;
@@ -147,7 +147,7 @@ pub fn check_native_roundtrip(doc: &Document) -> Result<(), String> {
     Ok(())
 }
 
-/// Bit-exact `.vectorcraft` round trip (every f64 must survive).
+/// Bit-exact `.etc` round trip (every f64 must survive).
 pub fn check_native_roundtrip_exact(doc: &Document) -> Result<(), String> {
     let (a, b) = native_roundtrip(doc)?;
     if a != b {

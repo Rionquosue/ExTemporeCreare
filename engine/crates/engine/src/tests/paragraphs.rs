@@ -84,8 +84,8 @@ fn a_file_with_paragraph_spacing_out_of_range_opens_with_it_in_range() {
     t.set_paragraph_styles(vec![first, second]);
     let attrs = json!({"left_indent": 1e9, "space_after": 2000, "tabs": [serde_json::to_value(tab(-5.0)).unwrap()]});
     d.para_styles.push(vectorcraft_doc::TextStyleDef { name: "Wide".into(), attrs: attrs.as_object().unwrap().clone() });
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d));
-    s.execute("document.open", &json!({"name": "spacing.vectorcraft", "dataBase64": data})).unwrap();
+    let data = etcfile::base64::encode(&etcfile::save_file(&d));
+    s.execute("document.open", &json!({"name": "spacing.etc", "dataBase64": data})).unwrap();
     let max = vectorcraft_doc::MAX_COORD;
     let t = text(&s, id);
     let (p0, p1) = (t.para_at(0), t.para_at(1));

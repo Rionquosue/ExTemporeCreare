@@ -314,9 +314,9 @@ fn the_group_saves_and_reopens_live_and_exports_as_plain_art() {
     let mut s = session();
     let ([left, middle, right], path) = squares_and_line(&mut s);
     let g = attach(&mut s, path, &[left, middle, right], json!({"rotate": 30, "pivot": 7}));
-    let data = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
+    let data = s.execute("document.export", &json!({"format": "etc"})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "objects.vectorcraft", "dataBase64": data})).unwrap();
+    o.execute("document.open", &json!({"name": "objects.etc", "dataBase64": data})).unwrap();
     let before = s.doc().unwrap().doc.node(g).unwrap().extras().objects_on_path.clone();
     assert_eq!(o.doc().unwrap().doc.node(g).unwrap().extras().objects_on_path, before);
     set_line(&mut o, path, (50.0, 200.0), (350.0, 200.0));
@@ -591,9 +591,9 @@ fn move_member_takes_the_target_s_place_and_shifts_the_objects_between() {
     assert_eq!(v["index"], 1);
     assert_eq!(s.doc().unwrap().history.undo.len(), steps);
     // The order saves and reopens.
-    let data = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
+    let data = s.execute("document.export", &json!({"format": "etc"})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "objects.vectorcraft", "dataBase64": data})).unwrap();
+    o.execute("document.open", &json!({"name": "objects.etc", "dataBase64": data})).unwrap();
     assert_eq!(orders(&o, g), (vec![b, c, a], layers));
     assert_eq!(center(&o, a), Point::new(250.0, 300.0));
 }
@@ -670,9 +670,9 @@ fn the_space_saves_and_reopens_and_goes_with_a_copy() {
     let ([left, middle, right], path) = squares_and_line(&mut s);
     let g = attach(&mut s, path, &[left, middle, right], json!({}));
     s.execute("object.objectsOnPath.options", &json!({"spacing": 40, "start": 25})).unwrap();
-    let data = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
+    let data = s.execute("document.export", &json!({"format": "etc"})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "objects.vectorcraft", "dataBase64": data})).unwrap();
+    o.execute("document.open", &json!({"name": "objects.etc", "dataBase64": data})).unwrap();
     assert_eq!(space(&o, g), (Some(40.0), 25.0));
     assert_eq!(center(&o, right), Point::new(155.0, 300.0));
     select(&mut s, &[g]);

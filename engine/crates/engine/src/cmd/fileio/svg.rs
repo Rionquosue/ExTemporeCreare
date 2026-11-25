@@ -183,7 +183,7 @@ pub(super) fn lost_artboards_warning(doc: &Document, p: &Value, label: &str) -> 
 /// The native document Preserve Editing embeds: `doc`, without an Export for Screens `folder`
 /// outside the read roots of the request being served (the open document keeps it).
 fn native_attachment(doc: &Document) -> Vec<u8> {
-    vectorcraft_format::save(&super::access::with_readable_settings_folder(doc), false)
+    etcfile::save(&super::access::with_readable_settings_folder(doc), false)
 }
 
 /// Encode `doc` as SVG (or gzipped, SVGZ): one file per chosen artboard, with the images they

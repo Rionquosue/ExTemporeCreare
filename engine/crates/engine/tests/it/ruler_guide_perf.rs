@@ -18,7 +18,7 @@ const LAYERS: usize = 4;
 const GROUPS_PER_LAYER: usize = 250;
 const RECTS_PER_GROUP: usize = 100;
 
-/// The `.vectorcraft` file of the document: 100,000 rectangles in groups of 100 on four layers,
+/// The `.etc` file of the document: 100,000 rectangles in groups of 100 on four layers,
 /// and the ruler guides in its saved list, spread over the layers.
 fn file() -> Vec<u8> {
     let mut b = DocBuilder::new(2000.0, 2000.0);
@@ -38,7 +38,7 @@ fn file() -> Vec<u8> {
         }
     }
     let d: Document = b.build();
-    let mut v: Value = serde_json::from_slice(&vectorcraft_format::save(&d, false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::save(&d, false)).unwrap();
     v["document"]["guides"] =
         (0..GUIDES).map(|i| json!({"vertical": i % 2 == 0, "pos": (i / 2) as f64 * 0.37 + 0.1, "layer": layers[i % LAYERS]})).collect();
     serde_json::to_vec(&v).unwrap()
@@ -70,14 +70,14 @@ fn pointer(s: &mut Session, kind: PointerKind, x: f64, y: f64) {
 fn ruler_guide_perf() {
     let bytes = file();
     eprintln!("ruler_guide_perf: file of {} bytes", bytes.len());
-    report("load (format::load), median of 5", median(5, || drop(vectorcraft_format::load(&bytes).unwrap())));
-    let doc = vectorcraft_format::load(&bytes).unwrap();
-    report("save (format::save), median of 5", median(5, || drop(vectorcraft_format::save(&doc, false))));
+    report("load (format::load), median of 5", median(5, || drop(etcfile::load(&bytes).unwrap())));
+    let doc = etcfile::load(&bytes).unwrap();
+    report("save (format::save), median of 5", median(5, || drop(etcfile::save(&doc, false))));
 
     let mut s = Session::new();
-    let data = vectorcraft_format::base64_encode(&bytes);
+    let data = etcfile::base64::encode(&bytes);
     let start = Instant::now();
-    s.execute("document.open", &json!({"name": "perf.vectorcraft", "dataBase64": data})).unwrap();
+    s.execute("document.open", &json!({"name": "perf.etc", "dataBase64": data})).unwrap();
     report("document.open", start.elapsed());
     let listed = s.execute("guide.list", &json!({})).unwrap().as_array().map_or(0, Vec::len);
     assert_eq!(listed, GUIDES);

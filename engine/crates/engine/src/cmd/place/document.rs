@@ -29,10 +29,10 @@ use super::super::{EngineError, NodeId, Result, bad};
 
 /// The largest file placed (bytes).
 pub(crate) const MAX_FILE: usize = 256 << 20;
-/// The format ids of VectorCraft documents.
-const NATIVE: [&str; 2] = ["vectorcraft", "template"];
-/// The type a placed VectorCraft document's bytes are stored with (a PDF's: its format's).
-const MIME: &str = "application/json";
+/// The format ids of native documents.
+const NATIVE: [&str; 1] = ["etc"];
+/// The type a placed native document's bytes are stored with (a PDF's: its format's).
+const MIME: &str = etcfile::MIME;
 
 /// Is `name` with `bytes` a VectorCraft document?
 pub(crate) fn is_native(name: &str, bytes: &[u8]) -> bool {

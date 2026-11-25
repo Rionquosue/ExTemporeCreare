@@ -5,7 +5,7 @@
 //! moved in one undo step, linked files, and `document.psdInfo`'s count.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{SliceKind, SliceOptions};
+use vectorcraft_doc::SliceOptions;
 use vectorcraft_geom::Rect;
 
 use crate::Session;
@@ -76,8 +76,6 @@ fn v6(slices: &[S], trailing: &[u8]) -> Vec<u8> {
 /// A descriptor value.
 enum D {
     Long(i32),
-    Doub(f64),
-    Bool(bool),
     Text(&'static str),
     Enum(&'static str, &'static str),
     Obj(Vec<(&'static str, D)>),
@@ -110,14 +108,6 @@ fn value(v: &D) -> Vec<u8> {
         D::Long(n) => {
             b.extend(b"long");
             b.extend(n.to_be_bytes());
-        }
-        D::Doub(d) => {
-            b.extend(b"doub");
-            b.extend(d.to_be_bytes());
-        }
-        D::Bool(on) => {
-            b.extend(b"bool");
-            b.push(u8::from(*on));
         }
         D::Text(t) => {
             b.extend(b"TEXT");
@@ -165,7 +155,7 @@ fn psd(layers: bool) -> Vec<u8> {
     s.execute("layer.new", &json!({ "name": "Top" })).unwrap();
     s.execute("shape.rectangle", &json!({"x": 8, "y": 8, "width": 10, "height": 10})).unwrap();
     let r = s.execute("document.export", &json!({"format": "psd", "layers": layers})).unwrap();
-    vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 /// `psd` with image resource `id` holding `data` added to its image resources.
@@ -188,7 +178,7 @@ fn with_resource(psd: &[u8], id: u16, data: &[u8]) -> Vec<u8> {
 }
 
 fn b64(f: &[u8]) -> String {
-    vectorcraft_format::base64_encode(f)
+    etcfile::base64::encode(f)
 }
 
 fn open(f: &[u8], extra: Value) -> (Session, Value) {
@@ -283,11 +273,6 @@ fn damaged_slices_never_panic() {
     }
 }
 
-/// The PSD file `document.export` writes from `s`, with its layers or flat.
-fn export(s: &mut Session, layers: bool) -> Vec<u8> {
-    let r = s.execute("document.export", &json!({"format": "psd", "layers": layers})).unwrap();
-    vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
-}
 
 
 

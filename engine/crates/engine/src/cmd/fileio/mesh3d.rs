@@ -355,7 +355,7 @@ fn gltf(stem: &str, scene: &Scene) -> String {
         "materials": materials,
         "buffers": [{
             "byteLength": buffer.len(),
-            "uri": format!("data:application/octet-stream;base64,{}", vectorcraft_format::base64_encode(&buffer)),
+            "uri": format!("data:application/octet-stream;base64,{}", etcfile::base64::encode(&buffer)),
         }],
         "bufferViews": views,
         "accessors": accessors,
@@ -365,7 +365,7 @@ fn gltf(stem: &str, scene: &Scene) -> String {
         doc["samplers"] = json!([{ "magFilter": 9729, "minFilter": 9987, "wrapS": 33071, "wrapT": 33071 }]);
         doc["textures"] = Value::Array((0..scene.pictures.len()).map(|i| json!({ "sampler": 0, "source": i })).collect());
         doc["images"] = Value::Array(
-            scene.pictures.iter().map(|p| json!({ "uri": format!("data:image/png;base64,{}", vectorcraft_format::base64_encode(p)) })).collect(),
+            scene.pictures.iter().map(|p| json!({ "uri": format!("data:image/png;base64,{}", etcfile::base64::encode(p)) })).collect(),
         );
     }
     serde_json::to_string_pretty(&doc).unwrap_or_default()

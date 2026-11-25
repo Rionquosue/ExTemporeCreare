@@ -59,8 +59,8 @@ fn unicode_mixed_fonts_line_breaks_and_styles_remain_editable_after_save() {
     assert_eq!(t.para.justify, Justify::Center);
     assert!(matches!(t.kind, TextKind::Point));
     assert_eq!(t.xf.as_coeffs(), [1.0, 0.0, 0.0, 1.0, 187.5, 87.0]);
-    let saved = vectorcraft_format::save_file(&loaded.doc);
-    let restored = vectorcraft_format::load(&saved).unwrap();
+    let saved = etcfile::save_file(&loaded.doc);
+    let restored = etcfile::load(&saved).unwrap();
     assert_eq!(texts(&restored)[0], t);
 }
 
@@ -216,7 +216,7 @@ fn caps_and_feature_overrides_pass_through_to_editable_type() {
     assert!(t.runs[0].style.all_caps);
     assert_eq!(t.runs[0].style.features, ["-liga", "ss01", "cv01"]);
     assert!(loaded.warnings.iter().any(|w| w.contains("retained but not rendered")));
-    let restored = vectorcraft_format::load(&vectorcraft_format::save_file(&loaded.doc)).unwrap();
+    let restored = etcfile::load(&etcfile::save_file(&loaded.doc)).unwrap();
     assert_eq!(texts(&restored)[0], t);
 }
 
@@ -241,7 +241,7 @@ fn pinned_affinity3_text_opens_as_editable_unicode_with_resolved_emoji_font() {
     {
         let loaded = load(name);
         assert!(!texts(&loaded.doc).is_empty(), "{name}");
-        let restored = vectorcraft_format::load(&vectorcraft_format::save_file(&loaded.doc)).unwrap();
+        let restored = etcfile::load(&etcfile::save_file(&loaded.doc)).unwrap();
         assert_eq!(texts(&restored), texts(&loaded.doc), "{name}");
     }
 }

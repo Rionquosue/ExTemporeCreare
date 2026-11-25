@@ -14,7 +14,7 @@ fn session() -> Session {
 }
 
 fn place_text(s: &mut Session, text: &[u8], extra: Value) -> Value {
-    let mut p = json!({"name": "notes.txt", "dataBase64": vectorcraft_format::base64_encode(text)});
+    let mut p = json!({"name": "notes.txt", "dataBase64": etcfile::base64::encode(text)});
     if let (Some(o), Value::Object(e)) = (p.as_object_mut(), extra) {
         o.extend(e);
     }
@@ -114,7 +114,7 @@ fn utf16_without_a_byte_order_mark_places_by_its_nul_bytes_and_line_breaks() {
 #[test]
 fn text_files_report_and_queue_with_their_options() {
     let mut s = session();
-    let file = json!({"name": "a.txt", "dataBase64": vectorcraft_format::base64_encode(b"caf\xe9")});
+    let file = json!({"name": "a.txt", "dataBase64": etcfile::base64::encode(b"caf\xe9")});
     let info = s.execute("file.place.info", &file).unwrap();
     assert_eq!((info["format"].as_str(), info["width"].as_f64(), info["height"].as_f64()), (Some("txt"), Some(468.0), Some(648.0)));
     // Not UTF-8: read as Windows-1252, or Mac Roman for a Mac file.
@@ -125,7 +125,7 @@ fn text_files_report_and_queue_with_their_options() {
     assert_eq!(s.tool_options()["name"], "a.txt");
     let bad = json!({"name": "a.txt", "dataBase64": "YQ==", "text": {"platform": "beos"}});
     assert!(s.execute("file.place", &bad).is_err());
-    let blank = json!({"name": "blank.txt", "dataBase64": vectorcraft_format::base64_encode(b" \r\n\t\r\n")});
+    let blank = json!({"name": "blank.txt", "dataBase64": etcfile::base64::encode(b" \r\n\t\r\n")});
     assert!(s.execute("file.place", &blank).is_err(), "no text to place");
     // Replace: the frame takes the replaced object's bounds.
     s.execute("shape.rectangle", &json!({"x": 50, "y": 60, "width": 80, "height": 40})).unwrap();
@@ -181,7 +181,7 @@ const LETTER_RTF: &str = concat!(
 fn rtf_places_as_area_type_with_its_character_and_paragraph_formatting() {
     let mut s = session();
     s.execute("document.setup", &json!({"superscript": {"size": 50, "position": 40}})).unwrap();
-    let r = s.execute("file.place", &json!({"name": "letter.rtf", "dataBase64": vectorcraft_format::base64_encode(LETTER_RTF.as_bytes())})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "letter.rtf", "dataBase64": etcfile::base64::encode(LETTER_RTF.as_bytes())})).unwrap();
     assert_eq!((r["format"].as_str(), r["name"].as_str()), (Some("rtf"), Some("letter.rtf")));
     let (body, frame) = placed(&s, &r);
     assert_eq!(body, "Plain and bold words2.\nCentered café");
@@ -211,7 +211,7 @@ fn rtf_places_as_area_type_with_its_character_and_paragraph_formatting() {
     let st = s.doc().unwrap();
     assert_eq!((st.history.undo.len(), st.selection.objects.len()), (2, 1), "Document Setup and Place, each one undo step");
     // Info and the place cursor report it as RTF.
-    let file = json!({"name": "letter.rtf", "dataBase64": vectorcraft_format::base64_encode(LETTER_RTF.as_bytes())});
+    let file = json!({"name": "letter.rtf", "dataBase64": etcfile::base64::encode(LETTER_RTF.as_bytes())});
     let info = s.execute("file.place.info", &file).unwrap();
     assert_eq!((info["format"].as_str(), info["width"].as_f64()), (Some("rtf"), Some(468.0)));
     let q = s.execute("file.place.queue", &json!({"files": [file]})).unwrap();
@@ -222,7 +222,7 @@ fn rtf_places_as_area_type_with_its_character_and_paragraph_formatting() {
 fn malformed_rtf_fails_cleanly() {
     let mut s = session();
     let place = |s: &mut Session, name: &str, bytes: &[u8]| {
-        s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)}))
+        s.execute("file.place", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)}))
     };
     assert!(place(&mut s, "a.rtf", b"Plain words, not RTF").is_err(), "an .rtf file that isn't RTF");
     assert!(place(&mut s, "a.rtf", br"{\rtf1{\fonttbl{\f0 Arial;}}\par\par }").is_err(), "no text to place");
@@ -334,7 +334,7 @@ fn docx_places_as_area_type_with_its_styles_and_formatting() {
     );
     let mut s = session();
     s.execute("document.setup", &json!({"superscript": {"size": 50, "position": 40}})).unwrap();
-    let file = json!({"name": "report.docx", "dataBase64": vectorcraft_format::base64_encode(&docx(body, STYLES))});
+    let file = json!({"name": "report.docx", "dataBase64": etcfile::base64::encode(&docx(body, STYLES))});
     let r = s.execute("file.place", &file).unwrap();
     assert_eq!((r["format"].as_str(), r["name"].as_str()), (Some("docx"), Some("report.docx")));
     let (text, frame) = placed(&s, &r);
@@ -389,7 +389,7 @@ fn docx_double_strikethrough_is_not_a_toggle_property() {
         r#"<w:r><w:rPr><w:rStyle w:val="AlsoStruck"/><w:dstrike w:val="0"/></w:rPr><w:t>three</w:t></w:r></w:p>"#,
     );
     let mut s = session();
-    let r = s.execute("file.place", &json!({"name": "struck.docx", "dataBase64": vectorcraft_format::base64_encode(&docx(body, styles))})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "struck.docx", "dataBase64": etcfile::base64::encode(&docx(body, styles))})).unwrap();
     let n = s.doc().unwrap().doc.node(NodeId(r["ids"][0].as_u64().unwrap())).unwrap().clone();
     let NodeKind::Text(t) = &n.kind else { panic!("not type") };
     let struck: Vec<_> = t.runs.iter().map(|r| (r.text.as_str(), r.style.strikethrough)).collect();
@@ -420,7 +420,7 @@ fn docx_tables_breaks_and_fields_place_as_paragraphs_and_tabs() {
     zip[length..].copy_from_slice(&(comment.len() as u16).to_le_bytes());
     zip.extend(comment);
     let mut s = session();
-    let r = s.execute("file.place", &json!({"name": "notes.bin", "dataBase64": vectorcraft_format::base64_encode(&zip)})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "notes.bin", "dataBase64": etcfile::base64::encode(&zip)})).unwrap();
     assert_eq!(r["format"].as_str(), Some("docx"));
     assert_eq!(
         placed(&s, &r).0,
@@ -460,7 +460,7 @@ fn docx_kashida_justification_places_with_insert_kashidas() {
     .map(para)
     .concat();
     let mut s = session();
-    let r = s.execute("file.place", &json!({"name": "kashida.docx", "dataBase64": vectorcraft_format::base64_encode(&docx(&body, styles))})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "kashida.docx", "dataBase64": etcfile::base64::encode(&docx(&body, styles))})).unwrap();
     let n = s.doc().unwrap().doc.node(NodeId(r["ids"][0].as_u64().unwrap())).unwrap().clone();
     let NodeKind::Text(t) = &n.kind else { panic!("not type") };
     let paras: Vec<_> = t.paragraph_styles().iter().map(|p| (p.justify, p.kashida)).collect();
@@ -484,7 +484,7 @@ fn docx_kashida_justification_places_with_insert_kashidas() {
 fn malformed_docx_fails_cleanly() {
     let mut s = session();
     let place = |s: &mut Session, name: &str, bytes: &[u8]| {
-        s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).map_err(|e| e.to_string())
+        s.execute("file.place", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})).map_err(|e| e.to_string())
     };
     let store = |files: &[(&str, &[u8])]| cmd::fileio::zip::store(files).unwrap();
     let document = |body: &str| format!(r#"<w:document xmlns:w="{W_NS}"><w:body>{body}</w:body></w:document>"#);
@@ -794,7 +794,7 @@ fn doc_places_as_area_type_with_its_styles_and_formatting() {
     };
     let mut s = session();
     s.execute("document.setup", &json!({"superscript": {"size": 50, "position": 40}})).unwrap();
-    let file = json!({"name": "report.doc", "dataBase64": vectorcraft_format::base64_encode(&doc.build())});
+    let file = json!({"name": "report.doc", "dataBase64": etcfile::base64::encode(&doc.build())});
     let r = s.execute("file.place", &file).unwrap();
     assert_eq!((r["format"].as_str(), r["name"].as_str()), (Some("doc"), Some("report.doc")));
     let (text, frame) = placed(&s, &r);
@@ -854,7 +854,7 @@ fn doc_indents_set_later_hold_over_the_styles_physical_or_logical_ones() {
         ..Word97::default()
     };
     let mut s = session();
-    let file = json!({"name": "indents.doc", "dataBase64": vectorcraft_format::base64_encode(&doc.build())});
+    let file = json!({"name": "indents.doc", "dataBase64": etcfile::base64::encode(&doc.build())});
     let r = s.execute("file.place", &file).unwrap();
     let n = s.doc().unwrap().doc.node(NodeId(r["ids"][0].as_u64().unwrap())).unwrap().clone();
     let NodeKind::Text(t) = &n.kind else { panic!("not type") };
@@ -890,7 +890,7 @@ fn doc_tables_breaks_and_other_stories_place_as_paragraphs_and_tabs_with_warning
     };
     let mut s = session();
     // Recognized by its WordDocument stream whatever its name says.
-    let r = s.execute("file.place", &json!({"name": "notes.bin", "dataBase64": vectorcraft_format::base64_encode(&doc.build())})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "notes.bin", "dataBase64": etcfile::base64::encode(&doc.build())})).unwrap();
     assert_eq!(r["format"].as_str(), Some("doc"));
     assert_eq!(placed(&s, &r).0, "Line one\nline two\na\tb\nxy\nsec\nnext\npicture\tend\u{2011}ok\nrtl");
     let n = s.doc().unwrap().doc.node(NodeId(r["ids"][0].as_u64().unwrap())).unwrap().clone();
@@ -911,7 +911,7 @@ fn doc_tables_breaks_and_other_stories_place_as_paragraphs_and_tabs_with_warning
 fn malformed_doc_fails_cleanly() {
     let mut s = session();
     let place = |s: &mut Session, name: &str, bytes: &[u8]| {
-        s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).map_err(|e| e.to_string())
+        s.execute("file.place", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})).map_err(|e| e.to_string())
     };
     let words = || Word97 { pieces: vec![("words\r", true)], ..Word97::default() };
     let e = place(&mut s, "a.doc", b"Plain words, not a compound file").unwrap_err();
@@ -1008,7 +1008,7 @@ fn doc_styles_are_worked_out_once_however_many_paragraphs_use_them() {
     .build();
     let mut s = session();
     let started = std::time::Instant::now();
-    let r = s.execute("file.place", &json!({"name": "a.doc", "dataBase64": vectorcraft_format::base64_encode(&doc)})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "a.doc", "dataBase64": etcfile::base64::encode(&doc)})).unwrap();
     let took = started.elapsed();
     let n = s.doc().unwrap().doc.node(NodeId(r["ids"][0].as_u64().unwrap())).unwrap().clone();
     let NodeKind::Text(t) = &n.kind else { panic!("not type") };
@@ -1019,7 +1019,7 @@ fn doc_styles_are_worked_out_once_however_many_paragraphs_use_them() {
     let mut styles: Vec<_> = (0..33u16).map(|i| Some((1, i + 1, vec![], vec![]))).collect();
     styles.push(Some((1, 0x0FFF, vec![], prls(&[(0x4A43, &[24, 0])]))));
     let doc = Word97 { pieces: vec![("a\rb\r", true)], papx: vec![(1, 31, vec![]), (3, 0, vec![])], styles, ..Word97::default() }.build();
-    let r = s.execute("file.place", &json!({"name": "a.doc", "dataBase64": vectorcraft_format::base64_encode(&doc)})).unwrap();
+    let r = s.execute("file.place", &json!({"name": "a.doc", "dataBase64": etcfile::base64::encode(&doc)})).unwrap();
     let n = s.doc().unwrap().doc.node(NodeId(r["ids"][0].as_u64().unwrap())).unwrap().clone();
     let NodeKind::Text(t) = &n.kind else { panic!("not type") };
     assert_eq!(t.runs.iter().map(|r| (r.text.as_str(), r.style.size)).collect::<Vec<_>>(), [("a\nb", 12.0)]);
@@ -1029,7 +1029,7 @@ fn doc_styles_are_worked_out_once_however_many_paragraphs_use_them() {
 fn doc_property_runs_paragraphs_and_properties_read_are_limited() {
     let mut s = session();
     let place = |s: &mut Session, doc: &Word97| {
-        s.execute("file.place", &json!({"name": "a.doc", "dataBase64": vectorcraft_format::base64_encode(&doc.build())})).map_err(|e| e.to_string())
+        s.execute("file.place", &json!({"name": "a.doc", "dataBase64": etcfile::base64::encode(&doc.build())})).map_err(|e| e.to_string())
     };
     // 100,001 hidden characters whose properties alternate between two lists that give the same
     // formatting: more than 100,000 runs of character properties, though the type placed is one run.

@@ -28,8 +28,6 @@ pub struct Loaded {
     /// A PDF, or a `.ai` or `.ait` that holds a PDF, read through the editor's own copy of its art
     /// that it carries (its layers), not from its PDF part alone.
     pub editing_data: bool,
-    /// Whether the native source declared a PDF; other formats carry no native save preference.
-    pub native_pdf_compatible: Option<bool>,
 }
 
 impl Loaded {
@@ -37,7 +35,7 @@ impl Loaded {
     /// one that an SVG, PDF, `.ai` or EPS file carries, `restored`), which keeps the grid it was
     /// saved with.
     pub(crate) fn with_grid_prefs(mut self, prefs: &Prefs) -> Self {
-        if !self.restored && !matches!(self.format.id, "vectorcraft" | "template") {
+        if !self.restored && !matches!(self.format.id, "etc") {
             self.doc.grid = prefs.grid();
         }
         self
@@ -52,7 +50,7 @@ impl Loaded {
     /// change, not its art.
     pub(crate) fn with_unit_prefs(mut self, prefs: &Prefs) -> Self {
         let records_units =
-            self.restored || self.doc.units_from_file || matches!(self.format.id, "vectorcraft" | "template" | "svg" | "svgz" | "dxf");
+            self.restored || self.doc.units_from_file || matches!(self.format.id, "etc" | "svg" | "svgz" | "dxf");
         if !records_units {
             self.doc.units = crate::units::pref_unit(&prefs.units_general);
         }
@@ -99,9 +97,8 @@ pub fn detect(name: &str, bytes: &[u8]) -> Option<&'static Format> {
     if super::cdr::is_cmx(bytes) {
         return format("cmx");
     }
-    if vectorcraft_format::sniff(bytes) {
-        // A template keeps its meaning from the extension, like .ait.
-        return by_name.filter(|f| f.id == "template").or_else(|| format("vectorcraft"));
+    if etcfile::sniff(bytes) {
+        return format("etc");
     }
     if vectorcraft_svg::is_svgz(bytes) {
         return format("svgz");
@@ -165,7 +162,7 @@ fn restore_or_import(
     if let Some((intact, bytes)) = editing {
         let native = if intact { bytes() } else { None };
         match native.and_then(|b| native_file(&b).ok()) {
-            Some((doc, _, warnings)) => return Ok((doc, warnings, true)),
+            Some((doc, warnings)) => return Ok((doc, warnings, true)),
             None => fallback = Some(if intact { EDITING_DAMAGED } else { EDITING_STALE }),
         }
     }
@@ -178,11 +175,11 @@ fn restore_or_import(
 
 /// A native file's document and details, the colour profiles it carries installed where missing
 /// (with a warning for each that can't be used).
-pub(crate) fn native_file(bytes: &[u8]) -> Result<(Document, vectorcraft_format::FileInfo, Vec<String>)> {
-    let f = vectorcraft_format::load_file(bytes).map_err(err)?;
+pub(crate) fn native_file(bytes: &[u8]) -> Result<(Document, Vec<String>)> {
+    let f = etcfile::load_file(bytes).map_err(err)?;
     let mut warnings = super::native::install_profiles(f.profiles);
-    warnings.extend(f.depth_notes);
-    Ok((f.doc, f.info, warnings))
+    warnings.extend(f.notes);
+    Ok((f.doc, warnings))
 }
 
 /// Read a file of any readable format (`name`: its file name or path, for the extension and title;
@@ -374,20 +371,17 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
     let title = file_name(name);
     // The File Info a PDF, `.ai` or `.ait` gives.
     let mut file_info = None;
-    let mut converted = false;
+    let converted = false;
     let mut preview_only = false;
     let mut editing_data = false;
-    let mut native_pdf_compatible = None;
     let (mut doc, mut warnings, restored) = match format.id {
-        "vectorcraft" | "template" => {
-            let (d, info, warnings) = native_file(bytes)?;
-            native_pdf_compatible = Some(info.pdf_compatible);
-            converted = info.is_old() || super::extension(name) == vectorcraft_format::LEGACY_EXTENSION;
+        "etc" => {
+            let (d, warnings) = native_file(bytes)?;
             (d, warnings, false)
         }
         "svg" | "svgz" => {
             let text = vectorcraft_svg::text_of(bytes).map_err(err)?;
-            let editing = vectorcraft_svg::editing(&text).map(|e| (e.intact, move || vectorcraft_format::base64_decode(&e.data)));
+            let editing = vectorcraft_svg::editing(&text).map(|e| (e.intact, move || etcfile::base64::decode(&e.data)));
             // Relative links are found in the SVG's folder (when `name` is a path).
             let folder = std::path::Path::new(name).parent().map(|f| f.to_string_lossy()).filter(|f| !f.is_empty()).map(|f| absolute_path(&f));
             restore_or_import(editing, || open_svg(&text, folder.as_deref()))?
@@ -557,11 +551,11 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
     doc.metadata.title = doc.metadata.title.or_else(|| held.and_then(imported_title));
     // Imports are named after the file; a native document keeps its own title (the tab shows the
     // file name once it has a path).
-    if !matches!(format.id, "vectorcraft" | "template") || doc.title.is_empty() {
+    if !matches!(format.id, "etc") || doc.title.is_empty() {
         doc.title = title;
     }
     warnings.extend(doc.images.values().filter_map(|b| size_note(&b.bytes)));
-    Ok(Loaded { doc, format, warnings, restored, converted, preview_only, editing_data, native_pdf_compatible })
+    Ok(Loaded { doc, format, warnings, restored, converted, preview_only, editing_data })
 }
 
 /// Import SVG text, reading the files its images link to (relative links from `folder`, the SVG's
@@ -814,7 +808,7 @@ fn linked_pages(name: &str, bytes: &[u8], path: Option<&str>, opts: &LoadOptions
     let (mut doc, warnings) = super::pdfimport::linked_pages(name, bytes, path, opts)?;
     doc.title = file_name(name);
     let format = detect(name, bytes).ok_or_else(|| err(format!("can't open `{}`: not a PDF", file_name(name))))?;
-    Ok(Loaded { doc, format, warnings, restored: false, converted: false, preview_only: false, editing_data: false, native_pdf_compatible: None })
+    Ok(Loaded { doc, format, warnings, restored: false, converted: false, preview_only: false, editing_data: false })
 }
 
 /// The second half of [`open_bytes_with`]: open a file [`read_for_open`] read as the new active
@@ -857,7 +851,7 @@ fn open_loaded(
     as_template: bool,
     policy_changed: bool,
 ) -> Result<Value> {
-    let Loaded { mut doc, format, warnings, restored, converted, native_pdf_compatible, .. } =
+    let Loaded { mut doc, format, warnings, restored, converted, .. } =
         loaded.with_grid_prefs(&s.prefs).with_unit_prefs(&s.prefs);
     // EPS now has an ordinary Save path. Its preview, partial-program and damaged-editing
     // fallbacks must ask before overwriting the richer source they could not fully read. Every
@@ -871,13 +865,15 @@ fn open_loaded(
         .cloned()
         .collect();
     let source_path = path.clone().filter(|_| !losses.is_empty());
-    // A template (saved by Save as Template, or an .ait, .vctemplate or .cdt file) opens as a new
+    // A template (saved by Save as Template, or an .ait or .cdt file) opens as a new
     // untitled document.
-    let template = as_template || doc.template || matches!(format.id, "ait" | "template" | "cdt");
+    let template = as_template || doc.template || matches!(format.id, "ait" | "cdt");
     if template {
         doc.template = false;
         doc.title = s.next_untitled();
         doc.metadata.title = None;
+        // A new project: it gets a project id of its own when it is added.
+        doc.extra.remove(etcfile::PROJECT_ID_KEY);
     }
     // A .ai (or .ait) another app wrote carries no open Layers rows we read: all of them start
     // closed, its top-level layers as its groups (#1475). Ours carry their own.
@@ -897,9 +893,6 @@ fn open_loaded(
     let st = s.doc_mut()?;
     if policy_changed {
         st.mark_unsaved();
-    }
-    if let Some(pdf) = native_pdf_compatible {
-        st.save_options.insert("pdfCompatible".into(), json!(pdf));
     }
     if saves_back {
         st.format = format.id;
@@ -934,7 +927,7 @@ pub(crate) fn source<'a>(p: &'a Value, cmd: &str) -> Result<Source<'a>> {
     match (str_param(p, "path"), str_param(p, "dataBase64")) {
         (Some(path), _) => Ok(Source { name: path, bytes: read_file(path)?, path: Some(path) }),
         (None, Some(b64)) => {
-            let bytes = vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(cmd, "bad base64"))?;
+            let bytes = etcfile::base64::decode(b64).ok_or_else(|| bad(cmd, "bad base64"))?;
             Ok(Source { name: str_param(p, "name").unwrap_or("Untitled"), bytes, path: None })
         }
         _ => Err(bad(cmd, "give path, or name and dataBase64")),

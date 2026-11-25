@@ -18,7 +18,7 @@ fn session() -> Session {
 
 fn export(s: &mut Session, p: Value) -> Vec<u8> {
     let r = s.execute("document.export", &p).unwrap();
-    vectorcraft_format::base64_decode(r["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    etcfile::base64::decode(r["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 /// A TIFF's first directory: tag → (type, count, value or offset), in the file's byte order.
@@ -81,10 +81,10 @@ fn tiff_options_reach_the_file() {
     assert_eq!((tags(&gray)[&262].2, tags(&gray)[&277].2), (1, 1), "grey, no alpha");
     assert!(s.execute("document.export", &json!({"format": "tiff", "byteOrder": "middle"})).is_err());
     // The file opens again.
-    let r = s.execute("document.open", &json!({"name": "back.tif", "dataBase64": vectorcraft_format::base64_encode(&mm)})).unwrap();
+    let r = s.execute("document.open", &json!({"name": "back.tif", "dataBase64": etcfile::base64::encode(&mm)})).unwrap();
     assert_eq!(r["format"], "tiff");
     for file in [&cmyk, &gray, &rgb] {
-        s.execute("document.open", &json!({"name": "back.tif", "dataBase64": vectorcraft_format::base64_encode(file)})).unwrap();
+        s.execute("document.open", &json!({"name": "back.tif", "dataBase64": etcfile::base64::encode(file)})).unwrap();
     }
 }
 
@@ -117,7 +117,7 @@ fn bmp_options_reach_the_file() {
         let e = s.execute("document.export", &merge(json!({"format": "bmp"}), bad.clone())).unwrap_err();
         assert!(matches!(e, EngineError::BadParams { .. }), "{bad}: {e}");
     }
-    let r = s.execute("document.open", &json!({"name": "back.bmp", "dataBase64": vectorcraft_format::base64_encode(&rle)})).unwrap();
+    let r = s.execute("document.open", &json!({"name": "back.bmp", "dataBase64": etcfile::base64::encode(&rle)})).unwrap();
     assert_eq!(r["format"], "bmp");
 }
 
@@ -163,7 +163,7 @@ fn targa_header(kind: u8, w: u16, h: u16, depth: u8, descriptor: u8) -> Vec<u8> 
 fn targa_files_open_and_place() {
     use crate::cmd::clipboard::{PASTE_ORDER, file_flavour};
     let mut s = session();
-    let b64 = vectorcraft_format::base64_encode;
+    let b64 = etcfile::base64::encode;
     // VectorCraft's own exports: the transparent corner stays transparent at 16 and 32 bits (24
     // bits are flattened on white) and the black rectangle stays black.
     for depth in [16, 24, 32] {
@@ -210,7 +210,7 @@ fn targa_files_open_and_place() {
 #[test]
 fn dib_rle_and_pns_files_open_and_place() {
     let mut s = session();
-    let b64 = vectorcraft_format::base64_encode;
+    let b64 = etcfile::base64::encode;
     let bmp = export(&mut s, json!({"format": "bmp"}));
     let rle = export(&mut s, json!({"format": "bmp", "depth": 8, "rle": true}));
     assert_eq!(u32::from_le_bytes(rle[30..34].try_into().unwrap()), 1, "RLE8");

@@ -219,7 +219,7 @@ fn load_into(p: &Value, cmd: &str, link_pdf: bool, slices_out: &mut Slices) -> R
     }
     let crop = opts.crop != CropTo::Bounding;
     // A VectorCraft document: placed linked from its file, else as an editable copy.
-    if matches!(format.id, "vectorcraft" | "template") {
+    if matches!(format.id, "etc") {
         let page = page as u32;
         if let Some(path) = src.path.filter(|_| bool_or(p, "link", true)) {
             let s = document::source(src.name, &src.bytes, Some(path), page, !crop, PageBox::Crop, cmd)?;
@@ -1030,7 +1030,7 @@ fn thumbnail_png(l: Loaded, px: f64) -> Result<String> {
     d.insert(layer, 0, node)?;
     let k = px.clamp(1.0, MAX_THUMBNAIL) / natural.width().max(natural.height()).max(1e-9);
     let png = vectorcraft_render::Renderer::new().render_region(&d, natural, k, false).to_png().map_err(EngineError::Other)?;
-    Ok(vectorcraft_format::base64_encode(&png))
+    Ok(etcfile::base64::encode(&png))
 }
 
 fn info(_: &mut Session, p: &Value) -> Result<Value> {

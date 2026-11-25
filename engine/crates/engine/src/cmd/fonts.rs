@@ -2383,8 +2383,8 @@ mod open_tests {
         s.execute("text.setStyle", &json!({"tracking": 400})).unwrap();
         let want = s.doc().unwrap().doc.node(NodeId(id)).unwrap().geometric_bounds().unwrap();
         // Save and reopen: the cache isn't in the file, yet the bounds must match.
-        let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-        let reopened = vectorcraft_format::load(&bytes).unwrap();
+        let bytes = etcfile::save(&s.doc().unwrap().doc, false);
+        let reopened = etcfile::load(&bytes).unwrap();
         let mut t = Session::new();
         t.add_document(reopened, None);
         let got = t.doc().unwrap().doc.node(NodeId(id)).unwrap().geometric_bounds().unwrap();

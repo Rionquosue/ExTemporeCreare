@@ -130,7 +130,7 @@ fn canvas_measurement_labels_follow_the_units() {
 fn units_survive_a_native_round_trip() {
     let mut s = session();
     s.execute("document.setUnits", &json!({"units": "Feet & Inches"})).unwrap();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(back.units, Unit::FeetInches);
 }
 
@@ -209,7 +209,7 @@ fn general_in(unit: &str) -> Session {
 
 /// `bytes` opened as `name` in `s` → the opened document's units.
 fn opened_units(s: &mut Session, name: &str, bytes: &[u8]) -> Unit {
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)})).unwrap();
     units(s)
 }
 
@@ -219,7 +219,7 @@ fn exported(unit: &str, format: &str) -> Vec<u8> {
     s.execute("document.setUnits", &json!({"units": unit})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 30})).unwrap();
     let data = s.execute("document.export", &json!({"format": format})).unwrap()["dataBase64"].clone();
-    vectorcraft_format::base64_decode(data.as_str().unwrap()).unwrap()
+    etcfile::base64::decode(data.as_str().unwrap()).unwrap()
 }
 
 /// A PostScript `.ai` with one empty layer and `header` among its comments.
@@ -228,6 +228,34 @@ fn postscript_ai(header: &str) -> Vec<u8> {
         "%!PS-Adobe-3.0\n%%Creator: test\n%AI5_FileFormat 14.0\n{header}%AI3_Cropmarks: 0 0 200 100\n%%EndComments\n%%BeginProlog\n%%EndProlog\n%%BeginSetup\n%%EndSetup\n%AI5_BeginLayer\n1 1 1 1 0 0 1 0 79 128 255 0 50 0 Lb\n(L) Ln\n0 A\n0 Xw\n\nLB\n%AI5_EndLayer--\n%%PageTrailer\ngsave annotatepage grestore showpage\n%%Trailer\n%%EOF\n"
     )
     .into_bytes()
+}
+
+#[test]
+fn files_that_record_no_units_open_in_the_general_unit() {
+    let pdf = vectorcraft_testkit::pdf::pdf(&[vectorcraft_testkit::pdf::PdfPage::new(120.0, 60.0, "0 0 0 rg 10 10 50 30 re f")], None);
+    let png = exported("Inches", "png");
+    let ai = postscript_ai("");
+    let mut s = general_in("Millimeters");
+    assert_eq!(opened_units(&mut s, "plain.pdf", &pdf), Unit::Millimeters, "a PDF records no units (#5820)");
+    assert_eq!(opened_units(&mut s, "image.png", &png), Unit::Millimeters, "nor does an image");
+    assert_eq!(opened_units(&mut s, "old.ai", &ai), Unit::Millimeters, "nor a .ai without ruler units");
+    // Only the units change: the page keeps its size in points.
+    s.execute("document.open", &json!({"name": "plain.pdf", "dataBase64": etcfile::base64::encode(&pdf)})).unwrap();
+    let board = s.doc().unwrap().doc.artboards[0].rect;
+    assert!((board.width() - 120.0).abs() < 1e-6 && (board.height() - 60.0).abs() < 1e-6, "{board:?}");
+    // With the preference left at points, they open in points as before.
+    let mut p = general_in("Points");
+    assert_eq!(opened_units(&mut p, "plain.pdf", &pdf), Unit::Points);
+}
+
+#[test]
+fn files_that_record_units_keep_them_whatever_the_general_unit() {
+    let mut s = general_in("Millimeters");
+    assert_eq!(opened_units(&mut s, "inches.ai", &postscript_ai("%AI5_RulerUnits: 0\n")), Unit::Inches, "a .ai's ruler units");
+    assert_eq!(opened_units(&mut s, "points.ai", &postscript_ai("%AI5_RulerUnits: 2\n")), Unit::Points, "ruler units in points are kept too");
+    assert_eq!(opened_units(&mut s, "saved.etc", &exported("Inches", "etc")), Unit::Inches, "a native file");
+    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="2in" height="1in" viewBox="0 0 144 72"><rect width="10" height="10"/></svg>"#;
+    assert_eq!(opened_units(&mut s, "inches.svg", svg.as_bytes()), Unit::Inches, "an SVG's root size");
 }
 
 

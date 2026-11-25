@@ -203,7 +203,7 @@ fn a_click_on_the_drop_shadow_of_an_image_outside_its_frame_does_not_select_it()
             .map(|__b| png.extend_from_slice(&__b))
     }
     .unwrap();
-    let r = run(&mut s, "file.place", json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [65, 65]}));
+    let r = run(&mut s, "file.place", json!({"name": "red.png", "dataBase64": etcfile::base64::encode(&png), "at": [65, 65]}));
     let im = NodeId(r["ids"][0].as_u64().unwrap());
     // The frame lies from x 50 to 80 and the shadow from 90 to 120.
     shadow(&mut s, im, 40.0);

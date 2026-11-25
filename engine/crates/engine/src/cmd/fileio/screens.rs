@@ -196,7 +196,7 @@ pub(super) fn name_without_device(name: &str) -> String {
 pub(crate) const ROW_KEYS: [&str; 7] = ["format", "scale", "ppi", "width", "height", "suffix", "folder"];
 
 /// The writable formats a format row can't name.
-pub(crate) const UNWRITTEN_FORMATS: [&str; 6] = ["template", "txt", "dxf", "emf", "wmf", "hpgl"];
+pub(crate) const UNWRITTEN_FORMATS: [&str; 1] = ["txt"];
 
 /// One format row: what to write, at which size, with which suffix, into which sub-folder.
 struct Row {
@@ -268,7 +268,7 @@ impl Row {
     /// Formats that hold a whole document to edit (native): written from a document of the item
     /// alone, one artboard, rather than with an `artboard` option.
     fn whole_document(&self) -> bool {
-        matches!(self.format.id, "vectorcraft")
+        matches!(self.format.id, "etc")
     }
 
     /// The encoder options for `region`, `artboard` of the document written.
@@ -1000,7 +1000,7 @@ pub(super) fn presets_import(s: &mut Session, p: &Value) -> Result<Value> {
             if b64.bytes().filter(|b| !b.is_ascii_whitespace()).count() > MAX_PRESET_FILE_BYTES.div_ceil(3) * 4 {
                 return Err(bad(IMPORT, format!("export presets file is larger than {MAX_PRESET_FILE_BYTES} bytes")));
             }
-            vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(IMPORT, "bad dataBase64"))?
+            etcfile::base64::decode(b64).ok_or_else(|| bad(IMPORT, "bad dataBase64"))?
         }
         _ => return Err(bad(IMPORT, "give `path`, `data` or `dataBase64`")),
     };
@@ -1430,7 +1430,7 @@ fn encode_and_write(export: ScreenExport, writer: &mut dyn FnMut(&str, &[u8]) ->
                 Ok(json!({ "path": path, "bytes": zip.len(), "files": names, "warnings": warnings }))
             }
             None => Ok(
-                json!({ "name": zip_name, "dataBase64": vectorcraft_format::base64_encode(&zip), "bytes": zip.len(), "files": names, "warnings": warnings }),
+                json!({ "name": zip_name, "dataBase64": etcfile::base64::encode(&zip), "bytes": zip.len(), "files": names, "warnings": warnings }),
             ),
         };
     }
@@ -1438,7 +1438,7 @@ fn encode_and_write(export: ScreenExport, writer: &mut dyn FnMut(&str, &[u8]) ->
         Some(_) => json!({ "files": out.written, "warnings": warnings }),
         None => {
             let files: Vec<Value> =
-                out.kept.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })).collect();
+                out.kept.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": etcfile::base64::encode(bytes) })).collect();
             json!({ "files": files, "warnings": warnings })
         }
     })

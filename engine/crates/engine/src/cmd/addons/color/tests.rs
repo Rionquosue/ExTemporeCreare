@@ -201,7 +201,7 @@ fn dots(g: &vectorcraft_doc::Node) -> Vec<(vectorcraft_geom::PathData, String, v
 /// `format` as `document.export` writes the active document.
 fn exported(s: &mut Session, format: &str) -> Vec<u8> {
     let v = s.execute("document.export", &json!({"format": format})).unwrap();
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 /// How many subpaths the path data of `svg` starts.
@@ -232,6 +232,29 @@ fn expand_appearance_gives_the_dots_object_vector_halftone_makes() {
         // Ids of their own.
         let ids: std::collections::HashSet<_> = expanded.children().unwrap().iter().map(|c| c.id).chain([id]).collect();
         assert_eq!(ids.len(), expanded.children().unwrap().len() + 1);
+    }
+}
+
+#[test]
+fn exports_write_the_dots_as_paths() {
+    let (mut s, _) = red_rect();
+    let plain: Vec<usize> = ["pdf", "eps", "ai"].map(|f| exported(&mut s, f).len()).to_vec();
+    s.execute("effect.apply", &json!({"effect": HALFTONE, "params": {"frequency": 18}})).unwrap();
+    // The exporters' copy of the document has the dots in the object's place.
+    let baked = vectorcraft_render::effects::bake_document(&s.doc().unwrap().doc).unwrap();
+    let mut paths = 0;
+    baked.walk(|n| {
+        assert!(n.appearance.effects.iter().all(|e| e.id != HALFTONE));
+        paths += n.path_data().map_or(0, |p| p.subpaths.len());
+    });
+    assert!(paths > 100, "{paths} subpaths");
+    // SVG: path data of a subpath per dot.
+    let moves = svg_moves(&exported(&mut s, "svg"));
+    assert!(moves > 100, "{moves} subpaths");
+    // PDF, EPS and AI: the dots' paths make each file larger.
+    for (f, plain) in ["pdf", "eps", "ai"].into_iter().zip(plain) {
+        let with = exported(&mut s, f).len();
+        assert!(with > plain + 1000, "{f}: {with} bytes, {plain} without the effect");
     }
 }
 

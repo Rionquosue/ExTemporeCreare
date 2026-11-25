@@ -124,9 +124,9 @@ fn addon_shapes_commands_and_format_roundtrip_preserve_paths() {
     // baked PathData/LiveShape (for a build that ignores the add-on attribute) and the stored
     // extras attribute across a save/load roundtrip.
     let doc_before = s.doc().unwrap().doc.clone();
-    let bytes = vectorcraft_format::save(&doc_before, false);
-    let doc_after = vectorcraft_format::load(&bytes).unwrap();
-    let re_saved = vectorcraft_format::save(&doc_after, false);
+    let bytes = etcfile::save(&doc_before, false);
+    let doc_after = etcfile::load(&bytes).unwrap();
+    let re_saved = etcfile::save(&doc_after, false);
     assert_eq!(bytes, re_saved);
     for id in [box_id, ell_id, rect_id, poly_id, spiral_id] {
         let a = doc_before.node(id).unwrap();
@@ -147,12 +147,12 @@ fn shape_of(s: &Session, id: NodeId) -> CustomShape {
 /// Runs `cmd` with `p`, which must fail with `msg` and leave the document and its history as they
 /// were.
 fn refused(s: &mut Session, cmd: &str, p: serde_json::Value, msg: &str) {
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = etcfile::save(&s.doc().unwrap().doc, false);
     let undo = s.doc().unwrap().history.undo.len();
     let e = s.execute(cmd, &p).map(|v| v.to_string()).unwrap_err().to_string();
     assert!(e.contains(msg), "{cmd} {p}: {e}");
     assert_eq!(s.doc().unwrap().history.undo.len(), undo, "{cmd} {p}");
-    assert_eq!(vectorcraft_format::save(&s.doc().unwrap().doc, false), saved, "{cmd} {p}");
+    assert_eq!(etcfile::save(&s.doc().unwrap().doc, false), saved, "{cmd} {p}");
 }
 
 #[test]

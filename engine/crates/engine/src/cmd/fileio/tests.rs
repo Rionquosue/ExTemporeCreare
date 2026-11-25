@@ -19,11 +19,11 @@ fn tmp_dir(tag: &str) -> std::path::PathBuf {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    etcfile::base64::decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 fn open(s: &mut Session, name: &str, bytes: &[u8]) -> Value {
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)}))
+    s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(bytes)}))
         .unwrap_or_else(|e| panic!("{name}: {e}"))
 }
 
@@ -71,8 +71,8 @@ fn opens_every_readable_format() {
     let svgz = vectorcraft_svg::compress(&svg);
 
     for (name, bytes, format) in [
-        ("a.vectorcraft", native.clone(), "vectorcraft"),
-        ("a.drawcraft", native, "vectorcraft"),
+        ("a.etc", native.clone(), "etc"),
+        ("a.drawcraft", native, "etc"),
         ("a.svg", svg.into_bytes(), "svg"),
         ("a.svgz", svgz, "svgz"),
         ("a.pdf", pdf.clone(), "pdf"),
@@ -80,7 +80,7 @@ fn opens_every_readable_format() {
     ] {
         let r = open(&mut s, name, &bytes);
         assert_eq!(r["format"], format, "{name}");
-        assert_eq!(r["title"], if format == "vectorcraft" { "Untitled-1" } else { name }, "{name}");
+        assert_eq!(r["title"], if format == "etc" { "Untitled-1" } else { name }, "{name}");
         assert!(s.doc().unwrap().doc.node_count() >= 2, "{name}: the rectangle came through");
     }
     for (name, kind) in [
@@ -247,7 +247,7 @@ fn a_tiff_with_alpha_after_another_extra_sample_places_with_its_alpha() {
                 let alphas: Vec<u8> = rgba.iter().skip(3).step_by(4).copied().collect();
                 assert_eq!(alphas, [255, 128, 0, 255, 64, 1], "{what}: the alpha is the second extra sample");
                 let mut s = session(100.0, 100.0, 1);
-                s.execute("file.place", &json!({"name": "a.tif", "dataBase64": vectorcraft_format::base64_encode(&file)})).unwrap();
+                s.execute("file.place", &json!({"name": "a.tif", "dataBase64": etcfile::base64::encode(&file)})).unwrap();
                 let blob = &s.doc().unwrap().doc.images[&image_of(&s).key];
                 let placed = image::load_from_memory(&blob.bytes).unwrap().to_rgba8().into_raw();
                 assert_eq!(placed, rgba, "{what}: Place reads it as Open does");
@@ -301,7 +301,7 @@ fn planar_cmyk_tiffs_open_and_place_with_their_inks() {
     let blob = &s.doc().unwrap().doc.images[&image_of(&s).key];
     assert_eq!(blob.cmyk().map(|i| i.data), Some(want.clone()), "Open keeps the inks");
     let mut s = session(100.0, 100.0, 1);
-    s.execute("file.place", &json!({"name": "planar.tif", "dataBase64": vectorcraft_format::base64_encode(&file)})).unwrap();
+    s.execute("file.place", &json!({"name": "planar.tif", "dataBase64": etcfile::base64::encode(&file)})).unwrap();
     let blob = &s.doc().unwrap().doc.images[&image_of(&s).key];
     assert_eq!(blob.cmyk().map(|i| i.data), Some(want), "Place keeps the inks");
     assert!(image::load_from_memory(&blob.bytes).is_ok(), "the image decoder reads the stored image");
@@ -359,7 +359,7 @@ fn ccitt_group3_tiffs_open_and_place_with_their_pixels() {
                     open(&mut s, "fax.tif", &file);
                     assert_eq!(pixels(&s), want, "{what}: Open");
                     let mut placed = session(100.0, 100.0, 1);
-                    placed.execute("file.place", &json!({"name": "fax.tif", "dataBase64": vectorcraft_format::base64_encode(&file)})).unwrap();
+                    placed.execute("file.place", &json!({"name": "fax.tif", "dataBase64": etcfile::base64::encode(&file)})).unwrap();
                     assert_eq!(pixels(&placed), want, "{what}: Place");
                 }
             }
@@ -428,7 +428,7 @@ fn content_beats_a_wrong_extension() {
 fn templates_open_untitled() {
     let mut s = session(100.0, 100.0, 1);
     let dir = tmp_dir("tpl");
-    let path = dir.join("t.vectorcraft").to_string_lossy().to_string();
+    let path = dir.join("t.etc").to_string_lossy().to_string();
     // A template under a native file name still opens untitled.
     std::fs::write(&path, b64(&s.execute("file.saveAsTemplate", &json!({})).unwrap())).unwrap();
     let r = s.execute("document.open", &json!({"path": path})).unwrap();
@@ -502,6 +502,78 @@ fn the_swatch_library_filter_lists_ai_and_eps_files() {
     assert!(!crate::cmd::swatchlib::LIBRARY_EXTS.contains(&"ai") && !opens_as_other("ai"));
 }
 
+/// The extensions usage texts list for export: one per writable format, each picking that format
+/// (`.png` picks PNG; PNG-8 is asked for by `format`).
+#[test]
+fn export_extensions_name_every_writable_format() {
+    let exts = export_extensions();
+    assert_eq!(
+        exts,
+        [
+            "etc",
+            "svg",
+            "svgz",
+            "pdf",
+            "ai",
+            "png",
+            "jpg",
+            "gif",
+            "webp",
+            "tif",
+            "bmp",
+            "etc",
+            "txt",
+            "dxf",
+            "eps",
+            "emf",
+            "wmf",
+            "plt",
+            "tga",
+            "psd"
+        ]
+    );
+    for e in exts {
+        assert!(format_for_name(&format!("x.{e}")).is_some_and(|f| f.write), "{e}");
+    }
+}
+
+#[test]
+fn formats_query_lists_readers_writers_and_options() {
+    let mut s = Session::new();
+    let r = s.execute("document.formats", &json!({})).unwrap();
+    let ids = |k: &str| r[k].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect::<Vec<_>>();
+    assert_eq!(
+        ids("writable"),
+        [
+            "etc",
+            "svg",
+            "svgz",
+            "pdf",
+            "ai",
+            "png",
+            "jpg",
+            "gif",
+            "webp",
+            "tiff",
+            "bmp",
+            "template",
+            "png8",
+            "txt",
+            "dxf",
+            "eps",
+            "emf",
+            "wmf",
+            "hpgl",
+            "tga",
+            "psd"
+        ]
+    );
+    assert!(ids("readable").contains(&"tiff".to_string()) && ids("readable").contains(&"ait".to_string()));
+    let png = r["formats"].as_array().unwrap().iter().find(|f| f["id"] == "png").unwrap();
+    assert_eq!(png["options"]["scale"]["default"], Value::Null);
+    assert_eq!(r["openExtensions"].as_array().unwrap().len(), OPEN_EXTS.len());
+}
+
 
 
 /// The format ids `command`'s params text lists for `format` (`a|b (default)|c (…)`, up to the
@@ -513,6 +585,25 @@ fn listed_formats(command: &str) -> Vec<String> {
     let mut ids: Vec<String> = list.split('|').filter_map(|f| f.split_whitespace().next()).map(str::to_string).collect();
     ids.sort();
     ids
+}
+
+/// The params texts of the commands that take any writable format list exactly the formats each
+/// command writes (.ai among them).
+#[test]
+fn export_params_list_every_format_the_command_writes() {
+    let mut s = session(100.0, 80.0, 1);
+    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 40})).unwrap();
+    s.execute("select.all", &json!({})).unwrap();
+    for command in ["document.serialize", "document.export", "document.exportSelection"] {
+        let mut refused = vec![];
+        let mut written: Vec<String> = FORMATS
+            .iter()
+            .filter(|f| s.execute(command, &json!({"format": f.id})).map_err(|e| refused.push(format!("{}: {e}", f.id))).is_ok())
+            .map(|f| f.id.to_string())
+            .collect();
+        written.sort();
+        assert_eq!(listed_formats(command), written, "{command}; refused: {refused:?}");
+    }
 }
 
 
@@ -554,12 +645,12 @@ fn pdf_export_honours_artboard_and_range() {
 fn export_without_path_returns_bytes_and_never_retargets() {
     let mut s = session(100.0, 100.0, 1);
     let dir = tmp_dir("retarget");
-    let doc_path = dir.join("doc.vectorcraft").to_string_lossy().to_string();
+    let doc_path = dir.join("doc.etc").to_string_lossy().to_string();
     s.execute("document.save", &json!({"path": doc_path})).unwrap();
-    let copy = dir.join("copy.vectorcraft").to_string_lossy().to_string();
+    let copy = dir.join("copy.etc").to_string_lossy().to_string();
     let r = s.execute("document.export", &json!({"path": copy})).unwrap();
-    assert_eq!(r["format"], "vectorcraft");
-    assert!(vectorcraft_format::sniff(&std::fs::read(&copy).unwrap()));
+    assert_eq!(r["format"], "etc");
+    assert!(etcfile::sniff(&std::fs::read(&copy).unwrap()));
     assert_eq!(s.doc().unwrap().path.as_deref(), Some(doc_path.as_str()), "exporting the native format keeps the document's path");
     let r = s.execute("document.export", &json!({"format": "jpg"})).unwrap();
     assert_eq!(&b64(&r)[..2], [0xFF, 0xD8]);
@@ -568,7 +659,7 @@ fn export_without_path_returns_bytes_and_never_retargets() {
     // A never-saved document hands its native bytes back.
     let mut s = session(10.0, 10.0, 1);
     let r = s.execute("document.save", &json!({})).unwrap();
-    assert!(vectorcraft_format::sniff(&b64(&r)));
+    assert!(etcfile::sniff(&b64(&r)));
     assert_eq!(s.doc().unwrap().path, None);
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -629,8 +720,8 @@ fn export_for_screens_one_page_per_pdf_unique_names() {
     assert_eq!(r["files"][0]["name"], "Artboard-3@0.5x.jpg");
     assert_eq!(image::load_from_memory(&b64(&r["files"][0])).unwrap().width(), 50);
     // A native row: each artboard as a document of its own to edit.
-    let r = s.execute("document.exportForScreens", &json!({"range": "1", "formats": [{"format": "vectorcraft"}]})).unwrap();
-    assert!(r["files"][0]["name"].as_str().unwrap().ends_with(".vectorcraft"), "{r}");
+    let r = s.execute("document.exportForScreens", &json!({"range": "1", "formats": [{"format": "etc"}]})).unwrap();
+    assert!(r["files"][0]["name"].as_str().unwrap().ends_with(".etc"), "{r}");
     let _ = std::fs::remove_dir_all(dir);
 }
 
@@ -701,11 +792,9 @@ fn a_native_save_streams_the_bytes_the_encoder_makes() {
     let d = tmp_dir("stream");
     let mut s = session(200.0, 100.0, 1);
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 20})).unwrap();
-    for (name, compress) in [("a.vectorcraft", false), ("b.vectorcraft", true), ("c.vctemplate", true)] {
+    for name in ["a.etc", "b.etc"] {
         let path = d.join(name).to_string_lossy().to_string();
-        // A PDF-compatible file's PDF is dated to the second it is written, so the byte comparison
-        // uses files without one.
-        let p = json!({"path": path, "compress": compress, "pdfCompatible": false});
+        let p = json!({"path": path});
         let r = s.execute("file.saveCopy", &p).unwrap();
         let written = std::fs::read(&path).unwrap();
         assert_eq!(r["bytes"], written.len(), "{r}");
@@ -713,21 +802,10 @@ fn a_native_save_streams_the_bytes_the_encoder_makes() {
         let job = save_job(&mut s, plan).unwrap();
         assert!(job.streams());
         assert_eq!(written, job.encode().unwrap().files[0].1, "{name}");
-        assert_eq!(vectorcraft_format::load(&written).unwrap().template, name.ends_with("vctemplate"));
+        assert!(!etcfile::load(&written).unwrap().template);
     }
-    // A save with the default options streams a file that carries its PDF.
-    let path = d.join("d.vectorcraft").to_string_lossy().to_string();
-    let p = json!({"path": path});
-    let r = s.execute("file.saveCopy", &p).unwrap();
-    let written = std::fs::read(&path).unwrap();
-    assert_eq!(r["bytes"], written.len(), "{r}");
-    assert!(vectorcraft_format::pdf_content(&written).is_some());
-    let plan = save_plan(&s, SaveMode::Copy, &p).unwrap();
-    let job = save_job(&mut s, plan).unwrap();
-    assert!(job.streams());
-    assert!(vectorcraft_format::pdf_content(&job.encode().unwrap().files[0].1).is_some());
     // A writer that fails: the save fails with its error.
-    let plan = save_plan(&s, SaveMode::Copy, &json!({"path": "/x/y.vectorcraft"})).unwrap();
+    let plan = save_plan(&s, SaveMode::Copy, &json!({"path": "/x/y.etc"})).unwrap();
     let job = save_job(&mut s, plan).unwrap();
     let e = job
         .write_streamed(&mut |_, fill| {
@@ -736,6 +814,68 @@ fn a_native_save_streams_the_bytes_the_encoder_makes() {
         })
         .unwrap_err();
     assert_eq!(e.to_string(), "disk full");
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// An option given beside the path (an SVG option flat or in `svg`) and in `options` with different
+/// values is refused before anything is written; a native option beside the path of a format that doesn't read it is named
+/// in the warnings.
+#[test]
+fn a_save_refuses_disagreeing_options_and_names_unread_native_ones() {
+    let d = tmp_dir("save-options");
+    let mut s = session(200.0, 100.0, 1);
+    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 20})).unwrap();
+    let path = d.join("both.etc").to_string_lossy().to_string();
+    for cmd in ["document.save", "file.saveAs", "file.saveCopy", "file.saveAsTemplate"] {
+        let e = s.execute(cmd, &json!({"path": path, "options": {}})).unwrap_err().to_string();
+        assert!(e.contains("`compress: true` and `options.compress: false` disagree") && e.contains(&format!("`{cmd}`")), "{cmd}: {e}");
+    }
+    assert!(!std::path::Path::new(&path).exists(), "nothing is written");
+    assert!(!d.join("both.etc").exists(), "nor a template");
+    // An SVG option given in `svg: {…}` or in `options.svg` counts as given there.
+    let svg = d.join("a.svg").to_string_lossy().to_string();
+    for p in [
+        json!({"svg": {"hiddenLayers": false}, "options": {"hiddenLayers": true}}),
+        json!({"hiddenLayers": false, "options": {"svg": {"hiddenLayers": true}}}),
+        json!({"hiddenLayers": true, "svg": {"hiddenLayers": false}, "options": {"hiddenLayers": true}}),
+    ] {
+        let mut p = p;
+        p["path"] = json!(svg);
+        let e = s.execute("file.saveCopy", &p).unwrap_err().to_string();
+        assert!(e.contains("`hiddenLayers: false` and `options.hiddenLayers: true` disagree") && e.contains("`file.saveCopy`"), "{p}: {e}");
+    }
+    assert!(!std::path::Path::new(&svg).exists(), "nothing is written");
+    // Agreeing values, or one of them null, save as asked; `3` and `3.0` agree.
+    for p in [
+        json!({"options": {}}),
+        json!({"compress": null, "options": {}}),
+        json!({"version": 3, "options": {"version": 3.0}}),
+    ] {
+        let mut p = p;
+        p["path"] = json!(path);
+        let r = s.execute("file.saveCopy", &p).unwrap();
+        assert_eq!(r["warnings"], json!([]), "{p}: {r}");
+        assert_eq!(std::fs::read(&path).unwrap()[..2], [0x1f, 0x8b], "{p}");
+    }
+    // An SVG file reads none of the native options; a .ai file reads `compress` only.
+    let r = s.execute("file.saveCopy", &json!({"path": svg, "version": 3, "preview": null})).unwrap();
+    let w: Vec<&str> = r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
+    assert!(w.contains(&"`compress` was not used: SVG files don't read it"), "{w:?}");
+    assert!(w.contains(&"`version` was not used: SVG files don't read it") && !w.iter().any(|w| w.starts_with("`preview`")), "{w:?}");
+    assert!(std::fs::read(&svg).unwrap().starts_with(b"<"), "plain SVG");
+    let r = s.execute("file.saveCopy", &json!({"path": d.join("a.ai").to_string_lossy(), "version": 3})).unwrap();
+    let w: Vec<&str> = r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
+    assert!(w.iter().any(|w| w.starts_with("`version` was not used")) && !w.iter().any(|w| w.starts_with("`compress`")), "{w:?}");
+    // `precision` is read by native files and templates only.
+    for name in ["p.svg", "p.pdf", "p.ai", "p.eps"] {
+        let r = s.execute("file.saveCopy", &json!({"path": d.join(name).to_string_lossy(), "precision": 2})).unwrap();
+        let w: Vec<&str> = r["warnings"].as_array().unwrap().iter().filter_map(Value::as_str).collect();
+        assert!(w.iter().any(|w| w.starts_with("`precision` was not used:")), "{name}: {w:?}");
+    }
+    for name in ["p.etc", "p.etc"] {
+        let r = s.execute("file.saveCopy", &json!({"path": d.join(name).to_string_lossy(), "precision": 2})).unwrap();
+        assert_eq!(r["warnings"], json!([]), "{name}: {r}");
+    }
     let _ = std::fs::remove_dir_all(&d);
 }
 
@@ -761,6 +901,7 @@ fn a_save_that_fails_while_streaming_leaves_the_file_as_it_was() {
         fn flush(&mut self) -> std::io::Result<()> {
             self.inner.flush()
         }
+
     }
     let d = tmp_dir("stream-fail");
     let mut s = session(2000.0, 2000.0, 1);
@@ -768,16 +909,16 @@ fn a_save_that_fails_while_streaming_leaves_the_file_as_it_was() {
     for i in 0..1500 {
         s.execute("shape.rectangle", &json!({"x": i % 100 * 20, "y": i / 100 * 20, "width": 10, "height": 10})).unwrap();
     }
-    for compress in [false, true] {
-        let path = d.join("a.vectorcraft").to_string_lossy().to_string();
-        s.execute("file.saveCopy", &json!({"path": path, "compress": compress})).unwrap();
+    {
+        let path = d.join("a.etc").to_string_lossy().to_string();
+        s.execute("file.saveCopy", &json!({"path": path})).unwrap();
         let before = std::fs::read(&path).unwrap();
         s.execute("shape.ellipse", &json!({"x": 0, "y": 0, "width": 50, "height": 50})).unwrap();
-        let plan = save_plan(&s, SaveMode::Copy, &json!({"path": path, "compress": compress})).unwrap();
+        let plan = save_plan(&s, SaveMode::Copy, &json!({"path": path})).unwrap();
         let job = save_job(&mut s, plan).unwrap();
         let e = job.write_streamed(&mut |p, fill| super::write_file_with(p, &mut |w| fill(&mut FailAfter { inner: w, left: 10_000 }))).unwrap_err();
         assert!(e.to_string().contains("disk full") || e.to_string().contains("couldn't be encoded"), "{e}");
-        assert_eq!(std::fs::read(&path).unwrap(), before, "compress: {compress}");
+        assert_eq!(std::fs::read(&path).unwrap(), before);
         assert_eq!(std::fs::read_dir(&d).unwrap().count(), 1, "no temporary file is left");
     }
     let _ = std::fs::remove_dir_all(&d);
@@ -810,7 +951,7 @@ fn a_canceled_save_leaves_the_file_as_it_was() {
         for i in 0..count {
             s.execute("shape.rectangle", &json!({"x": i % 100 * 20, "y": i / 100 * 20, "width": 10, "height": 10})).unwrap();
         }
-        let path = d.join("a.vectorcraft").to_string_lossy().to_string();
+        let path = d.join("a.etc").to_string_lossy().to_string();
         s.execute("file.saveCopy", &json!({"path": path})).unwrap();
         let before = std::fs::read(&path).unwrap();
         s.execute("shape.ellipse", &json!({"x": 0, "y": 0, "width": 50, "height": 50})).unwrap();
@@ -868,25 +1009,25 @@ fn a_failed_save_does_not_stamp_the_documents_dates() {
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 20})).unwrap();
     let before = s.doc().unwrap().doc.metadata.clone();
     let dirty = s.doc().unwrap().is_dirty();
-    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/y.vectorcraft", "modified": 12345})).unwrap();
+    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/y.etc", "modified": 12345})).unwrap();
     let e = save_with(&mut s, plan, |_, _| Err(EngineError::Other("disk full".into()))).unwrap_err();
     assert_eq!(e.to_string(), "disk full");
     let st = s.doc().unwrap();
     assert_eq!(st.doc.metadata, before);
     assert_eq!(st.is_dirty(), dirty);
     // Options the encoder refuses: the same.
-    assert!(s.execute("file.saveAs", &json!({"path": "/x/y.vectorcraft", "version": 99, "modified": 12345})).is_err());
+    assert!(s.execute("file.saveAs", &json!({"path": "/x/y.etc", "version": 99, "modified": 12345})).is_err());
     let st = s.doc().unwrap();
     assert_eq!(st.doc.metadata, before);
     assert_eq!(st.is_dirty(), dirty);
-    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/y.vectorcraft", "modified": 12345})).unwrap();
+    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/y.etc", "modified": 12345})).unwrap();
     save_with(&mut s, plan, |_, _| Ok(())).unwrap();
     let st = s.doc().unwrap();
     assert_eq!(st.doc.metadata.modified, Some(12345));
     assert!(!st.is_dirty());
     // Edited while the file is written (Background Save): the dates go on once it is, and the
     // edit keeps the document modified.
-    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/z.vectorcraft", "modified": 777})).unwrap();
+    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/z.etc", "modified": 777})).unwrap();
     let job = save_job(&mut s, plan).unwrap();
     let uid = s.doc().unwrap().uid;
     assert_eq!(s.doc().unwrap().doc.metadata.modified, Some(12345));
@@ -895,7 +1036,7 @@ fn a_failed_save_does_not_stamp_the_documents_dates() {
     job.complete(&mut s, uid);
     let st = s.doc().unwrap();
     assert_eq!(st.doc.metadata.modified, Some(777));
-    assert_eq!(st.path.as_deref(), Some("/x/z.vectorcraft"));
+    assert_eq!(st.path.as_deref(), Some("/x/z.etc"));
     assert!(st.is_dirty());
     // Undoing the edit is back at what the file holds.
     s.execute("edit.undo", &json!({})).unwrap();
@@ -1420,4 +1561,30 @@ fn export_for_screens_jpgs_open_in_every_colour_model() {
             }
         }
     }
+}
+
+/// A save that writes several files (a native file with each artboard saved separately) and is canceled once its first file is
+/// in place writes the others too and succeeds: the set is never left half written.
+#[test]
+fn a_save_canceled_after_its_first_file_writes_them_all() {
+    let d = tmp_dir("cancel-files");
+    let mut s = session(100.0, 100.0, 2);
+    s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 30, "height": 30})).unwrap();
+    let path = d.join("logo.etc").to_string_lossy().to_string();
+    let plan = save_plan(&s, SaveMode::Copy, &json!({"path": path, "options": {"separateArtboards": true}})).unwrap();
+    let job = save_job(&mut s, plan).unwrap();
+    let token = crate::cancel::CancelToken::new();
+    let mut written = vec![];
+    let r = crate::cancel::scope(&token, None, || {
+        job.write(|p, b| {
+            super::write_save_file(p, b)?;
+            written.push(p.to_string());
+            token.cancel();
+            Ok(())
+        })
+    });
+    assert!(r.is_ok(), "{r:?}");
+    assert_eq!(written.len(), 3, "{written:?}");
+    assert!(written.iter().all(|p| std::path::Path::new(p).is_file()), "{written:?}");
+    let _ = std::fs::remove_dir_all(&d);
 }

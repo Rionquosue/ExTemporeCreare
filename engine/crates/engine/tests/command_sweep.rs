@@ -398,6 +398,46 @@ fn reads_like_a_location(k: &str) -> bool {
     matches!(k, "path" | "paths" | "file" | "files" | "folder" | "folders" | "dir" | "directory" | "url") || ENDS.iter().any(|end| k.ends_with(end))
 }
 
+/// Every key of every command that reads like a file or folder key (in its params description, the
+/// commands its `…` entries name and its schema) is in [`LOCATION_KEYS`] or [`NOT_LOCATIONS`], so a
+/// command that adds one fails here until it is sorted. The generic classifications
+/// (`vectorcraft_engine::cmd::key_location`, `vectorcraft_engine::file_access::is_path_key`) agree
+/// with those lists, and each command reads such a key as they say (`location_in`), less
+/// [`DOCUMENT_PARTS`].
+#[test]
+fn catalog_path_keys_match_location_policy() {
+    use vectorcraft_engine::cmd::{key_location, location_in, params::takes_key};
+    let catalog: Vec<(&vectorcraft_engine::CommandSpec, Vec<String>)> = command_specs().iter().map(|c| (c, command_param_keys(c))).collect();
+    let mut keys: std::collections::BTreeSet<String> =
+        catalog.iter().flat_map(|(_, keys)| keys.iter().filter(|k| reads_like_a_location(k)).cloned()).collect();
+    keys.extend(LOCATION_KEYS.iter().map(|(k, _)| k.to_string()).chain(NOT_LOCATIONS.iter().map(|k| k.to_string())));
+    let mut wrong = vec![];
+    for k in &keys {
+        let want = LOCATION_KEYS.iter().find(|(l, _)| l == k).map(|(_, l)| *l);
+        if want.is_none() && !NOT_LOCATIONS.contains(&k.as_str()) {
+            wrong.push(format!("`{k}` is in neither LOCATION_KEYS nor NOT_LOCATIONS"));
+            continue;
+        }
+        if key_location(k) != want {
+            wrong.push(format!("key_location(`{k}`) is {:?}, not {want:?}", key_location(k)));
+        }
+        for (c, named) in &catalog {
+            if !named.contains(k) && !(c.params.contains('…') && takes_key(c.params, k)) {
+                continue;
+            }
+            let here = if DOCUMENT_PARTS.contains(&(c.id, k.as_str())) { None } else { want };
+            if location_in(c, k) != here {
+                wrong.push(format!("{}: location_in(`{k}`) is {:?}, not {here:?}", c.id, location_in(c, k)));
+            }
+        }
+    }
+    for (id, key) in DOCUMENT_PARTS {
+        let named = catalog.iter().any(|(c, _)| c.id == *id && c.params.contains(key));
+        assert!(named, "{id} doesn't name `{key}`");
+    }
+    assert!(wrong.is_empty(), "{} keys are classified unlike the reviewed lists:\n{}", wrong.len(), wrong.join("\n"));
+}
+
 
 /// The cases sweep keys the command catalog names as files and folders: `document.open`'s
 /// `{path | name …}`, `addon.document.saveTimestampedCopy`'s `{folder? (…)}`, `document.compare`'s
@@ -826,7 +866,7 @@ fn structured_junk() {
         ("document.open", json!({"name": "x.svg", "dataBase64": "!!!"})),
         ("document.open", json!({"name": "x.svg", "dataBase64": "PHN2Zz4="})),
         ("document.open", json!({"name": "x.pdf", "dataBase64": "JVBERi0xLjQK"})),
-        ("document.open", json!({"name": "x.vectorcraft", "dataBase64": "e30="})),
+        ("document.open", json!({"name": "x.etc", "dataBase64": "e30="})),
         ("document.activate", json!({"index": 99})),
         ("document.move", json!({"from": 99, "to": 0})),
         ("document.move", json!({"from": 0, "to": u64::MAX})),
@@ -1376,15 +1416,15 @@ fn recovery_commands_with_a_damaged_store_and_junk_params() {
     use vectorcraft_engine::cmd::recovery::{MemoryStore, RecoveryStore};
     let store = Arc::new(MemoryStore::default());
     for (name, bytes) in [
-        ("1-1/bad-1.vectorcraft", &b"{not json"[..]),
+        ("1-1/bad-1.etc", &b"{not json"[..]),
         ("1-1/bad-1.json", b"[1, 2"),
-        ("1-1/gz-1.vectorcraft", &[0x1f, 0x8b, 0, 1, 2][..]),
+        ("1-1/gz-1.etc", &[0x1f, 0x8b, 0, 1, 2][..]),
         ("1-1/meta-only.json", br#"{"title": 5, "path": [], "saved": "x"}"#),
         ("2-1/heartbeat", b"not a number"),
-        ("2-1/x.vectorcraft", b"{}"),
-        ("../escape.vectorcraft", b"{}"),
-        ("no-area.vectorcraft", b"{}"),
-        ("/.vectorcraft", b"{}"),
+        ("2-1/x.etc", b"{}"),
+        ("../escape.etc", b"{}"),
+        ("no-area.etc", b"{}"),
+        ("/.etc", b"{}"),
     ] {
         store.write(name, bytes).unwrap();
     }

@@ -255,7 +255,7 @@ const HIDDEN_1: &str = "1 layer was left out (hidden layers and the layers clipp
 
 fn open(f: &[u8], p: Value) -> (Session, Value) {
     let mut s = Session::new();
-    let r = s.execute("document.open", &merge(json!({"name": "layers.psd", "dataBase64": vectorcraft_format::base64_encode(f)}), p)).unwrap();
+    let r = s.execute("document.open", &merge(json!({"name": "layers.psd", "dataBase64": etcfile::base64::encode(f)}), p)).unwrap();
     (s, r)
 }
 
@@ -1328,7 +1328,7 @@ fn psd_exports_open_with_their_layers() {
         (json!({"maxEditability": true}), vec![("Layer 1", true), ("Blue", true)]),
     ] {
         let r = s.execute("document.export", &merge(json!({"format": "psd"}), options.clone())).unwrap();
-        let f = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+        let f = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
         let (back, r) = open(&f, json!({"hiddenLayers": true}));
         let d = &back.doc().unwrap().doc;
         let got: Vec<(&str, bool)> = d.layers.iter().map(|l| (name(l), l.visible)).collect();
@@ -1487,7 +1487,7 @@ fn merges_keep_pass_through_groups_blending_with_what_is_below() {
 fn place(f: &[u8], p: Value) -> (Session, crate::cmd::Result<Value>) {
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-    let r = s.execute("file.place", &merge(json!({"name": "layers.psd", "dataBase64": vectorcraft_format::base64_encode(f), "at": [50, 50]}), p));
+    let r = s.execute("file.place", &merge(json!({"name": "layers.psd", "dataBase64": etcfile::base64::encode(f), "at": [50, 50]}), p));
     (s, r)
 }
 
@@ -1653,7 +1653,7 @@ fn placing_with_layers_never_links_and_refuses_values_it_cant_use() {
 #[test]
 fn psd_info_counts_the_layers_without_opening_the_file() {
     let mut s = Session::new();
-    let info = |s: &mut Session, f: &[u8]| s.execute("document.psdInfo", &json!({"dataBase64": vectorcraft_format::base64_encode(f)}));
+    let info = |s: &mut Session, f: &[u8]| s.execute("document.psdInfo", &json!({"dataBase64": etcfile::base64::encode(f)}));
     let r = info(&mut s, &file(8, 8, &stack(), 8, false, false)).unwrap();
     assert_eq!(r, json!({"format": "psd", "width": 8, "height": 8, "layers": 5, "hiddenLayers": 1, "groups": 2, "slices": 0}));
     let r = info(&mut s, &file(4, 2, &[layer("x", [0, 0, 2, 2], [9, 9, 9, 255])], 16, true, true)).unwrap();

@@ -934,7 +934,7 @@ impl Session {
 
     /// The file of profile `name`, whether or not it exists.
     fn profile_path(&self, name: &str) -> Option<std::path::PathBuf> {
-        Some(self.new_doc_profile_dir()?.join(format!("{name}.{}", vectorcraft_format::EXTENSION)))
+        Some(self.new_doc_profile_dir()?.join(format!("{name}.{}", etcfile::EXTENSION)))
     }
 
     /// Whether profile `name` has a file, which `file.newProfiles.reset` deletes.
@@ -960,7 +960,7 @@ impl Session {
         let bytes = crate::store::read_capped(&path, MAX_PROFILE_BYTES)?;
         // The color profiles the file carries are installed where missing, as opening it installs
         // them, so the new document's assigned profiles draw and are saved with it.
-        let (mut doc, _, warnings) = super::fileio::native_file(&bytes).map_err(|e| e.to_string())?;
+        let (mut doc, warnings) = super::fileio::native_file(&bytes).map_err(|e| e.to_string())?;
         // Linked images in its symbols, patterns and brushes are read from their files, as placing
         // a document reads them.
         super::links::resolve(&mut doc, super::links::LinkBase::file(Some(&file)), false);
@@ -1025,7 +1025,7 @@ fn edit_profile(s: &mut Session, p: &Value) -> Result<Value> {
     // document.open reads it next: a profile it can't open is not written either.
     crate::file_access::check_read(&path).map_err(|e| profile_error(e, &path))?;
     if !file.exists() {
-        let bytes = vectorcraft_format::save(&shipped_profile(s, name), false);
+        let bytes = etcfile::save(&shipped_profile(s, name), false);
         file.parent()
             .map_or(Ok(()), std::fs::create_dir_all)
             .and_then(|()| std::fs::write(&file, bytes))

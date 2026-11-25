@@ -274,7 +274,7 @@ fn exports(s: &mut Session) -> (Vec<(String, Vec<u8>)>, Option<vectorcraft_geom:
         .iter()
         .map(|p| {
             let out = s.execute("document.export", p).unwrap();
-            let bytes = vectorcraft_format::base64_decode(out["dataBase64"].as_str().unwrap()).unwrap();
+            let bytes = etcfile::base64::decode(out["dataBase64"].as_str().unwrap()).unwrap();
             let format = p["format"].as_str().unwrap().to_string();
             let bytes = if format == "pdf" { undated(&bytes) } else { bytes };
             (format, bytes)

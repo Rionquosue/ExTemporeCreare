@@ -191,19 +191,19 @@ fn dynamic_text_is_saved_only_when_on_and_reads_back() {
     let mut s = session();
     let id = on_line(&mut s, "Saved");
     let data =
-        |s: &mut Session| s.execute("document.serialize", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
+        |s: &mut Session| s.execute("document.serialize", &json!({"format": "etc"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
     let off = data(&mut s);
     s.execute("type.dynamicText", &json!({"on": true})).unwrap();
     let f = fit(&s, id);
     let on = data(&mut s);
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "on.vectorcraft", "dataBase64": on})).unwrap();
+    o.execute("document.open", &json!({"name": "on.etc", "dataBase64": on})).unwrap();
     let t = first_text(&o);
     assert!(text(&o, t).dynamic_text);
     assert_eq!(text(&o, t).runs[0].style.size, 12.0);
     assert_eq!(fit(&o, t), f);
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "off.vectorcraft", "dataBase64": off})).unwrap();
+    o.execute("document.open", &json!({"name": "off.etc", "dataBase64": off})).unwrap();
     let t = first_text(&o);
     assert!(!text(&o, t).dynamic_text);
     // The document summary reports the setting and the factor.
@@ -218,7 +218,7 @@ fn svg_export_writes_the_drawn_size() {
     s.execute("type.dynamicText", &json!({"on": true})).unwrap();
     let size = 12.0 * fit(&s, id);
     let svg = s.execute("document.export", &json!({"format": "svg"})).unwrap();
-    let svg = String::from_utf8(vectorcraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let svg = String::from_utf8(etcfile::base64::decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     assert!(svg.contains("<textPath"), "{svg}");
     let sizes: Vec<f64> = svg
         .match_indices("font-size")

@@ -363,10 +363,10 @@ const fn reader(id: &'static str, label: &'static str, extensions: &'static [&'s
 /// Every format VectorCraft reads or writes. Append-only: new formats go at the end.
 pub const FORMATS: &[Format] = &[
     Format {
-        id: "vectorcraft",
-        label: "VectorCraft",
-        extensions: &[vectorcraft_format::EXTENSION, vectorcraft_format::LEGACY_EXTENSION],
-        mime: "application/json",
+        id: "etc",
+        label: "Ex-Tempore Creare",
+        extensions: &[etcfile::EXTENSION],
+        mime: etcfile::MIME,
         read: true,
         write: true,
         raster: false,
@@ -447,16 +447,6 @@ pub const FORMATS: &[Format] = &[
         options: TIFF_OPTIONS,
     },
     Format { id: "bmp", label: "BMP", extensions: &["bmp"], mime: "image/bmp", read: true, write: true, raster: true, options: BMP_OPTIONS },
-    Format {
-        id: "template",
-        label: "VectorCraft Template",
-        extensions: &["vctemplate"],
-        mime: "application/json",
-        read: true,
-        write: true,
-        raster: false,
-        options: native::OPTIONS,
-    },
     Format { id: "png8", label: "PNG-8", extensions: &["png"], mime: "image/png", read: false, write: true, raster: true, options: PALETTE_OPTIONS },
     Format { id: "txt", label: "Text", extensions: TEXT_EXTS, mime: "text/plain", read: false, write: true, raster: false, options: text::OPTIONS },
     Format {
@@ -498,8 +488,7 @@ pub const FORMATS: &[Format] = &[
 
 /// Every extension `document.open` reads (the "All readable files" filter of open dialogs).
 pub const OPEN_EXTS: &[&str] = &[
-    "vectorcraft",
-    "drawcraft",
+    "etc",
     "svg",
     "svgz",
     "pdf",
@@ -534,7 +523,6 @@ pub const OPEN_EXTS: &[&str] = &[
     "pdd",
     "psb",
     "jxl",
-    "vctemplate",
     "af",
     "afdesign",
     "afpub",
@@ -582,8 +570,7 @@ const WORD_EXTS: &[&str] = &["docx", "doc"];
 /// Every extension File → Place reads: [`OPEN_EXTS`], [`TEXT_EXTS`], [`RTF_EXTS`],
 /// [`DOCX_EXTS`] and [`DOC_EXTS`].
 pub const PLACE_EXTS: &[&str] = &[
-    "vectorcraft",
-    "drawcraft",
+    "etc",
     "svg",
     "svgz",
     "pdf",
@@ -618,7 +605,6 @@ pub const PLACE_EXTS: &[&str] = &[
     "pdd",
     "psb",
     "jxl",
-    "vctemplate",
     "af",
     "afdesign",
     "afpub",
@@ -787,7 +773,7 @@ pub(crate) fn is_own_title(title: &str) -> bool {
 }
 
 pub fn titled_for_export(doc: &vectorcraft_doc::Document, path: Option<&str>, format: &str) -> Option<vectorcraft_doc::Document> {
-    let path = path.filter(|_| !has_own_title(doc) && !matches!(format, "vectorcraft" | "template" | "ai"))?;
+    let path = path.filter(|_| !has_own_title(doc) && !matches!(format, "etc" | "ai"))?;
     let mut d = doc.clone();
     d.title = file_stem(path);
     // A File Info title that is no title of its own (blank, or an Untitled-N name) would hide it.

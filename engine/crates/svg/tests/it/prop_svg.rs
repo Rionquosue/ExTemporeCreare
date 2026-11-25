@@ -141,6 +141,20 @@ fn filled_ellipse_on_the_artboard_edge_survives_visually() {
     assert_similar(&render_artboard(&d), &render_artboard(&back), 6.0, 0.002);
 }
 
+#[test]
+fn rich_fixture_exports_with_all_options() {
+    let s = fixtures::rich_session();
+    let d = s.doc().unwrap().doc.clone();
+    for o in all_options() {
+        let svg = export(&d, &o);
+        let back = import(&svg).unwrap_or_else(|e| panic!("{o:?}: {e}"));
+        check_document(&back).unwrap();
+        if o.minify {
+            assert!(!svg.contains("\n  "), "minified output is indented");
+        }
+    }
+}
+
 
 #[test]
 fn rect_survives_visually_with_stroke() {

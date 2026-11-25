@@ -915,6 +915,127 @@ fn first_line(s: &Session, id: u64) -> (bool, f64, usize) {
     (t.first_para_continues, (x - frame.bounds().unwrap().x0 - 1e-9).round(), markers)
 }
 
+/// A paragraph's first-line indent and bullet belong to its first line, in the frame it starts
+/// in: the frame it continues into starts at its left indent, without the bullet. Re-flowing,
+/// saving and opening keep it. In a frame that is no longer threaded and in a copy of a frame,
+/// the first paragraph has its first-line indent and bullet.
+#[test]
+fn a_paragraph_continued_into_the_next_frame_starts_it_without_its_first_line_indent_or_bullet() {
+    let (mut s, a, b) = setup();
+    s.execute("text.thread.create", &json!({})).unwrap();
+    s.execute("text.setFormat", &json!({"ids": [a, b], "list": "bullet"})).unwrap();
+    assert_eq!((first_line(&s, a), first_line(&s, b)), ((false, 18.0, 1), (true, 18.0, 0)));
+    s.execute("text.setFormat", &json!({"ids": [a, b], "list": "none", "leftIndent": 0, "firstLineIndent": 24})).unwrap();
+    assert_eq!((first_line(&s, a), first_line(&s, b)), ((false, 24.0, 0), (true, 0.0, 0)));
+    assert_eq!(format!("{}{}", text(&s, a), text(&s, b)), TEXT.repeat(4));
+    // Typing re-flows the story and keeps it.
+    s.execute("text.editRange", &json!({"id": a, "start": 0, "end": 0, "insert": "NEW "})).unwrap();
+    assert_eq!(first_line(&s, b), (true, 0.0, 0));
+    // Saved and opened: a native file re-flows its threads, a restored document keeps its text.
+    for name in ["thread.etc", "thread.eps"] {
+        let bytes = if name.ends_with(".eps") {
+            let r = s.execute("document.exportEps", &json!({})).unwrap();
+            etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        } else {
+            etcfile::save(&s.doc().unwrap().doc, false)
+        };
+        let r = s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
+        assert_eq!(r["restored"], name.ends_with(".eps"), "{r}");
+        assert_eq!(threads(&s), [[a, b]], "{name}");
+        assert_eq!((first_line(&s, a), first_line(&s, b)), ((false, 24.0, 0), (true, 0.0, 0)), "{name}");
+    }
+    // A copy of the second frame is in no thread, and starts with the indent.
+    s.execute("select.set", &json!({"ids": [b]})).unwrap();
+    let copy = s.execute("edit.duplicate", &json!({})).unwrap()["ids"][0].as_u64().unwrap();
+    assert_eq!((first_line(&s, b), first_line(&s, copy)), ((true, 0.0, 0), (false, 24.0, 0)));
+    // …and so is a pasted one, and each copy's cached bounds and baselines are its own layout's.
+    s.execute("select.set", &json!({"ids": [b]})).unwrap();
+    s.execute("edit.copy", &json!({})).unwrap();
+    let pasted = s.execute("edit.paste", &json!({})).unwrap()["ids"][0].as_u64().unwrap();
+    let dragged = s.execute("layer.move", &json!({"ids": [b], "target": a, "place": "above", "copy": true})).unwrap()["ids"][0].as_u64().unwrap();
+    assert_eq!((first_line(&s, pasted), first_line(&s, dragged)), ((false, 24.0, 0), (false, 24.0, 0)));
+    // Every text object in the document has the cached bounds and baselines of its own layout.
+    let own_caches = |s: &Session, what: &str| {
+        let mut texts = vec![];
+        s.doc().unwrap().doc.walk(|n| {
+            if let NodeKind::Text(t) = &n.kind {
+                texts.push((n.id, t));
+            }
+        });
+        for (id, t) in texts {
+            let mut fresh = (**t).clone();
+            refresh_bounds(&mut fresh);
+            assert!(t.cached_bounds.is_some() && t.cached_bounds == fresh.cached_bounds, "{what}: {id:?}");
+            assert_eq!(t.cached_baselines, fresh.cached_baselines, "{what}: {id:?}");
+        }
+    };
+    own_caches(&s, "copies");
+    // Release to Layers (Build), Release Opacity Mask, Edit Opacity Mask and Draw Inside copy the
+    // frame too.
+    let layer = s.doc().unwrap().doc.layer_containing(NodeId(b)).unwrap().0;
+    s.execute("layer.releaseToLayers", &json!({"id": layer, "build": true})).unwrap();
+    own_caches(&s, "Release to Layers (Build)");
+    s.execute("edit.undo", &json!({})).unwrap();
+    s.execute("transparency.makeOpacityMask", &json!({"ids": [a, b]})).unwrap();
+    s.execute("transparency.releaseOpacityMask", &json!({})).unwrap();
+    own_caches(&s, "Release Opacity Mask");
+    s.execute("edit.undo", &json!({})).unwrap();
+    s.execute("transparency.editOpacityMask", &json!({"id": a})).unwrap();
+    own_caches(&s, "Edit Opacity Mask");
+    s.execute("transparency.stopEditingOpacityMask", &json!({})).unwrap();
+    for _ in 0..3 {
+        s.execute("edit.undo", &json!({})).unwrap();
+    }
+    s.execute("select.set", &json!({"ids": [b]})).unwrap();
+    s.execute("view.drawMode", &json!({"mode": "inside"})).unwrap();
+    s.execute("shape.rectangle", &json!({"x": 210, "y": 20, "width": 20, "height": 20})).unwrap();
+    own_caches(&s, "Draw Inside");
+    s.execute("edit.undo", &json!({})).unwrap();
+    s.execute("view.drawMode", &json!({"mode": "normal"})).unwrap();
+    assert_eq!((threads(&s), first_line(&s, b)), (vec![vec![a, b]], (true, 0.0, 0)));
+    // Remove Threading: each frame keeps its text, and its first paragraph starts in it.
+    s.execute("select.set", &json!({"ids": [b]})).unwrap();
+    s.execute("text.thread.remove", &json!({})).unwrap();
+    assert_eq!(first_line(&s, b), (false, 24.0, 0));
+    s.execute("edit.undo", &json!({})).unwrap();
+    assert_eq!(first_line(&s, b), (true, 0.0, 0));
+    // Released, the frame is empty and starts the next text typed into it as a paragraph.
+    let continues = |s: &Session, id: u64| match &s.doc().unwrap().doc.node(NodeId(id)).unwrap().kind {
+        NodeKind::Text(t) => t.first_para_continues,
+        _ => panic!("not text"),
+    };
+    s.execute("text.thread.releaseSelection", &json!({})).unwrap();
+    assert!(text(&s, b).is_empty() && !continues(&s, b));
+    s.execute("edit.undo", &json!({})).unwrap();
+    // With the first frame released, the second one holds the whole story and starts it.
+    s.execute("select.set", &json!({"ids": [a]})).unwrap();
+    s.execute("text.thread.releaseSelection", &json!({})).unwrap();
+    assert!(threads(&s).is_empty() && text(&s, a).is_empty());
+    assert_eq!(first_line(&s, b), (false, 24.0, 0));
+    s.execute("edit.undo", &json!({})).unwrap();
+    // Converted to point type, it is in no thread, and its first line starts at the indent where
+    // the frame's left edge was.
+    let left = frame_box(&s, b).x0;
+    s.execute("select.set", &json!({"ids": [b]})).unwrap();
+    s.execute("type.convertToPointType", &json!({})).unwrap();
+    assert!(!continues(&s, b));
+    {
+        let NodeKind::Text(t) = &s.doc().unwrap().doc.node(NodeId(b)).unwrap().kind else { panic!("not text") };
+        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let g = lay.glyphs.iter().find(|g| g.len > 0).unwrap();
+        let x = (t.xf * g.origin).x - left;
+        assert!((x - 24.0).abs() < 1e-6, "{x}");
+    }
+    s.execute("edit.undo", &json!({})).unwrap();
+    assert_eq!(first_line(&s, b), (true, 0.0, 0));
+    // Text that ends the first frame with a paragraph break: the second frame starts a
+    // paragraph, with its indent.
+    let all = text(&s, a).len();
+    s.execute("text.editRange", &json!({"id": a, "start": 0, "end": all, "insert": "Short line.\n".repeat(12)})).unwrap();
+    assert!(text(&s, a).ends_with('\n'), "{:?}", text(&s, a));
+    assert_eq!(first_line(&s, b), (false, 24.0, 0));
+}
+
 
 /// When Create Outlines takes frames out of a thread, a frame that now starts its thread or is
 /// in no thread starts its paragraph with the first-line indent; a frame after one that ends
@@ -1400,6 +1521,89 @@ fn a_thread_takes_its_first_frames_optical_margin_alignment() {
     assert_eq!([a, b, c].map(|id| optical(&s, id).0), [true; 3]);
 }
 
+/// The anti-aliasing method (`text.setFormat {antiAlias}`) belongs to each frame and is saved
+/// only when not Sharp. A range sets its frame in one undo step. Threading and opening preserve
+/// different methods on the frames of a thread.
+#[test]
+fn the_anti_aliasing_method_is_set_for_each_frame_of_a_thread() {
+    use vectorcraft_doc::text::TypeAntiAlias::{self, Crisp, None as Hard, Sharp, Strong};
+    let method = |s: &Session, id: u64| text_of(&s.doc().unwrap().doc, NodeId(id)).map(|t| t.anti_alias);
+    let saved = |s: &Session, id: u64| serde_json::to_value(text_of(&s.doc().unwrap().doc, NodeId(id)).unwrap()).unwrap().get("antiAlias").cloned();
+    let (mut s, a, b) = quoted_thread();
+    assert_eq!((method(&s, a), method(&s, b)), (Some(Sharp), Some(Sharp)));
+    assert_eq!(saved(&s, a), None, "Sharp is not saved");
+    s.execute("select.set", &json!({"ids": [b]})).unwrap();
+    let err = s.execute("text.setFormat", &json!({"antiAlias": "smooth"})).unwrap_err().to_string();
+    assert!(err.contains("`antiAlias` must be"), "{err}");
+    s.execute("text.setFormat", &json!({"antiAlias": "crisp"})).unwrap();
+    assert_eq!((method(&s, a), method(&s, b)), (Some(Sharp), Some(Crisp)), "only the selected frame takes it");
+    assert_eq!(saved(&s, b), Some(json!("crisp")));
+    // A range of characters sets its whole frame.
+    s.execute("text.setFormat", &json!({"ids": [a], "start": 0, "end": 1, "antiAlias": "none"})).unwrap();
+    assert_eq!((method(&s, a), method(&s, b)), (Some(Hard), Some(Crisp)));
+    s.execute("edit.undo", &json!({})).unwrap();
+    assert_eq!((method(&s, a), method(&s, b)), (Some(Sharp), Some(Crisp)), "one undo step");
+    // A new frame does not change the methods of the existing frames.
+    s.execute("text.setFormat", &json!({"ids": [b], "antiAlias": "strong"})).unwrap();
+    let c = new_id(s.execute("text.thread.add", &json!({"from": b, "at": [400, 10]})).unwrap());
+    assert_eq!([a, b, c].map(|id| method(&s, id)), [Some(Sharp), Some(Strong), Some(Strong)]);
+    s.execute("edit.undo", &json!({})).unwrap();
+    // Threading existing frames with different methods preserves both.
+    let (mut joined, first_id, second_id) = quoted_thread();
+    joined.execute("text.thread.remove", &json!({})).unwrap();
+    joined.execute("text.setFormat", &json!({"ids": [first_id], "antiAlias": "crisp"})).unwrap();
+    joined.execute("text.setFormat", &json!({"ids": [second_id], "antiAlias": "strong"})).unwrap();
+    joined.execute("select.set", &json!({"ids": [first_id, second_id]})).unwrap();
+    joined.execute("text.thread.create", &json!({})).unwrap();
+    assert_eq!((method(&joined, first_id), method(&joined, second_id)), (Some(Crisp), Some(Strong)));
+    joined.execute("text.editRange", &json!({"id": first_id, "start": 0, "end": 0, "insert": "New "})).unwrap();
+    assert_eq!((method(&joined, first_id), method(&joined, second_id)), (Some(Crisp), Some(Strong)), "reflow keeps both methods");
+    joined.execute("text.thread.remove", &json!({})).unwrap();
+    assert_eq!((method(&joined, first_id), method(&joined, second_id)), (Some(Crisp), Some(Strong)), "unthreading keeps both methods");
+    let first: [TypeAntiAlias; 2] = [Crisp, Hard];
+    for (one, name) in [(first, "old.etc"), ([Hard, Crisp], "old.etc"), (first, "old.eps"), ([Hard, Crisp], "old.eps")] {
+        for (id, m) in [(a, one[0]), (b, one[1])] {
+            let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
+            let Some(NodeKind::Text(t)) = doc.node_mut(NodeId(id)).map(|n| &mut n.kind) else { panic!("not text") };
+            t.anti_alias = m;
+        }
+        let bytes = if name.ends_with(".eps") {
+            let r = s.execute("document.exportEps", &json!({})).unwrap();
+            etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        } else {
+            etcfile::save(&s.doc().unwrap().doc, false)
+        };
+        let r = s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
+        assert_eq!(r["restored"], name.ends_with(".eps"), "{r}");
+        assert_eq!(threads(&s), [[a, b]], "{name}");
+        assert_eq!((method(&s, a), method(&s, b)), (Some(one[0]), Some(one[1])), "{name}, frame methods");
+    }
+}
+
+/// A file saved with the frames of one thread set differently opens with the first frame's
+/// setting in every frame: a native file, and an EPS file restored from the document it carries.
+#[test]
+fn a_thread_saved_with_differing_frames_opens_with_the_first_frames_setting() {
+    let (mut s, a, b) = quoted_thread();
+    for (first, name) in [(true, "old.etc"), (false, "old.etc"), (true, "old.eps"), (false, "old.eps")] {
+        for (id, on) in [(a, first), (b, !first)] {
+            let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
+            let Some(NodeKind::Text(t)) = doc.node_mut(NodeId(id)).map(|n| &mut n.kind) else { panic!("not text") };
+            t.optical_margin = on;
+        }
+        let bytes = if name.ends_with(".eps") {
+            let r = s.execute("document.exportEps", &json!({})).unwrap();
+            etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        } else {
+            etcfile::save(&s.doc().unwrap().doc, false)
+        };
+        let r = s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
+        assert_eq!(r["restored"], name.ends_with(".eps"), "{r}");
+        assert_eq!(threads(&s), [[a, b]], "{name}");
+        assert_eq!((optical(&s, a), optical(&s, b)), ((first, first), (first, first)), "{name}, first frame {first}");
+    }
+}
+
 
 
 /// The writing direction of each of the frames `ids` (true: vertical).
@@ -1492,6 +1696,35 @@ fn a_thread_takes_its_first_frames_type_orientation() {
     assert_eq!(vertical(&s, [d]), [false], "undo gives `d` its own direction back");
 }
 
+/// A file saved with the frames of one thread in different writing directions opens with the
+/// first frame's direction in every frame, and the story flows through them in it: a native
+/// file, and an EPS file restored from the document it carries.
+#[test]
+fn a_thread_saved_with_differing_orientations_opens_with_the_first_frames() {
+    let (mut s, a, b) = setup();
+    s.execute("text.thread.create", &json!({})).unwrap();
+    for (first, name) in [(true, "old.etc"), (false, "old.etc"), (true, "old.eps"), (false, "old.eps")] {
+        for (id, on) in [(a, first), (b, !first)] {
+            let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
+            let Some(NodeKind::Text(t)) = doc.node_mut(NodeId(id)).map(|n| &mut n.kind) else { panic!("not text") };
+            t.vertical = on;
+            refresh_bounds(t);
+        }
+        let bytes = if name.ends_with(".eps") {
+            let r = s.execute("document.exportEps", &json!({})).unwrap();
+            etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        } else {
+            etcfile::save(&s.doc().unwrap().doc, false)
+        };
+        let r = s.execute("document.open", &json!({"name": name, "dataBase64": etcfile::base64::encode(&bytes)})).unwrap();
+        assert_eq!(r["restored"], name.ends_with(".eps"), "{r}");
+        assert_eq!(threads(&s), [[a, b]], "{name}");
+        assert_eq!(vertical(&s, [a, b]), [first, first], "{name}, first frame vertical: {first}");
+        assert!(flows_as_laid_out(&s, &[a, b]), "{name}, first frame vertical: {first}");
+        assert_eq!(format!("{}{}", text(&s, a), text(&s, b)), TEXT.repeat(4), "{name}");
+    }
+}
+
 
 
 
@@ -1521,7 +1754,7 @@ fn numbered_list_paragraphs_count_on_through_a_thread() {
     s.execute("text.editRange", &json!({"id": a, "start": 0, "end": 0, "insert": "Item 0\n"})).unwrap();
     assert_eq!([numbers(&s, a), numbers(&s, b)].concat(), [vec!["1.".to_string()], all(2), vec!["11.".to_string()]].concat());
     s.execute("edit.undo", &json!({})).unwrap();
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(b)).map(|n| &n.kind) else { panic!("text") };
     let after: Vec<String> = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), back).markers.iter().map(|m| m.text.clone()).collect();
     assert_eq!(after, all(first.len() + 1), "reopened");
@@ -1581,7 +1814,7 @@ fn list_levels_count_on_through_a_thread() {
     assert_eq!([first.clone(), numbers(&frame(&s, b))].concat(), expected);
     let b_counts = frame(&s, b).list_counts();
     assert_eq!(b_counts.parts(), (1, vec![first.len() as u32 - 1]));
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(b)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!((back.list_counts(), numbers(back)), (b_counts, numbers(&frame(&s, b))), "reopened");
     s.execute("select.set", &json!({"ids": [b]})).unwrap();

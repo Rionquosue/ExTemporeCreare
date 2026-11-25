@@ -66,7 +66,9 @@ impl SaveOptions {
 }
 
 /// The document as written: without editing-mode working copies, guides as the saved list, path
-/// geometry rounded, and its images and project id taken out.
+/// geometry rounded, and its images taken out. Its project id (`extra`, [`PROJECT_ID_KEY`]) stays
+/// in it, so a document reads back exactly as it was; `projectId` repeats it, or is a new id for a
+/// document without one.
 struct Body {
     d: Document,
     blobs: BTreeMap<String, ImageBlob>,
@@ -86,7 +88,7 @@ fn body(doc: &Document, o: &SaveOptions) -> Body {
         d.round_geometry(decimals.min(MAX_PRECISION));
     }
     let blobs = std::mem::take(&mut d.images);
-    let project_id = d.extra.remove(PROJECT_ID_KEY).and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_else(new_project_id);
+    let project_id = d.extra.get(PROJECT_ID_KEY).and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_else(new_project_id);
     Body { d, blobs, linked, project_id }
 }
 

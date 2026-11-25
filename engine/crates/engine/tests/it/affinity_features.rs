@@ -108,7 +108,7 @@ fn every_page_of_every_spread_is_an_artboard() {
     let boxes: Vec<Rect> = all(&d).into_iter().filter(|n| n.name.as_deref() == Some("Magenta box")).map(|n| n.geometric_bounds().unwrap()).collect();
     assert_eq!(boxes.len(), 2);
     assert!(d.artboards[2].rect.contains(boxes[1].center()), "{boxes:?} {:?}", d.artboards[2]);
-    let reopened = vectorcraft_format::load_file(&vectorcraft_format::save_file(&d)).unwrap();
+    let reopened = etcfile::load_file(&etcfile::save_file(&d)).unwrap();
     assert_eq!(reopened.doc.artboards, d.artboards);
 }
 

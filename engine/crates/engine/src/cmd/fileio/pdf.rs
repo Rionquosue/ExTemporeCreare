@@ -526,7 +526,7 @@ pub(super) fn encode_at(cmd: &str, doc: &Document, p: &Value, modified: Option<i
     let (full, placed) = crate::cmd::place::document::full_documents(doc);
     let mut notes: Vec<Note> = placed.into_iter().map(Note::loss).collect();
     // The editing data leaves out an Export for Screens folder outside the read roots.
-    let native = || Ok(vectorcraft_format::save(&super::access::with_readable_settings_folder(doc), false));
+    let native = || Ok(etcfile::save(&super::access::with_readable_settings_folder(doc), false));
     let (bytes, drawn) = encode_carrying_at(cmd, &full, p, modified, true, native, || Ok(None))?;
     notes.extend(drawn);
     if notes.iter().any(|n| n.text.ends_with(SHOWN_SMALLER)) && options(cmd, &full, p)?.settings.standard == Standard::None {

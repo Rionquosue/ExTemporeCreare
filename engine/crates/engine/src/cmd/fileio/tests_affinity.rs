@@ -77,16 +77,16 @@ fn preview_opens_with_a_warning_and_never_saves_to_the_source() {
         assert!(w.contains("2×1") && w.contains("native Affinity document could not be read") && w.contains("no layers"), "{w}");
         let st = s.doc().unwrap();
         assert!(st.path.is_none());
-        assert_eq!(st.format, "vectorcraft");
+        assert_eq!(st.format, "etc");
         assert_eq!((st.doc.artboards[0].rect.width(), st.doc.artboards[0].rect.height()), (2.0, 1.0));
         assert_eq!(st.doc.images.values().next().unwrap().bytes.as_slice(), png());
-        let saved = vectorcraft_format::save_file(&st.doc);
-        let reopened = vectorcraft_format::load_file(&saved).unwrap();
+        let saved = etcfile::save_file(&st.doc);
+        let reopened = etcfile::load_file(&saved).unwrap();
         assert_eq!(reopened.doc.images, st.doc.images);
         let plan = save_plan(&s, SaveMode::Save, &json!({})).unwrap();
         assert!(plan.path.is_none(), "Save must ask for a new destination");
-        assert_eq!(plan.format.id, "vectorcraft");
-        assert!(plan.name.ends_with(".vectorcraft"));
+        assert_eq!(plan.format.id, "etc");
+        assert!(plan.name.ends_with(".etc"));
     }
     let f = format("affinity").unwrap();
     assert!(f.read && !f.write);
@@ -102,7 +102,7 @@ fn preview_opens_with_a_warning_and_never_saves_to_the_source() {
 #[test]
 fn preview_reaches_the_document_open_command() {
     let mut s = Session::new();
-    let r = s.execute("document.open", &json!({"name":"test.af", "dataBase64":vectorcraft_format::base64_encode(&file(&png()))})).unwrap();
+    let r = s.execute("document.open", &json!({"name":"test.af", "dataBase64":etcfile::base64::encode(&file(&png()))})).unwrap();
     assert_eq!(r["format"], "affinity");
     assert_eq!(r["warnings"].as_array().unwrap().len(), 1);
 }
@@ -113,7 +113,7 @@ fn placing_a_preview_is_rejected_even_when_renamed_or_queued() {
     s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
     let original = s.doc().unwrap().doc.clone();
     for name in ["test.af", "renamed.png", "renamed.txt"] {
-        let p = json!({"name":name, "dataBase64":vectorcraft_format::base64_encode(&file(&png())), "link":true});
+        let p = json!({"name":name, "dataBase64":etcfile::base64::encode(&file(&png())), "link":true});
         for cmd in ["file.place", "file.place.info"] {
             let e = s.execute(cmd, &p).unwrap_err().to_string();
             assert!(e.contains("File › Open") && e.contains("embedded preview"), "{e}");
@@ -130,7 +130,7 @@ fn templates_and_libraries_cannot_silently_extract_preview_content() {
     s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
     let original = s.doc().unwrap().doc.clone();
     for name in ["test.af", "renamed.svg"] {
-        let p = json!({"name":name, "dataBase64":vectorcraft_format::base64_encode(&file(&png()))});
+        let p = json!({"name":name, "dataBase64":etcfile::base64::encode(&file(&png()))});
         for cmd in
             ["file.newFromTemplate", "swatch.library.load", "graphicStyle.loadLibrary", "charStyle.load", "paraStyle.load", "textStyle.loadAll"]
         {
@@ -189,7 +189,7 @@ fn a_previewless_file_fails_without_replacing_the_active_document() {
     let original = s.doc().unwrap().doc.clone();
     let mut bytes = file(&png());
     bytes[24..32].copy_from_slice(&0u64.to_le_bytes());
-    let e = s.execute("document.open", &json!({"name":"no-preview.af", "dataBase64":vectorcraft_format::base64_encode(&bytes)})).unwrap_err();
+    let e = s.execute("document.open", &json!({"name":"no-preview.af", "dataBase64":etcfile::base64::encode(&bytes)})).unwrap_err();
     assert!(e.to_string().contains("no embedded preview"));
     assert_eq!(s.documents().len(), 1);
     assert_eq!(s.doc().unwrap().doc, original);
@@ -571,12 +571,12 @@ mod native {
         let mut s = Session::new();
         open_bytes(&mut s, "native.af", &bytes, None).unwrap();
         let doc = s.doc().unwrap().doc.clone();
-        let reopened = vectorcraft_format::load_file(&vectorcraft_format::save_file(&doc)).unwrap();
+        let reopened = etcfile::load_file(&etcfile::save_file(&doc)).unwrap();
         assert_eq!(reopened.doc.layers, doc.layers);
         for format in ["svg", "pdf", "png"] {
             assert!(s.execute("document.export", &json!({"format": format})).is_ok(), "{format}");
         }
-        let p = json!({"name":"native.afdesign", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+        let p = json!({"name":"native.afdesign", "dataBase64":etcfile::base64::encode(&bytes)});
         s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
         s.execute("file.place", &p).unwrap();
         assert!(s.doc().unwrap().doc.layers.iter().any(|l| !l.children().unwrap().is_empty()));

@@ -1,8 +1,8 @@
 //! Symbol libraries (Window → Symbol Libraries, the Symbols panel's library button): read-only sets
 //! of symbols the library panel shows. A library is a document holding the symbols with the
 //! resources they use (nested symbols, patterns, swatches, brushes, graphic styles, images) and
-//! their Symbol Options; saved, it is a native `.vectorcraft` file, which File › Open also opens.
-//! The built-in libraries are generated here ([`BUILTIN`]); User Defined ones are the `.vectorcraft`
+//! their Symbol Options; saved, it is a native `.etc` file, which File › Open also opens.
+//! The built-in libraries are generated here ([`BUILTIN`]); User Defined ones are the `.etc`
 //! files in the user library folder ([`Libraries`]), and Other Library… loads the symbols of any
 //! document VectorCraft opens. `symbol.addFromLibrary` copies symbols into the document;
 //! `symbol.saveLibrary` writes the document's.
@@ -23,7 +23,7 @@ use super::swatchlib::{FileData, LibraryFile, LibraryInfo, concealed_library_id,
 use super::{CommandSpec, Result, Session, always, bad, bool_or, cmd, has_doc, number_or, str_param, u64_req};
 
 /// The extension of saved symbol libraries: native documents.
-pub const SYMBOLS_EXT: &str = vectorcraft_format::EXTENSION;
+pub const SYMBOLS_EXT: &str = etcfile::EXTENSION;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -32,7 +32,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Symbol Libraries",
             [],
             None,
-            "{} → {libraries: [{id, name, category: \"builtIn\"|\"user\" (User Defined: the .vectorcraft files in the user library folder, rescanned now)|\"loaded\" (symbol.loadLibrary), count, path?}], userFolder} every symbol library the library panel opens, in menu order",
+            "{} → {libraries: [{id, name, category: \"builtIn\"|\"user\" (User Defined: the .etc files in the user library folder, rescanned now)|\"loaded\" (symbol.loadLibrary), count, path?}], userFolder} every symbol library the library panel opens, in menu order",
             always,
             list
         ),
@@ -68,7 +68,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Save Symbol Library…",
             ["Window", "Symbols"],
             None,
-            "{path?, names?: [symbol names] (default: all), name?: library name (default: the document's), user?: false (save into the user library folder, listed under User Defined)} save the document's symbols, with their Symbol Options and the resources they use, as a symbol library: a .vectorcraft document holding only them → {path, count, library?: id when saved to the user folder}; without path or user → {dataBase64: the file's bytes, count}",
+            "{path?, names?: [symbol names] (default: all), name?: library name (default: the document's), user?: false (save into the user library folder, listed under User Defined)} save the document's symbols, with their Symbol Options and the resources they use, as a symbol library: a .etc document holding only them → {path, count, library?: id when saved to the user folder}; without path or user → {dataBase64: the file's bytes, count}",
             has_doc,
             save
         ),
@@ -144,7 +144,7 @@ impl SymbolLibrary {
 impl LibraryFile for SymbolLibrary {
     const EXTS: &[&str] = &[SYMBOLS_EXT];
     fn read(bytes: &[u8], stem: &str) -> std::result::Result<Self, String> {
-        let doc = vectorcraft_format::load(bytes).map_err(|e| e.to_string())?;
+        let doc = etcfile::load(bytes).map_err(|e| e.to_string())?;
         SymbolLibrary::from_document(&doc, &[], stem.to_string())
     }
     fn name(&self) -> &str {
@@ -899,7 +899,7 @@ fn save(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(C, "the document has no symbols to save"));
     }
     let mut out = json!({ "count": lib.len() });
-    let bytes = vectorcraft_format::save_file(&lib.doc);
+    let bytes = etcfile::save_file(&lib.doc);
     s.symbol_libraries.write(p, &lib.name, SYMBOLS_EXT, FileData::Binary(bytes), &mut out, C)?;
     Ok(out)
 }

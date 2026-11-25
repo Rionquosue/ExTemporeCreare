@@ -174,7 +174,7 @@ fn painted_and_sketched_styles_set_every_effect_setting_and_reopen_applied() {
 
     // Saved and opened again, the styles keep their effects and the rectangles stay linked to them.
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    run(&mut s, "document.open", json!({"name": "painted.vectorcraft", "dataBase64": b64}));
+    run(&mut s, "document.open", json!({"name": "painted.etc", "dataBase64": b64}));
     for (id, name) in &ids {
         let d = doc(&s);
         let style = d.graphic_style(name).unwrap();
@@ -313,8 +313,8 @@ fn textures_styles_apply_their_texture_effects_and_keep_their_params_through_sav
         let want: Vec<(String, Value)> = g.appearance.effects.iter().map(|e| (e.id.clone(), e.params.clone())).collect();
         assert_eq!(fx, &want, "{} applies the library's params", g.name);
     }
-    let b64 = run(&mut s, "document.serialize", json!({"format": "vectorcraft"}))["dataBase64"].as_str().unwrap().to_string();
-    run(&mut s, "document.open", json!({"name": "textures.vectorcraft", "dataBase64": b64}));
+    let b64 = run(&mut s, "document.serialize", json!({"format": "etc"}))["dataBase64"].as_str().unwrap().to_string();
+    run(&mut s, "document.open", json!({"name": "textures.etc", "dataBase64": b64}));
     assert_eq!(effects(&s), applied, "the params survive a save and open");
     for g in &lib.styles {
         let saved = doc(&s).graphic_style(&g.name).unwrap();
@@ -413,7 +413,7 @@ fn user_libraries_and_other_documents_styles() {
     let id = rect(&mut s, 0.0, 0.0, 10.0, 10.0);
     run(&mut s, "graphicStyle.new", json!({"name": "Poster Look", "id": id.0}));
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "graphicStyle.loadLibrary", json!({"dataBase64": b64, "name": "Poster.vectorcraft"}));
+    let r = run(&mut s, "graphicStyle.loadLibrary", json!({"dataBase64": b64, "name": "Poster.etc"}));
     assert_eq!(r["name"], "Poster");
     let (_, lib) = cmd::stylelib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert!(lib.style("Poster Look").is_some_and(|g: &GraphicStyle| g.id == 0));
@@ -485,7 +485,7 @@ fn neon_and_glow_library_adds_and_applies_multi_stroke_styles() {
 
     // Round-trip through serialize / open
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    run(&mut s, "document.open", json!({"name": "neon.vectorcraft", "dataBase64": b64}));
+    run(&mut s, "document.open", json!({"name": "neon.etc", "dataBase64": b64}));
     for (name, _, _) in want {
         let d = doc(&s);
         let st = d.graphic_style(name).unwrap();

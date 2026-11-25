@@ -117,7 +117,7 @@ fn options_of_selected_object_change_one_path_and_leave_the_brush() {
     s.execute("brush.options", &json!({"name": "Arrow", "params": {"width": 200, "flip_across": true}})).unwrap();
     assert_eq!(own_options(&s, a), json!({"width": 50.0}));
     // The settings are saved in the native file.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let st = back.node(a).and_then(|n| n.appearance.stroke().cloned()).unwrap();
     assert_eq!(Value::Object(st.brush_options), json!({"width": 50.0}));
     // Undo puts the path back on the brush's settings.
@@ -861,7 +861,7 @@ fn a_repeated_brush_name_is_numbered_when_the_document_opens() {
     s.execute("brush.apply", &json!({"name": "Nib", "ids": [a.0]})).unwrap();
     let saved = s.execute("document.serialize", &json!({})).unwrap()["dataBase64"].clone();
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "a.vectorcraft", "dataBase64": saved})).unwrap();
+    o.execute("document.open", &json!({"name": "a.etc", "dataBase64": saved})).unwrap();
     let names = |o: &mut Session| -> Vec<String> {
         let list = o.execute("brush.list", &json!({})).unwrap();
         list["brushes"].as_array().unwrap().iter().map(|b| b["name"].as_str().unwrap().to_string()).collect()
@@ -1002,7 +1002,7 @@ fn bristle_brush_names_have_at_most_31_characters() {
     assert_eq!(s.execute("brush.get", &json!({"name": old})).unwrap()["size"], json!(9.0));
     assert_eq!(s.execute("brush.duplicate", &json!({"name": old})).unwrap()["name"], format!("{old} copy"));
     // Saved and opened again, the brush and the stroke painted with it keep the name.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert!(vectorcraft_brush::find(&back, &old).is_some_and(|b| b.kind.type_id() == "bristle"));
     assert_eq!(back.node(l).unwrap().appearance.stroke().unwrap().brush.as_deref(), Some(old.as_str()));
     let mut s2 = Session::new();
@@ -1499,7 +1499,7 @@ fn paintbrush_records_pen_pressure_on_the_stroke() {
     let even = vectorcraft_brush::pieces_bounds(&art(&doc, mouse)).unwrap();
     assert!((even.height() - 3.0).abs() < 0.1, "no pressure draws the size itself: {even:?}");
     // Saved and reopened as it was.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(back.node(pen).unwrap().appearance.stroke().unwrap().pressure, Some(p));
     // SVG and PDF draw the brush through the same stroke code: without the pressure they differ.
     let mut flat = doc.clone();
@@ -1640,7 +1640,7 @@ fn freehand_points_record_the_stylus_wheel() {
     assert!((height(&s, mouse) - 6.0).abs() < 0.1, "the brush's own size: {}", height(&s, mouse));
     // Saved and reopened as it was; new art takes the look without the wheel.
     let doc: Document = (*s.doc().unwrap().doc).clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(back.node(far).unwrap().appearance.stroke(), doc.node(far).unwrap().appearance.stroke());
     assert!(vectorcraft_doc::Appearance::clone(&doc.node(far).unwrap().appearance).without_pressure().stroke().is_some_and(|st| st.wheel.is_none()));
 }
@@ -1695,7 +1695,7 @@ fn paintbrush_records_the_pens_tilt_on_the_stroke() {
     assert!((brushed_bounds(&s, mouse).height() - 5.0).abs() < 0.1, "{:?}", brushed_bounds(&s, mouse));
     // Saved and reopened as it was.
     let doc: Document = (*s.doc().unwrap().doc).clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(back.node(pen).unwrap().appearance.stroke(), doc.node(pen).unwrap().appearance.stroke());
 }
 
@@ -1715,7 +1715,7 @@ fn bristle_path_keeps_and_draws_its_pen_pose() {
     let doc: Document = (*s.doc().unwrap().doc).clone();
     let st = doc.node(id).unwrap().appearance.stroke().unwrap();
     assert!(st.pressure.is_some() && st.tilt.is_some() && st.bearing.is_some() && st.rotation.is_some());
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(back.node(id).unwrap().appearance.stroke(), Some(st));
 
     let mut neutral = doc.clone();
@@ -1798,7 +1798,7 @@ fn scatter_hue_jitter_saves_and_exports() {
     let distinct: std::collections::HashSet<&String> = turned.iter().collect();
     assert!(distinct.len() > 5, "{turned:?}");
     // Saved and opened again, the stroke draws the same colors.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
     assert_eq!(piece_fills(&back, id), turned);
     // SVG export writes each copy's turned color.
     let svg = vectorcraft_svg::export(&doc, &Default::default());
@@ -3104,8 +3104,8 @@ fn brushes_and_symbols_survive_vectorcraft_round_trip() {
     let l = line(&mut s);
     s.execute("brush.apply", &json!({"name": "Mine", "ids": [l.0]})).unwrap();
     let doc = s.doc().unwrap().doc.clone();
-    let bytes = vectorcraft_format::save(&doc, false);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(&doc, false);
+    let back = etcfile::load(&bytes).unwrap();
     assert_eq!(vectorcraft_brush::library(&back), vectorcraft_brush::library(&doc));
     assert_eq!(vectorcraft_brush::find(&back, "Mine").map(|b| b.kind.type_id()), Some("calligraphic"));
     assert_eq!(back.symbols, doc.symbols);

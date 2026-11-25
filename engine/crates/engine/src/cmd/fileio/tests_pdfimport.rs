@@ -6,7 +6,7 @@ use vectorcraft_testkit::pdf::{PdfPage, pdf};
 use super::*;
 
 fn b64(bytes: &[u8]) -> String {
-    vectorcraft_format::base64_encode(bytes)
+    etcfile::base64::encode(bytes)
 }
 
 /// Three pages of widths 100, 200 and 300 pt, the second with every box set.
@@ -96,7 +96,7 @@ fn pdf_info_lists_pages_boxes_and_a_thumbnail() {
     assert_eq!((p2["width"].as_f64(), p2["height"].as_f64()), (Some(180.0), Some(380.0)));
     assert_eq!(p2["boxes"]["trim"], json!([15.0, 15.0, 185.0, 385.0]));
     assert_eq!(p2["boxes"]["media"], json!([0.0, 0.0, 200.0, 400.0]));
-    let png = vectorcraft_format::base64_decode(v["thumbnail"].as_str().unwrap()).unwrap();
+    let png = etcfile::base64::decode(v["thumbnail"].as_str().unwrap()).unwrap();
     let img = craft_image_codecs::decode(&png)
         .map(|__cimg| {
             let (__w, __h) = __cimg.dimensions();
@@ -229,7 +229,7 @@ fn pdf_info_refuses_a_thumbnail_size_that_is_not_a_number() {
     let e = s.execute("document.pdfInfo", &json!({"dataBase64": b64(&bytes), "colorMode": 1})).unwrap_err().to_string();
     assert!(e.contains("`colorMode` must be a string"), "{e}");
     let v = s.execute("document.pdfInfo", &json!({"dataBase64": b64(&bytes), "thumbnail": 1, "thumbnailSize": null})).unwrap();
-    let png = vectorcraft_format::base64_decode(v["thumbnail"].as_str().unwrap()).unwrap();
+    let png = etcfile::base64::decode(v["thumbnail"].as_str().unwrap()).unwrap();
     assert_eq!(
         craft_image_codecs::decode(&png)
             .map(|__cimg| {
@@ -251,6 +251,43 @@ fn pdf_info_refuses_a_thumbnail_size_that_is_not_a_number() {
             .width(),
         160
     );
+}
+
+/// `document.pdfInfo`'s `thumbnail` is a page number from 1, for a PDF and for PostScript alike:
+/// any other value is an error that names the pages, and an absent or null one gives no thumbnail.
+#[test]
+fn pdf_info_refuses_a_thumbnail_that_is_not_a_page_number() {
+    let ps = b"%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 100 50\n%%EndComments\n0 0 1 setrgbcolor 0 0 50 20 rectfill\n";
+    let mut s = Session::new();
+    for (bytes, pages) in [(&three_pages()[..], "(the PDF has 3)"), (ps, "(the file has 1)")] {
+        for n in [json!(-1), json!(0), json!(1.5), json!("1"), json!(true)] {
+            let e = s.execute("document.pdfInfo", &json!({"dataBase64": b64(bytes), "thumbnail": n})).unwrap_err().to_string();
+            assert!(e.contains(&format!("thumbnail: no page {n} {pages}")), "{n}: {e}");
+        }
+        for none in [json!({"dataBase64": b64(bytes)}), json!({"dataBase64": b64(bytes), "thumbnail": null})] {
+            assert!(s.execute("document.pdfInfo", &none).unwrap().get("thumbnail").is_none(), "{pages}");
+        }
+        let v = s.execute("document.pdfInfo", &json!({"dataBase64": b64(bytes), "thumbnail": 1, "thumbnailSize": 64})).unwrap();
+        let png = etcfile::base64::decode(v["thumbnail"].as_str().unwrap()).unwrap();
+        let img = craft_image_codecs::decode(&png)
+            .map(|__cimg| {
+                let (__w, __h) = __cimg.dimensions();
+                match (__cimg.layout(), __cimg.sample_type()) {
+                    (craft_image_codecs::ChannelLayout::Gray, craft_image_codecs::SampleType::U8) => {
+                        image::DynamicImage::ImageLuma8(image::GrayImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
+                    }
+                    (craft_image_codecs::ChannelLayout::GrayA, craft_image_codecs::SampleType::U8) => {
+                        image::DynamicImage::ImageLumaA8(image::GrayAlphaImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
+                    }
+                    (craft_image_codecs::ChannelLayout::Rgb, craft_image_codecs::SampleType::U8) => {
+                        image::DynamicImage::ImageRgb8(image::RgbImage::from_raw(__w, __h, __cimg.into_data()).unwrap())
+                    }
+                    _ => image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(__w, __h, __cimg.to_rgba8()).unwrap()),
+                }
+            })
+            .unwrap();
+        assert_eq!(img.width().max(img.height()), 64, "{pages}");
+    }
 }
 
 

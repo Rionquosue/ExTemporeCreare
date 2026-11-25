@@ -702,17 +702,17 @@ fn a_placed_file_is_measured_by_the_art_it_shows() {
             n.visible = !hidden;
             d.insert(Some(layer), 0, n).unwrap();
         }
-        crate::tests_links::write(&src, &vectorcraft_format::save_file(&d));
+        crate::tests_links::write(&src, &etcfile::save_file(&d));
         let r = s.execute("file.place", &json!({"path": src, "at": [200, 150]})).unwrap();
         select(s, &[NodeId(r["ids"][0].as_u64().unwrap())]);
     };
     let mut s = session();
-    place(&mut s, "pair.vectorcraft", false);
+    place(&mut s, "pair.etc", false);
     let (_, g) = weed(&mut s, json!({"margin": 10, "direction": "horizontal"}));
     // The rectangles lie at 170..190 and 210..230; the line runs between them too.
     assert_eq!(at(&g, 150.0), [(160.0, 170.0), (190.0, 210.0), (230.0, 240.0)]);
     // A file read but shown in a box with no size shows nothing, and its box isn't measured.
-    let id = NodeId(s.execute("file.place", &json!({"path": dir.file("pair.vectorcraft"), "at": [400, 150]})).unwrap()["ids"][0].as_u64().unwrap());
+    let id = NodeId(s.execute("file.place", &json!({"path": dir.file("pair.etc"), "at": [400, 150]})).unwrap()["ids"][0].as_u64().unwrap());
     s.edit("no size", |d, _| {
         if let Some(NodeKind::PlacedDocument(p)) = d.node_mut(id).map(|n| &mut n.kind) {
             (p.width, p.height) = (0.0, 0.0);
@@ -725,18 +725,18 @@ fn a_placed_file_is_measured_by_the_art_it_shows() {
     assert!(e.to_string().contains("has no outlines"), "{e}");
     // A file read with nothing showing has no outlines, and its box isn't measured instead.
     let mut s = session();
-    place(&mut s, "hidden.vectorcraft", true);
+    place(&mut s, "hidden.etc", true);
     let e = s.execute("addon.cutting.weed", &json!({})).unwrap_err();
     assert!(e.to_string().contains("has no outlines"), "{e}");
     // A file whose art is an instance of a symbol of its own: the instance's art is measured.
-    let src = dir.file("symbol.vectorcraft");
+    let src = dir.file("symbol.etc");
     let mut d = vectorcraft_doc::Document::new(60.0, 40.0);
     let look = Appearance::basic(Paint::solid(vectorcraft_color::Color::BLACK), Paint::None, 0.0);
     let art = Node::path(NodeId(900), shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 40.0)), look);
     d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(art) });
     let (layer, id) = (d.layers[0].id, d.alloc_id());
     d.insert(Some(layer), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Bar".into(), xf: Affine::IDENTITY })).unwrap();
-    crate::tests_links::write(&src, &vectorcraft_format::save_file(&d));
+    crate::tests_links::write(&src, &etcfile::save_file(&d));
     let mut s = session();
     let r = s.execute("file.place", &json!({"path": src, "at": [200, 150]})).unwrap();
     select(&mut s, &[NodeId(r["ids"][0].as_u64().unwrap())]);

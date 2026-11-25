@@ -67,10 +67,10 @@ fn arrow_align_and_profiles_survive_the_native_format() {
     )
     .unwrap();
     let doc = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(doc, false)).unwrap();
     assert_eq!(back.node(id).unwrap().appearance.stroke().unwrap(), &stroke(&s, id));
     // A stroke with the default alignment writes nothing new, so older builds read it unchanged.
     s.execute("stroke.set", &json!({"arrowAlign": "extend"})).unwrap();
-    let text = String::from_utf8(vectorcraft_format::save(&s.doc().unwrap().doc, true)).unwrap();
+    let text = String::from_utf8(etcfile::save(&s.doc().unwrap().doc, true)).unwrap();
     assert!(!text.contains("arrow_align"));
 }

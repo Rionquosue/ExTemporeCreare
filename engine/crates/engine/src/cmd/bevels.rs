@@ -20,7 +20,7 @@ use super::arrowheads::{may_reach, read, same_file, shown_error};
 use super::{CommandSpec, Result, Session, always, bad, cmd};
 
 /// The bevels file's name, in the folder of the preferences.
-pub const FILE_NAME: &str = "Bevels.vectorcraft";
+pub const FILE_NAME: &str = "Bevels.etc";
 /// The most bevels read from the file; symbols past it are skipped.
 pub const MAX_BEVELS: usize = 256;
 /// The most anchors a bevel's path may have; a symbol past it is skipped.
@@ -354,7 +354,7 @@ fn edit(s: &mut Session, _: &Value) -> Result<Value> {
         std::fs::create_dir_all(&*dir).map_err(|e| super::fileio::naming_in_error(bad(C, format!("{dir}: {e}")), &dir))?;
     }
     // Made only when no file is there, also when another run makes one at the same moment.
-    let bytes = vectorcraft_format::save_file(&starter());
+    let bytes = etcfile::save_file(&starter());
     let created = match crate::file_access::unconfined(|| super::fileio::write_new_file(&path, &bytes)) {
         Ok(()) => true,
         Err(_) if std::path::Path::new(&path).exists() => false,

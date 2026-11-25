@@ -347,8 +347,8 @@ fn a_file_with_script_proportions_out_of_range_opens_with_them_in_range() {
     }
     let attrs = json!({"position": {"kind": "superscript", "size": 1000.0, "position": -1000.0}, "small_caps": 0.0, "tracking": -5000.0});
     d.char_styles.push(TextStyleDef { name: "Note".into(), attrs: attrs.as_object().unwrap().clone() });
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d));
-    s.execute("document.open", &json!({"name": "scripts.vectorcraft", "dataBase64": data})).unwrap();
+    let data = etcfile::base64::encode(&etcfile::save_file(&d));
+    s.execute("document.open", &json!({"name": "scripts.etc", "dataBase64": data})).unwrap();
     let raised = CharPosition::Superscript(ScriptMetrics { size: 1.0, position: 500.0 });
     let t = text(&s, id);
     assert_eq!((t.runs[0].style.small_caps, t.runs[1].style.small_caps), (Some(1.0), Some(200.0)));
@@ -385,7 +385,7 @@ fn setup_survives_save_and_load() {
     )
     .unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save_file(d)).unwrap();
+    let back = etcfile::load(&etcfile::save_file(d)).unwrap();
     assert_eq!(back.setup, d.setup);
     assert_eq!(back.setup.grid_colors_name(), "Custom");
 }
@@ -422,11 +422,11 @@ fn a_file_with_the_old_highlight_substituted_fonts_value_opens_and_keeps_it() {
     let mut s = session();
     let mut d = (*s.doc().unwrap().doc).clone();
     d.setup.highlight_substituted_fonts = false;
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d));
-    s.execute("document.open", &json!({"name": "old.vectorcraft", "dataBase64": data})).unwrap();
+    let data = etcfile::base64::encode(&etcfile::save_file(&d));
+    s.execute("document.open", &json!({"name": "old.etc", "dataBase64": data})).unwrap();
     assert!(!setup(&s).highlight_substituted_fonts);
     assert!(s.prefs.highlight_substituted_fonts, "the preference decides the screen");
-    let again = vectorcraft_format::load(&vectorcraft_format::save_file(&s.doc().unwrap().doc)).unwrap();
+    let again = etcfile::load(&etcfile::save_file(&s.doc().unwrap().doc)).unwrap();
     assert!(!again.setup.highlight_substituted_fonts);
     let q = s.execute("document.setup", &json!({})).unwrap();
     assert_eq!(s.execute("document.setup", &q).unwrap(), q);
@@ -443,8 +443,8 @@ fn a_file_with_setup_values_out_of_range_opens_with_them_in_range() {
     d.setup.superscript = ScriptMetrics { size: 0.0, position: f64::MAX };
     d.setup.subscript = ScriptMetrics { size: f64::MAX, position: -1000.0 };
     d.setup.small_caps_size = -5.0;
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d));
-    s.execute("document.open", &json!({"name": "setup.vectorcraft", "dataBase64": data})).unwrap();
+    let data = etcfile::base64::encode(&etcfile::save_file(&d));
+    s.execute("document.open", &json!({"name": "setup.etc", "dataBase64": data})).unwrap();
     let st = setup(&s);
     assert_eq!(st.bleed, [0.0, 72.0, 72.0, 9.0]);
     assert_eq!(st.superscript, ScriptMetrics { size: 1.0, position: 500.0 });
@@ -462,7 +462,7 @@ fn svg_text_export_follows_the_export_text_setting() {
         let mut p = p;
         p["format"] = json!("svg");
         let r = s.execute("document.export", &p).unwrap();
-        String::from_utf8(vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()).unwrap()
+        String::from_utf8(etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()).unwrap()
     };
     assert!(svg(&mut s, json!({})).contains("<text"));
     s.execute("document.setup", &json!({"exportText": "appearance"})).unwrap();

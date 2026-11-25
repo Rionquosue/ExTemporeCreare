@@ -143,15 +143,15 @@ fn every_stroke_arrowhead_draws_as_a_dimension_arrowhead() {
         assert_eq!((&saved["arrowStyle"], &saved["arrowHead"]), (&json!("filled"), &name));
         made.push((id, head));
     }
-    let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let bytes = etcfile::save(&s.doc().unwrap().doc, false);
     let mut reopened = Session::new();
-    reopened.add_document(vectorcraft_format::load(&bytes).unwrap(), None);
+    reopened.add_document(etcfile::load(&bytes).unwrap(), None);
     for (id, head) in made {
         assert_eq!(recipe(&reopened, id).options.arrowhead(), Some(head));
     }
     // A dimension saved before `arrowHead` existed.
     let id = run(&mut s, "dimension.create", json!({"a":[0,0],"b":[72,0],"options":{"arrowStyle":"open"}}))["id"].as_u64().unwrap();
-    let mut file: Value = serde_json::from_slice(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let mut file: Value = serde_json::from_slice(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     fn drop_head(v: &mut Value) {
         match v {
             Value::Object(m) => {
@@ -164,7 +164,7 @@ fn every_stroke_arrowhead_draws_as_a_dimension_arrowhead() {
     }
     drop_head(&mut file);
     let mut older = Session::new();
-    older.add_document(vectorcraft_format::load(&serde_json::to_vec(&file).unwrap()).unwrap(), None);
+    older.add_document(etcfile::load(&serde_json::to_vec(&file).unwrap()).unwrap(), None);
     let o = recipe(&older, id).options;
     assert_eq!((o.arrow_style, o.arrow_head.clone(), o.arrowhead()), (ArrowStyle::Open, None, Some(Arrowhead::TriangleOpen)));
     // Without a stroke head, the saved and recorded options carry no `arrowHead`, and a null one
@@ -695,8 +695,8 @@ fn dimension_anchor_links_and_native_file_survive_source_moves() {
     let second = edge(&mut s);
     let id=run(&mut s,"dimension.create",json!({"a":[100,100],"b":[172,100],"source":{"kind":"points","a":{"node":first,"subpath":0,"anchor":0},"b":{"node":second,"subpath":0,"anchor":1},"vertex":null},"options":{"units":"pt","precision":0}}))["id"].as_u64().unwrap();
     assert_eq!(text(&s, id), "72 pt");
-    let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-    let doc = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = etcfile::save(&s.doc().unwrap().doc, false);
+    let doc = etcfile::load(&bytes).unwrap();
     let mut s = Session::new();
     s.add_document(doc, None);
     run(&mut s, "select.set", json!({"ids":[second]}));
@@ -1080,7 +1080,7 @@ fn free_points_survive_a_native_file() {
     let rect = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":100,"height":100}))["id"].as_u64().unwrap();
     let id = clicks(&mut s, &[(200.0, 150.0), (330.0, 260.0), (260.0, 330.0)]);
     let before = recipe(&s, id);
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let mut reopened = Session::new();
     reopened.add_document(doc, None);
     assert_eq!(recipe(&reopened, id).source, before.source);
@@ -1098,7 +1098,7 @@ fn a_dimension_that_cannot_be_drawn_again_keeps_its_art() {
     let mut s = session();
     let rect = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":100,"height":100}))["id"].as_u64().unwrap();
     let id = clicks(&mut s, &[(100.0, 100.0), (200.0, 100.0), (150.0, 80.0)]);
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = etcfile::save(&s.doc().unwrap().doc, false);
     let mut v: Value = serde_json::from_slice(&saved).unwrap();
     fn bad_precision(v: &mut Value) {
         match v {
@@ -1114,7 +1114,7 @@ fn a_dimension_that_cannot_be_drawn_again_keeps_its_art() {
     }
     bad_precision(&mut v);
     let mut reopened = Session::new();
-    reopened.add_document(vectorcraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap(), None);
+    reopened.add_document(etcfile::load(&serde_json::to_vec(&v).unwrap()).unwrap(), None);
     let art = reopened.doc().unwrap().doc.node(NodeId(id)).unwrap().children().unwrap().clone();
     run(&mut reopened, "select.set", json!({"ids":[rect]}));
     run(&mut reopened, "edit.clear", json!({}));
@@ -1212,7 +1212,7 @@ fn an_expanded_dimension_stays_plain_art() {
     assert_eq!(text(&s, other), "20.00 in", "the live dimension stays, no longer linked");
     assert!(recipe(&s, other).source.is_none());
     // Saved and opened again, it is still plain art.
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let mut reopened = Session::new();
     reopened.add_document(doc, None);
     stays_plain_art(&mut reopened, id);
@@ -1750,7 +1750,7 @@ fn unknown_dimension_options_are_refused_by_commands_but_a_newer_file_still_open
     assert!(bad.unwrap_err().to_string().contains("Unknown dimension option color"));
     assert!(s.set_tool_option_cmd(&json!({"tool":"dimension","values":{"style":{"precison":2}}})).is_err());
     let id = dim(&mut s, line);
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = etcfile::save(&s.doc().unwrap().doc, false);
     let mut v: Value = serde_json::from_slice(&saved).unwrap();
     // A later version's dimension carries fields this one doesn't know.
     fn add_unknown(v: &mut Value) {
@@ -1769,7 +1769,7 @@ fn unknown_dimension_options_are_refused_by_commands_but_a_newer_file_still_open
         }
     }
     add_unknown(&mut v);
-    let doc = vectorcraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let doc = etcfile::load(&serde_json::to_vec(&v).unwrap()).unwrap();
     assert!(doc.node(NodeId(id)).unwrap().extras().dimension.is_some());
 }
 
@@ -2177,7 +2177,7 @@ fn a_dimension_dragged_out_beside_another_lands_on_its_level() {
 
 /// The page content streams of exported PDF `v`, inflated.
 fn pdf_content(v: &Value) -> String {
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = etcfile::base64::decode(v["dataBase64"].as_str().unwrap()).unwrap();
     let mut out = String::new();
     let mut rest = &bytes[..];
     while let Some(at) = rest.windows(7).position(|w| w == b"stream\n" || w == b"stream\r") {

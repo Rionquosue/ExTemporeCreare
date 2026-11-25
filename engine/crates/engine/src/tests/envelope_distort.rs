@@ -105,7 +105,7 @@ fn the_frame_round_trips_natively() {
     let e = arch(&mut s, 50.0, json!({}));
     s.execute("object.rotate", &json!({"angle": 30})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     assert_eq!(back.node(e), d.node(e));
     let mut old = serde_json::to_value(node(&s, e)).unwrap();
     old["kind"].as_object_mut().unwrap().remove("frame");
@@ -183,7 +183,7 @@ fn images_bend_as_a_raster_mesh_warp() {
     assert!(img.pixel(101, 95)[1] > 200, "the corner stayed: {:?}", img.pixel(101, 95));
     // The pieces export as clipped images, bent in the SVG too.
     let svg = s.execute("document.export", &json!({"format": "svg"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-    let svg = String::from_utf8(vectorcraft_format::base64_decode(&svg).unwrap()).unwrap();
+    let svg = String::from_utf8(etcfile::base64::decode(&svg).unwrap()).unwrap();
     assert!(svg.matches("<use").count() >= 32 && svg.contains("clip"), "{}", &svg[..svg.len().min(400)]);
     assert_eq!(svg.matches("<image").count(), 1, "the pieces share the image's pixels");
 }
@@ -335,7 +335,7 @@ fn anti_alias_off_draws_distorted_images_without_smoothing() {
     // The SVG asks viewers not to smooth the pieces either.
     let svg = |s: &mut Session| {
         let b64 = s.execute("document.export", &json!({"format": "svg"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-        String::from_utf8(vectorcraft_format::base64_decode(&b64).unwrap()).unwrap()
+        String::from_utf8(etcfile::base64::decode(&b64).unwrap()).unwrap()
     };
     assert!(svg(&mut s).matches("image-rendering").count() >= 32);
     s.execute("object.envelope.options", &json!({"antiAlias": true})).unwrap();
@@ -344,7 +344,7 @@ fn anti_alias_off_draws_distorted_images_without_smoothing() {
     // Expanded, the pieces keep it through a native save.
     s.execute("object.envelope.expand", &json!({})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(d, false)).unwrap();
     let mut kept = 0;
     back.walk(|c| kept += (matches!(c.kind, NodeKind::Image(_)) && c.extras().pixelated) as usize);
     assert_eq!(kept, pieces);

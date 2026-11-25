@@ -236,7 +236,7 @@ fn version_2_headers_read_like_version_0() {
 #[test]
 fn pxr_files_open_place_and_paste() {
     use crate::cmd::clipboard::{PASTE_ORDER, file_flavour};
-    let b64 = vectorcraft_format::base64_encode;
+    let b64 = etcfile::base64::encode;
     let f = one(head(2, 1, RGB, 2), &[10, 20, 30, 40, 50, 60]);
     // The header has no resolution: the image takes the default for images without one.
     assert_eq!(ppi::resolution(&f), None);
@@ -360,7 +360,7 @@ fn damaged_files_are_refused_with_a_message() {
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
     let before = s.doc().unwrap().doc.artboards[0].rect.size();
-    let e = s.execute("document.open", &json!({"name": "a.pxr", "dataBase64": vectorcraft_format::base64_encode(&rgb[..516])}));
+    let e = s.execute("document.open", &json!({"name": "a.pxr", "dataBase64": etcfile::base64::encode(&rgb[..516])}));
     assert!(e.expect_err("refused").to_string().contains(short));
     assert_eq!(s.doc().unwrap().doc.artboards[0].rect.size(), before);
 

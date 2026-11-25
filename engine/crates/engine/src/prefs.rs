@@ -345,13 +345,9 @@ pub struct Prefs {
     pub edit_original_system_defaults: bool,
     /// Open older native files as "<name> [Converted]" so Save asks for a new name.
     pub append_converted: bool,
-    /// File Handling → Use Compression: native saves are gzip-compressed (`document.save
-    /// {compress}` overrides it).
-    pub use_compression: bool,
-    /// The VectorCraft Options a native Save or Save As used last (Preview, Embed ICC Profiles,
-    /// Create PDF-Compatible File…; not the artboards it picked, nor Use Compression, which its
-    /// preference decides): `file.formatOptions` offers them for a document not yet saved as a
-    /// native file. Not a Preferences dialog field.
+    /// The native options a Save or Save As used last (Embed ICC Profiles, Include Linked
+    /// Files…; not the artboards it picked): `file.formatOptions` offers them for a document not
+    /// yet saved as a native file. Not a Preferences dialog field.
     #[serde(skip_serializing_if = "serde_json::Map::is_empty")]
     pub native_save_options: serde_json::Map<String, serde_json::Value>,
     /// Constrain Width and Height Proportions: the link between W and H in the Transform panel,
@@ -581,7 +577,6 @@ impl Default for Prefs {
             templates_folder: String::new(),
             edit_original_system_defaults: true,
             append_converted: true,
-            use_compression: false,
             native_save_options: serde_json::Map::new(),
             constrain_proportions: false,
             single_corner_radius: true,

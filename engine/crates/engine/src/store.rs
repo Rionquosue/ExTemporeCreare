@@ -105,7 +105,7 @@ fn put(dir: &Path, file: &str, bytes: &[u8]) -> bool {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    vectorcraft_format::write_atomic(path, bytes)
+    etcfile::write_atomic(path, bytes)
 }
 
 /// The browser has no folders to keep anything in (the apps there never attach a store).

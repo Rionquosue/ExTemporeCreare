@@ -611,7 +611,7 @@ fn selecting_an_attached_object_switches_to_its_plane() {
 fn attachments_round_trip_through_native_files() {
     let (mut s, id) = persp_session();
     s.execute("perspective.transform", &json!({"matrix": [1, 0, 0, 1, 0, 0], "depth": 12.5})).unwrap();
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(persp::attachment(doc.node(id).unwrap()), Some((Plane::Right, 12.5)));
     assert_eq!(*doc.node(id).unwrap(), *s.doc().unwrap().doc.node(id).unwrap());
     // Objects outside perspective write nothing for it.

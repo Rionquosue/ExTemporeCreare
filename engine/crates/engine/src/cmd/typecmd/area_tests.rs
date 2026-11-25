@@ -118,7 +118,7 @@ fn kinsoku_shori_type_is_set_per_paragraph_and_saved_only_when_not_push_out_only
     s.execute("text.setFormat", &json!({"id": id, "start": 0, "end": 1, "kinsokuType": "pushInFirst"})).unwrap();
     assert_eq!((text(&s).para_at(0).kinsoku_type, text(&s).para_at(1).kinsoku_type), (KinsokuShoriType::PushInFirst, KinsokuShoriType::PushOutOnly));
     assert_eq!(serde_json::to_value(text(&s).para_at(0)).unwrap()["kinsoku_type"], "pushInFirst");
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!((back.para_at(0).kinsoku_type, back.para_at(1).kinsoku_type), (KinsokuShoriType::PushInFirst, KinsokuShoriType::PushOutOnly));
     assert!(s.execute("text.setFormat", &json!({"id": id, "kinsokuType": "pushIn"})).is_err());
@@ -211,7 +211,7 @@ fn optical_margin_alignment_is_set_per_object_and_saved_only_when_on() {
     s.execute("edit.undo", &json!({})).unwrap();
     assert!(text(&s).optical_margin);
     // Saved and reopened as it was; a document from before it reads as off.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert!(t.optical_margin);
     let mut old = serde_json::to_value(text(&s)).unwrap();
@@ -264,7 +264,7 @@ fn system_layout_sets_the_document_and_every_text_object() {
     assert!(!setup(&s).system_layout && !text(&s, id).system_layout && !text(&s, made).system_layout);
     s.execute("edit.undo", &json!({})).unwrap();
     assert!(setup(&s).system_layout && text(&s, id).system_layout);
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert!(back.setup.system_layout);
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert!(t.system_layout);
@@ -321,7 +321,7 @@ fn fractional_widths_is_set_per_object_and_saved_only_when_off() {
     assert!(text(&s).fractional_widths);
     // Saved and reopened as it was; a document from before it reads as on.
     s.execute("type.fractionalWidths", &json!({"on": false})).unwrap();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert!(!t.fractional_widths);
     let mut old = serde_json::to_value(text(&s)).unwrap();
@@ -478,7 +478,7 @@ fn bunri_kinshi_is_set_per_paragraph_and_saved_only_when_on() {
     assert_eq!(saved["bunri_kinshi"], true);
     let back: vectorcraft_doc::ParaStyle = serde_json::from_value(saved).unwrap();
     assert!(back.bunri_kinshi);
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert!(!back.para_at(0).bunri_kinshi && back.para_at(1).bunri_kinshi, "the file keeps it per paragraph");
     s.execute("edit.undo", &json!({})).unwrap();
@@ -536,7 +536,7 @@ fn kurikaeshi_moji_shori_is_set_per_paragraph_and_saved_only_when_on() {
     assert_eq!(saved["kurikaeshi_moji_shori"], true);
     let back: vectorcraft_doc::ParaStyle = serde_json::from_value(saved).unwrap();
     assert!(back.kurikaeshi_moji_shori);
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert!(!back.para_at(0).kurikaeshi_moji_shori && back.para_at(1).kurikaeshi_moji_shori, "the file keeps it per paragraph");
     s.execute("edit.undo", &json!({})).unwrap();
@@ -584,7 +584,7 @@ fn insert_kashidas_is_set_per_paragraph_and_saved_only_when_set() {
     s.execute("text.setFormat", &json!({"kashida": "medium", "start": 0, "end": 0})).unwrap();
     assert_eq!((text(&s).para_at(0).kashida, text(&s).para_at(1).kashida), (Kashida::Medium, Kashida::None));
     assert_eq!(serde_json::to_value(text(&s).para_at(0)).unwrap()["kashida"], "medium");
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!((back.para_at(0).kashida, back.para_at(1).kashida), (Kashida::Medium, Kashida::None));
     assert!(s.execute("text.setFormat", &json!({"kashida": "wide"})).is_err());
@@ -638,7 +638,7 @@ fn bulleted_lists_are_set_per_paragraph_saved_and_continued() {
     // A saved list reads the fields it leaves out as their defaults and ignores those it doesn't know.
     let read = |v: serde_json::Value| serde_json::from_value::<vectorcraft_doc::ParaStyle>(json!({ "list": v })).unwrap().list;
     assert_eq!((read(json!({})), read(json!({"bullet": "dash", "restart": 2}))), (dot, Some(ParaList::bulleted(Bullet::Dash))));
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!((back.para_at(0).list, back.para_at(1).list, back.para_at(2).list), (square, dot, None));
     // Return at the end of a list item starts another one.
@@ -709,7 +709,7 @@ fn numbered_lists_are_set_per_paragraph_saved_and_styled() {
     }
     assert_eq!((list(&s, 0), list(&s, 1)), (letters, arabic), "an unknown value changes nothing");
     assert_eq!(serde_json::to_value(text(&s).para_at(0)).unwrap()["list"], json!({"bullet": "square", "number": "lowerLetters"}));
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!((back.para_at(0).list, back.para_at(1).list, back.para_at(2).list), (letters, arabic, arabic));
     // Return at the end of a numbered item starts the next number.
@@ -791,7 +791,7 @@ fn a_numbered_paragraph_starts_at_a_given_number_or_restarts() {
     s.execute("edit.redo", &json!({})).unwrap();
     // The file keeps the numbers.
     assert_eq!(serde_json::to_value(text(&s).para_at(1)).unwrap()["list"], json!({"bullet": "dot", "number": "arabic", "start": 5}));
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!(back.paragraph_styles(), text(&s).paragraph_styles());
     // Return at the end of "One" makes an item that counts on, without a number of its own.
@@ -963,7 +963,7 @@ fn list_markers_are_aligned_per_paragraph_saved_and_styled() {
     s.execute("text.setFormat", &json!({"listAlign": "left", "start": 8, "end": 8})).unwrap();
     assert_eq!(serde_json::to_value(text(&s).para_at(0)).unwrap()["list"], json!({"bullet": "square", "align": "right"}));
     assert_eq!(serde_json::to_value(text(&s).para_at(2)).unwrap()["list"], json!({"bullet": "dot"}));
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!((back.para_at(0).list, back.para_at(1).list), (list(&s, 0), Some(ParaList::numbered(NumberStyle::Arabic).aligned(ListAlign::Right))));
     // A list turned off and on again starts aligned left.
@@ -1511,7 +1511,7 @@ fn list_levels_are_set_per_paragraph_saved_and_styled() {
     assert_eq!(text(&s).para_at(3).list, Some(ParaList::bulleted(Bullet::Dot).at_level(4)));
     assert_eq!(serde_json::to_value(text(&s).para_at(1)).unwrap()["list"], json!({"bullet": "square", "level": 3}));
     assert_eq!(serde_json::to_value(text(&s).para_at(0)).unwrap()["list"], json!({"bullet": "dot", "number": "arabic"}));
-    let reopened = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let reopened = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let Some(NodeKind::Text(back)) = reopened.node(NodeId(id)).map(|n| &n.kind) else { panic!("text") };
     assert_eq!((0..4).map(|i| back.para_at(i).list).collect::<Vec<_>>(), (0..4).map(|i| text(&s).para_at(i).list).collect::<Vec<_>>());
     // A list turned off and on again starts at level 1.
@@ -1658,7 +1658,7 @@ fn new_type_takes_the_japanese_defaults_while_the_interface_is_japanese() {
     // Imported text keeps the Roman baseline.
     s.ui_language = Some("ja".into());
     let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><text x="10" y="50">雅楽</text></svg>"#;
-    s.execute("document.open", &json!({"name": "t.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())})).unwrap();
+    s.execute("document.open", &json!({"name": "t.svg", "dataBase64": etcfile::base64::encode(svg.as_bytes())})).unwrap();
     let mut found = vec![];
     s.doc().unwrap().doc.walk(|n| {
         if let NodeKind::Text(t) = &n.kind {
@@ -1760,7 +1760,7 @@ fn character_direction_is_a_character_attribute_saved_only_when_set() {
     assert!(runs(&s).iter().all(|r| r.style.char_direction.is_none()));
     s.execute("edit.redo", &json!({})).unwrap();
     // Saved and reopened as it was.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     let reopened: Vec<_> = t.runs.iter().map(|r| (r.text.clone(), r.style.char_direction)).collect();
     assert_eq!(reopened, set(&s));
@@ -1791,7 +1791,7 @@ fn character_kashidas_default_on_and_round_trip_by_range() {
     s.execute("edit.undo", &json!({})).unwrap();
     assert!(runs(&s).iter().all(|r| r.style.kashidas));
     s.execute("edit.redo", &json!({})).unwrap();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert_eq!(t.runs.iter().map(|r| r.style.kashidas).collect::<Vec<_>>(), [true, false, true]);
     s.execute("select.set", &json!({"ids": [id]})).unwrap();
@@ -1844,7 +1844,7 @@ fn kana_style_and_roman_italics_are_character_features() {
     s.execute("text.setRangeStyle", &json!({"id": id, "start": 0, "end": 6, "features": ["hkna"]})).unwrap();
     s.execute("text.setRangeStyle", &json!({"id": id, "start": 6, "end": 8, "featureChanges": ["ital"]})).unwrap();
     assert_eq!(runs(&s), [("かな".to_string(), vec!["hkna".to_string()]), ("AB".to_string(), vec!["ital".to_string()])]);
-    let saved = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let saved = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &saved.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert_eq!(t.runs.iter().map(|r| r.style.features.clone()).collect::<Vec<_>>(), [vec!["hkna".to_string()], vec!["ital".to_string()]]);
     let before = runs(&s);
@@ -1926,7 +1926,7 @@ fn tate_chu_yoko_settings_are_character_attributes_saved_only_when_set() {
     assert_eq!(offsets(&s)[0], ("2026".to_string(), -4.0, 1296.0));
     assert!(runs(&s)[0].style.tate_chu_yoko);
     // Saved and reopened as they were.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     let reopened: Vec<_> = t.runs.iter().map(|r| (r.text.clone(), r.style.tcy_up_down, r.style.tcy_left_right)).collect();
     assert_eq!(reopened, offsets(&s));
@@ -2000,7 +2000,7 @@ fn warichu_is_a_character_attribute_set_saved_and_exported() {
         [&json!(true), &json!(3), &json!(2.5), &json!(40.0), &json!("justifyAll")]
     );
     // Saved and reopened as they were.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert_eq!(
         t.runs.iter().map(|r| (r.style.warichu, r.style.warichu_lines, r.style.warichu_align)).collect::<Vec<_>>(),
@@ -2082,7 +2082,7 @@ fn insert_aki_is_a_character_attribute_set_one_side_at_a_time() {
     let saved = serde_json::to_value(&runs(&s)[0].style).unwrap();
     assert_eq!((saved.get("akiLeft"), saved["akiRight"].clone()), (None, json!(500.0)));
     // Saved and reopened as they were.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     let reopened: Vec<_> = t.runs.iter().map(|r| (r.text.clone(), r.style.aki_left, r.style.aki_right)).collect();
     assert_eq!(reopened, aki(&s));
@@ -2138,7 +2138,7 @@ fn tsume_is_a_character_attribute() {
     assert_eq!(tsume(&s), [("（".to_string(), 100.0), ("日本）".to_string(), 50.0)]);
     let saved = serde_json::to_value(&runs(&s)[0].style).unwrap();
     assert_eq!(saved["tsume"], json!(100.0));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     let reopened: Vec<_> = t.runs.iter().map(|r| (r.text.clone(), r.style.tsume)).collect();
     assert_eq!(reopened, tsume(&s));
@@ -2194,7 +2194,7 @@ fn diacritic_positions_are_character_attributes() {
     assert_eq!(moved(&s), [("ب".to_string(), -150.0, 250.0), ("\u{064E}".to_string(), -150.0, -1000.0), ("ب".to_string(), -150.0, 250.0)]);
     let saved = serde_json::to_value(&runs(&s)[1].style).unwrap();
     assert_eq!((saved["diacriticHorizontal"].clone(), saved["diacriticVertical"].clone()), (json!(-150.0), json!(-1000.0)));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     let reopened: Vec<_> = t.runs.iter().map(|r| (r.text.clone(), r.style.diacritic_horizontal, r.style.diacritic_vertical)).collect();
     assert_eq!(reopened, moved(&s));
@@ -2247,7 +2247,7 @@ fn standard_vertical_roman_is_a_character_attribute_saved_only_when_on() {
     assert!(old.get("standardVerticalRoman").is_none());
     assert!(!serde_json::from_value::<vectorcraft_doc::CharStyle>(old).unwrap().standard_vertical_roman);
     // Saved and reopened as it was.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     let reopened: Vec<_> = t.runs.iter().map(|r| (r.text.clone(), r.style.standard_vertical_roman)).collect();
     assert_eq!(reopened, on);
@@ -2278,7 +2278,7 @@ fn glyph_form_is_one_character_attribute_saved_only_when_set() {
     assert_eq!(forms(&s), [("亜".into(), GlyphForm::Default), ("唖".into(), GlyphForm::Jis78), ("芦".into(), GlyphForm::Default)]);
     assert_eq!(serde_json::to_value(&runs(&s)[1].style).unwrap()["glyphForm"], "jis78");
     // Saved and reopened as it was.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert_eq!(t.runs.iter().map(|r| (r.text.clone(), r.style.glyph_form)).collect::<Vec<_>>(), forms(&s));
     // Another form replaces it: one form at a time.
@@ -2521,7 +2521,7 @@ fn indic_digits_round_trip_through_the_commands_and_the_file() {
         assert!(runs(&s).iter().all(|r| r.style.digits == d), "{d:?}");
         assert_eq!(serde_json::to_value(&runs(&s)[0].style).unwrap()["digits"], d.id());
         assert_eq!(runs(&s).iter().map(|r| r.text.as_str()).collect::<String>(), "page 12");
-        let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+        let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
         let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
         assert!(t.runs.iter().all(|r| r.style.digits == d), "{d:?} after reopening");
     }
@@ -2568,7 +2568,7 @@ fn language_is_a_character_attribute_saved_only_when_set() {
     assert_eq!(set(&s), [("fi i fikir".to_string(), Some("tr".to_string()))]);
     s.execute("edit.redo", &json!({})).unwrap();
     // Saved and reopened as it was.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     let reopened: Vec<_> = t.runs.iter().map(|r| (r.text.clone(), r.style.language.clone())).collect();
     assert_eq!(reopened, set(&s));
@@ -2627,7 +2627,7 @@ fn variable_font_settings_are_a_character_attribute_saved_only_when_set() {
     let axes = |v: &[(&str, f64)]| v.iter().map(|(t, v)| (t.to_string(), *v)).collect::<std::collections::BTreeMap<_, _>>();
     assert_eq!(set, [("lIn ".to_string(), axes(&[("wdth", 80.0)])), ("lIn".to_string(), axes(&[("wdth", 80.0), ("wght", 550.0)]))]);
     // A saved file keeps them.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     let NodeKind::Text(t) = &back.node(NodeId(id)).unwrap().kind else { panic!("text") };
     assert_eq!(t.runs, runs(&s));
     // Another style or font clears them: their settings were the old face's.
@@ -2715,7 +2715,7 @@ fn every_predefined_mojikumi_set_is_set_saved_and_carried_by_styles() {
         s.execute("text.setFormat", &json!({"mojikumi": key})).unwrap();
         assert_eq!(para(&s).mojikumi, set, "{key}");
         let doc = s.doc().unwrap().doc.clone();
-        let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+        let back = etcfile::load(&etcfile::save(&doc, false)).unwrap();
         match &back.node(NodeId(id)).unwrap().kind {
             NodeKind::Text(t) => assert_eq!(t.para.mojikumi, set, "{key} saved"),
             _ => panic!("text"),
