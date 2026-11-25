@@ -75,3 +75,11 @@ Stored keys, paths, constants and identifiers.
 - Export commands: `export.slice.list` (→ slices, grid, `contentBounds`), `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; undo labels `New Export Slice`, `Edit Export Slice`, `Delete Export Slice`, `Duplicate Export Slice`, `Export Grid`.
 - Export tool: grip reach `ExportTool.REACH_PX` = 24 screen px; automatic content slice name `Content` (png, scale 1); writer limits `ExportSliceWriter.MAX_PIXELS` = 100 000 000, `QUALITY` = 95; JPEG is flattened on white.
 - Shared box: `DragBox.MIN` = 1 pt.
+- Export scopes: `Auto Content Slice`, `Whole Document` (finite canvas only), `Selected Slice`, `All Slices`; until chosen, `All Slices` when slices exist, else `Auto Content Slice`. Units: `px` (72 per inch), `in`, `cm`, `mm`.
+
+## Tool settings windows
+
+- UI package: `com.extemporecreare.app.ui` (folder `interface/`).
+- Slider ranges: Brush, Pen and Eraser size 0.1–1000 pt (cubic track); hardness 0–100 %; Fill tolerance 0–72 pt (`MAX_TOLERANCE`, squared track); Shapes sides and points 3–100 (`MAX_COUNT`).
+- Settings window width 240–340 dp, corner radius 16 dp; choices and buttons radius 8 dp.
+- Selection and Move have no settings window (`uistandards.md` §6.2).

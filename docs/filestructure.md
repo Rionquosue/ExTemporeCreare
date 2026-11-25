@@ -4,7 +4,7 @@
 
 All engine code lives in engine/
 
-All UI code lives in interface/
+All UI code lives in interface/. Its Kotlin package is `com.extemporecreare.app.ui` (`interface` is a reserved word in Kotlin); dial tool settings windows are in interface/tools/<ToolName>/.
 
 All tool code lives in tools/
 
@@ -107,6 +107,24 @@ EXTEMPORECREARE
 |   |-- OFL-SourceSerif4.txt
 |-- interface/
 |   |-- readme.md
+|   |-- theme/
+|   |   |-- EtcColors.kt
+|   |-- tools/
+|       |-- ToolSettingsControls.kt
+|       |-- Brush/
+|       |   |-- BrushToolSettingsPanel.kt
+|       |-- Crop/
+|       |   |-- CropToolSettingsPanel.kt
+|       |-- Eraser/
+|       |   |-- EraserToolSettingsPanel.kt
+|       |-- Export/
+|       |   |-- ExportToolSettingsPanel.kt
+|       |-- Fill/
+|       |   |-- FillToolSettingsPanel.kt
+|       |-- Pen/
+|       |   |-- PenToolSettingsPanel.kt
+|       |-- Shapes/
+|           |-- ShapesToolSettingsPanel.kt
 |-- tools/
     |-- readme.md
     |-- Brush/
@@ -119,10 +137,12 @@ EXTEMPORECREARE
     |   |-- EraserTool.kt
     |   |-- EraserToolSettings.kt
     |-- Export/
+    |   |-- ExportScope.kt
     |   |-- ExportSlice.kt
     |   |-- ExportSliceCommands.kt
     |   |-- ExportSliceWriter.kt
     |   |-- ExportTool.kt
+    |   |-- ExportUnits.kt
     |-- Fill/
     |   |-- FillTool.kt
     |   |-- FillToolSettings.kt

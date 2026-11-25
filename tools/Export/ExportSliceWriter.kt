@@ -13,21 +13,25 @@ import kotlin.math.roundToInt
 /**
  * Writes export regions as image files: the engine renders the whole document's composition into
  * the region (so effects from outside it are kept, §7A), then it is encoded as PNG, JPEG (on white,
- * which has no transparency) or WebP and written to a content URI. Without user slices the region
- * is the automatic content slice (§9.4); with none, there is nothing to export.
+ * which has no transparency) or WebP and written to a content URI. [regions] lists what a scope
+ * writes (§9.2, §9.4).
  */
 class ExportSliceWriter(private val context: Context) {
 
     /** One region to write: its name, box, format and scale. */
     data class Region(val name: String, val box: DragBox, val format: String, val scale: Double)
 
-    /** The regions an export writes: the visible slices, else the automatic content slice, else none ("Nothing to export"). */
-    fun regions(list: ExportSliceList): List<Region> =
-        if (list.slices.isNotEmpty()) {
-            list.slices.filter { it.visible }.map { Region(it.name, it.box(), it.format, it.scale) }
-        } else {
-            listOfNotNull(list.contentBounds?.let { Region("Content", it, "png", 1.0) })
-        }
+    /**
+     * The regions an export of [scope] writes: the automatic content slice ([list]'s content bounds),
+     * the finite canvas's artboards [artboards] (none for an infinite canvas), the slice
+     * [selectedId], or every visible slice. Empty: "Nothing to export".
+     */
+    fun regions(list: ExportSliceList, scope: ExportScope, selectedId: String?, artboards: List<DragBox>): List<Region> = when (scope) {
+        ExportScope.AUTO_CONTENT -> listOfNotNull(list.contentBounds?.let { Region("Content", it, "png", 1.0) })
+        ExportScope.WHOLE_DOCUMENT -> artboards.mapIndexed { i, box -> Region("Artboard ${i + 1}", box, "png", 1.0) }
+        ExportScope.SELECTED_SLICE -> list.slices.filter { it.id == selectedId }.map { Region(it.name, it.box(), it.format, it.scale) }
+        ExportScope.ALL_SLICES -> list.slices.filter { it.visible }.map { Region(it.name, it.box(), it.format, it.scale) }
+    }
 
     /** Render [region] and write it to [uri] → an error message, or `null`. */
     fun write(engine: EngineBridge, region: Region, uri: Uri): String? {
@@ -80,7 +84,7 @@ class ExportSliceWriter(private val context: Context) {
 // GLOSSARY
 // - ExportSliceWriter: renders export regions and writes them as PNG, JPEG or WebP to content URIs.
 // - Region: a region to write (name, box, format, scale).
-// - regions(list): the visible slices, else the automatic content slice, else none.
+// - regions(list, scope, selectedId, artboards): the regions a scope writes.
 // - write(engine, region, uri): render, encode and write one region.
 // - onWhite(bitmap): flatten onto white for JPEG.
 // - MAX_PIXELS: 100 000 000 pixels per image.

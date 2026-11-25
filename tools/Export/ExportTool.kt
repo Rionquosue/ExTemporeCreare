@@ -36,6 +36,13 @@ class ExportTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, st
     var revealDimensions: Boolean = false
         private set
 
+    /** What an export writes: all slices when there are any, else the automatic content slice, until the user chooses ([chooseScope]). */
+    var scope: ExportScope = ExportScope.AUTO_CONTENT
+        private set
+
+    /** Whether the user chose [scope]; until then it follows whether slices exist. */
+    private var scopeChosen = false
+
     /** The automatic content slice: the content bounds while there are no slices, else `null`. */
     val autoSlice: DragBox? get() = if (slices.slices.isEmpty()) slices.contentBounds else null
 
@@ -66,6 +73,12 @@ class ExportTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, st
     fun refresh(engine: EngineBridge): ToolResult = attempt {
         slices = ExportSliceCommands.list(engine)
         if (slices.slices.none { it.id == selectedId }) selectedId = null
+    }
+
+    /** Choose what an export writes. */
+    fun chooseScope(chosen: ExportScope) {
+        scope = chosen
+        scopeChosen = true
     }
 
     /** Select slice [id] (`null`: none). */
@@ -167,6 +180,11 @@ class ExportTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, st
         }
     }
 
+    /** Until the user chooses a scope: all slices when there are any, else the automatic content slice. */
+    private fun followScope() {
+        if (!scopeChosen) scope = if (slices.slices.isEmpty()) ExportScope.AUTO_CONTENT else ExportScope.ALL_SLICES
+    }
+
     /** The selected slice, or `null`. */
     private fun selected(): ExportSlice? = slices.slices.firstOrNull { it.id == selectedId }
 
@@ -183,6 +201,7 @@ class ExportTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, st
     /** Run [block], turning an engine failure into a [ToolResult] error. */
     private fun attempt(block: () -> Unit): ToolResult = try {
         block()
+        followScope()
         ToolResult.NONE
     } catch (e: IllegalStateException) {
         ToolResult.failed(e.message ?: "export slice change failed")
@@ -203,11 +222,14 @@ class ExportTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, st
 // - selectedId: the selected slice.
 // - editing: the box being drawn or edited, for drawing.
 // - revealDimensions: a slice was just drawn; the UI shows its ratio and dimensions.
+// - scope: what an export writes; scopeChosen: whether the user chose it.
 // - autoSlice: the automatic content slice while there are no slices.
 // - drag: the drag's grip, slice (null: new) and last position.
 // - engineToolId(): "hand" (gets no input).
 // - activate, deactivate, pointer: CanvasTool.
 // - refresh(engine): read the slices again.
+// - chooseScope(chosen): choose what an export writes.
+// - followScope(): all slices or the automatic slice until a scope is chosen.
 // - select(id): select a slice.
 // - dimensionsShown(): the UI showed the new slice's editor.
 // - setAspect(engine, x, y): ratio about the centre.

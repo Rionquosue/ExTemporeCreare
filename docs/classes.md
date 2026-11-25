@@ -63,5 +63,17 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `Selection/SelectionTool.kt`: `SelectionTool` (engine `selection`).
 - `Shapes/ShapesTool.kt`: `ShapesTool` (engine `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`); `Shapes/ShapesToolSettings.kt`: `ShapeKind`, `ShapesToolSettings`.
 - `Crop/CropTool.kt`: `CropTool` (engine `cropImage` for one selected image; else a canvas box applied with `artboard.setProps`): `mode`, `canvasBox`, `apply`, `cancel`; `canvasIndex`; `Crop/CropMode.kt`: `CropMode` (`IMAGE`, `CANVAS`, `UNAVAILABLE`).
-- `Export/ExportTool.kt`: `ExportTool` (slice editing; engine `hand` chosen, no input): `slices`, `selectedId`, `editing`, `revealDimensions`, `autoSlice`, `refresh`, `select`, `dimensionsShown`, `setAspect`, `setDimensions`, `setOutput`, `duplicate`, `delete`, `setGrid`; `Export/ExportSlice.kt`: `ExportSlice`, `ExportGrid`, `ExportSliceList`; `Export/ExportSliceCommands.kt`: `ExportSliceCommands` (`list`, `add`, `move`, `update`, `delete`, `duplicate`, `setGrid`); `Export/ExportSliceWriter.kt`: `ExportSliceWriter(context)` (`Region`, `regions`, `write`).
+- `Export/ExportTool.kt`: `ExportTool` (slice editing; engine `hand` chosen, no input): `slices`, `selectedId`, `editing`, `revealDimensions`, `autoSlice`, `refresh`, `select`, `dimensionsShown`, `setAspect`, `setDimensions`, `setOutput`, `duplicate`, `delete`, `setGrid`; `Export/ExportSlice.kt`: `ExportSlice`, `ExportGrid`, `ExportSliceList`; `Export/ExportSliceCommands.kt`: `ExportSliceCommands` (`list`, `add`, `move`, `update`, `delete`, `duplicate`, `setGrid`); `Export/ExportSliceWriter.kt`: `ExportSliceWriter(context)` (`Region`, `regions(list, scope, selectedId, artboards)`, `write`); `Export/ExportScope.kt`: `ExportScope` (`AUTO_CONTENT`, `WHOLE_DOCUMENT`, `SELECTED_SLICE`, `ALL_SLICES`); `Export/ExportUnits.kt`: `ExportUnits` (`PX`, `IN`, `CM`, `MM`; `fromPx`, `toPx`). `ExportTool` also has `scope`, `chooseScope`.
 - `Move/MoveTool.kt`: `MoveTool` (`object.move` per drag step in one undo group; engine `selection` chosen for its frame).
+
+## interface (package `com.extemporecreare.app.ui`)
+
+- `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
+- `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
+- `tools/Brush/BrushToolSettingsPanel.kt`: `BrushToolSettingsPanel` (mode, size, hardness, library brush dropdown).
+- `tools/Pen/PenToolSettingsPanel.kt`: `PenToolSettingsPanel` (size, hardness).
+- `tools/Eraser/EraserToolSettingsPanel.kt`: `EraserToolSettingsPanel` (size).
+- `tools/Fill/FillToolSettingsPanel.kt`: `FillToolSettingsPanel` (tolerance).
+- `tools/Shapes/ShapesToolSettingsPanel.kt`: `ShapesToolSettingsPanel` (shape, sides, points).
+- `tools/Crop/CropToolSettingsPanel.kt`: `CropToolSettingsPanel` (what it crops, Apply, Cancel, image-crop warning with Save first).
+- `tools/Export/ExportToolSettingsPanel.kt`: `ExportToolSettingsPanel` (Export Settings: scope, slices, ratio, dimensions and units, output, grid).
