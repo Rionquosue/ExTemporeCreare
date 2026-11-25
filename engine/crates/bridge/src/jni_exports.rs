@@ -82,6 +82,51 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 }
 
 #[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeToolOptions(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+) -> jstring {
+    let out = calls::tool_options(handle);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeSetToolOption(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    key: JString,
+    value: JString,
+) -> jstring {
+    let (key, value) = (text(&mut env, &key), text(&mut env, &value));
+    let out = calls::set_tool_option(handle, &key, &value);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeState(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+) -> jstring {
+    let out = calls::state(handle);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeOverlays(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    view: JString,
+) -> jstring {
+    let view = text(&mut env, &view);
+    let out = calls::overlays(handle, &view);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeOpen(
     mut env: JNIEnv,
     _class: JClass,
@@ -243,8 +288,12 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativeDestroy`: close a session.
 // - `..._nativeSetPresetsRoot`: set the built-in presets folder.
 // - `..._nativeExecute`: run a command → JSON answer.
-// - `..._nativePointer`: feed a pointer event → JSON answer with the tool's UI requests.
+// - `..._nativePointer`: feed a pointer event → JSON answer with the tool's UI requests and the objects it added.
 // - `..._nativeSelectTool`: make a tool active → JSON answer.
+// - `..._nativeToolOptions`: the active tool's options → JSON answer.
+// - `..._nativeSetToolOption`: set one option of the active tool → JSON answer.
+// - `..._nativeState`: canvas mode, artboards and selection for the app's tools → JSON answer.
+// - `..._nativeOverlays`: what the active tool draws over the canvas → JSON answer.
 // - `..._nativeRender`: render a region of the active document into a direct byte buffer.
 // - `..._nativeOpen`: open a copied file with its URI as the path → JSON answer.
 // - `..._nativeSave`: write a save into temporary files and keep it pending → JSON answer with the files.

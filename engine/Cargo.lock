@@ -771,6 +771,7 @@ dependencies = [
  "jni",
  "serde",
  "serde_json",
+ "vectorcraft-doc",
  "vectorcraft-engine",
  "vectorcraft-geom 0.24.1",
  "vectorcraft-render",

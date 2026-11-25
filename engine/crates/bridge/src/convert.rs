@@ -4,6 +4,8 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
 use vectorcraft_engine::{UiRequest, ViewInfo};
+use vectorcraft_geom::Point;
+use vectorcraft_tools::Overlay;
 
 /// The view state the UI sends (camelCase); a missing field keeps the engine's default.
 #[derive(Default, Deserialize)]
@@ -59,6 +61,42 @@ pub fn ui_requests(rs: &[UiRequest]) -> Value {
     Value::Array(rs.iter().map(ui_request).collect())
 }
 
+/// A point as `[x, y]`.
+fn pt(p: Point) -> Value {
+    json!([p.x, p.y])
+}
+
+/// One overlay of the active tool as JSON, in document coordinates: `{"type", …}`. Paths are SVG
+/// path data; colours are `[r, g, b]` or `[r, g, b, a]`. Hover text draws nothing and is left out.
+pub fn overlay_json(o: &Overlay) -> Option<Value> {
+    Some(match o {
+        Overlay::Marquee(r) => json!({"type": "marquee", "x": r.x0, "y": r.y0, "width": r.width(), "height": r.height()}),
+        Overlay::SelectionMarquee { rect: r, enclosed, .. } => {
+            json!({"type": "marquee", "x": r.x0, "y": r.y0, "width": r.width(), "height": r.height(), "enclosed": enclosed})
+        }
+        Overlay::Path { path, color, width, dashed } => json!({"type": "path", "d": path.to_svg(), "color": color, "width": width, "dashed": dashed}),
+        Overlay::SharedPath { path, color, width, dash } => {
+            json!({"type": "path", "d": path.to_svg(), "color": color, "width": width, "dashed": dash.is_some()})
+        }
+        Overlay::Line { a, b, color, dashed } => json!({"type": "line", "a": pt(*a), "b": pt(*b), "color": color, "dashed": dashed}),
+        Overlay::Anchor { p, color, filled, size } => json!({"type": "anchor", "p": pt(*p), "color": color, "filled": filled, "size": size}),
+        Overlay::CurvePoint { p, color, filled, size } => json!({"type": "curvePoint", "p": pt(*p), "color": color, "filled": filled, "size": size}),
+        Overlay::Handle { p, color } => json!({"type": "handle", "p": pt(*p), "color": color}),
+        Overlay::Label { p, text, color } => json!({"type": "label", "p": pt(*p), "text": text, "color": color}),
+        Overlay::Measure { p, text } => json!({"type": "measure", "p": pt(*p), "text": text}),
+        Overlay::Distance { a, b, text, color } => json!({"type": "distance", "a": pt(*a), "b": pt(*b), "text": text, "color": color}),
+        Overlay::Highlight { quad, color } => json!({"type": "highlight", "quad": quad.iter().map(|p| pt(*p)).collect::<Vec<_>>(), "color": color}),
+        Overlay::Swatch { p, color, selected } => json!({"type": "swatch", "p": pt(*p), "color": color, "selected": selected}),
+        Overlay::GridLine { a, b, color } => json!({"type": "gridLine", "a": pt(*a), "b": pt(*b), "color": color}),
+        Overlay::HoverText { .. } => return None,
+    })
+}
+
+/// The active tool's overlays as a JSON array.
+pub fn overlays_json(os: &[Overlay]) -> Value {
+    Value::Array(os.iter().filter_map(overlay_json).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -84,3 +122,6 @@ mod tests {
 // - `view_info`: the engine's `ViewInfo` from that JSON, defaults for missing fields.
 // - `ui_request`: one tool request to the UI as tagged JSON.
 // - `ui_requests`: a list of tool requests as a JSON array.
+// - `pt`: a point as `[x, y]`.
+// - `overlay_json`: one tool overlay as tagged JSON (hover text left out).
+// - `overlays_json`: the tool's overlays as a JSON array.

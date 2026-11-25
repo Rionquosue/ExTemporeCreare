@@ -24,16 +24,16 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## engine/crates/bridge (interface layer, `libetcbridge.so`)
 
-- `src/sessions.rs`: `Bridge` (one engine session); `create`, `destroy`, `with`: open sessions by handle.
+- `src/sessions.rs`: `Bridge` (one engine session, its pending save and the objects at the last press, `gesture_ids`); `create`, `destroy`, `with`: open sessions by handle.
 - `src/boards.rs`: reference boards as JSON: `new_board`, `read`, `write`, `links`, `relink_image`, `find`.
-- `src/calls.rs`: `execute`, `pointer`, `select_tool`, `render`, `set_presets_root`: what the UI asks of the engine, answered as `{"ok"}` / `{"error"}` JSON.
-- `src/convert.rs`: `view_info` (view state JSON → engine `ViewInfo`), `ui_request`, `ui_requests` (tool requests → JSON).
+- `src/calls.rs`: `execute`, `pointer` (reports the objects a gesture added), `select_tool`, `tool_options`, `set_tool_option`, `state`, `overlays`, `render`, `set_presets_root`: what the UI asks of the engine, answered as `{"ok"}` / `{"error"}` JSON.
+- `src/convert.rs`: `view_info` (view state JSON → engine `ViewInfo`), `ui_request`, `ui_requests` (tool requests → JSON), `overlay_json`, `overlays_json` (tool overlays → JSON).
 - `src/files.rs`: `PendingSave`; `open` (a copied file with its URI as path), `save` (write into temporary files, keep pending), `save_finish` (with the final URI a rename gave), `validate`.
 - `src/jni_exports.rs`: the JNI functions of `EngineBridge`.
 
 ## components/engine
 
-- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
+- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
 - `EngineFiles.kt`: `EngineFiles(context, engine)`: `open(uri)` and `save(uri, mode, options)` through content URIs, temporary files in `cacheDir/engine-files`, a check of each `.etc`, then the replace: renamed over the original where the provider allows (`replaceByRename`), else copied into the URI (`copyInto`).
 - `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`.
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.

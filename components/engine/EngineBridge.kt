@@ -30,8 +30,9 @@ class EngineBridge : AutoCloseable {
         nativeExecute(live(), command, paramsJson)
 
     /**
-     * Feed a pointer event to the active tool → the JSON answer, whose `ok` lists the tool's
-     * requests to the UI. [eventJson] is `{"kind": "down"|"drag"|"up"|"move", "pos": {"x", "y"},
+     * Feed a pointer event to the active tool → the JSON answer, whose `ok` is `{"requests": [the
+     * tool's requests to the UI], "created": [ids]}`; on a release (`up`) the tool's edit is applied
+     * first and `created` lists the outermost objects the gesture added since its press. [eventJson] is `{"kind": "down"|"drag"|"up"|"move", "pos": {"x", "y"},
      * "pressure"?, "mods"?}` in document points; [viewJson] is the view state (`zoom`, `outline`,
      * `smartGuides`, `snapToGrid`…; missing fields keep the engine's defaults).
      */
@@ -41,6 +42,25 @@ class EngineBridge : AutoCloseable {
     /** Make tool [id] the active tool → the JSON answer. */
     fun selectTool(id: String, viewJson: String = "{}"): String =
         nativeSelectTool(live(), id, viewJson)
+
+    /** The active tool's options → `{"ok": {"tool", "options"}}`. */
+    fun toolOptions(): String = nativeToolOptions(live())
+
+    /**
+     * Set option [key] of the active tool to [valueJson] (JSON text) → `{"ok": {"tool", "options"}}`.
+     * The engine keeps each tool's options when another tool is chosen.
+     */
+    fun setToolOption(key: String, valueJson: String): String = nativeSetToolOption(live(), key, valueJson)
+
+    /**
+     * What the app's tools read → `{"ok": {"tool", "document", "canvas": "finite"|"infinite",
+     * "artboards": [{"index", "x", "y", "width", "height"}], "selection": [ids], "images": [ids],
+     * "editing"}}`, in document points.
+     */
+    fun state(): String = nativeState(live())
+
+    /** What the active tool draws over the canvas → `{"ok": [{"type", …}]}`, in document coordinates. */
+    fun overlays(viewJson: String = "{}"): String = nativeOverlays(live(), viewJson)
 
     /**
      * Render the active document's region at ([x], [y]) document points, [width] × [height] pixels at
@@ -124,6 +144,10 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeExecute(handle: Long, command: String, params: String): String
         @JvmStatic private external fun nativePointer(handle: Long, event: String, view: String): String
         @JvmStatic private external fun nativeSelectTool(handle: Long, id: String, view: String): String
+        @JvmStatic private external fun nativeToolOptions(handle: Long): String
+        @JvmStatic private external fun nativeSetToolOption(handle: Long, key: String, value: String): String
+        @JvmStatic private external fun nativeState(handle: Long): String
+        @JvmStatic private external fun nativeOverlays(handle: Long, view: String): String
         @JvmStatic private external fun nativeOpen(handle: Long, temp: String, name: String, uri: String): String
         @JvmStatic private external fun nativeSave(handle: Long, mode: String, params: String, tempDir: String): String
         @JvmStatic private external fun nativeSaveFinish(handle: Long, ok: Boolean, finalUri: String): String
@@ -152,8 +176,12 @@ class EngineBridge : AutoCloseable {
 // - isClosed: whether close() has run.
 // - live(): the open handle, or an error once closed.
 // - execute(command, paramsJson): run an engine command → JSON answer.
-// - pointer(eventJson, viewJson): feed a pointer event to the active tool → JSON answer.
+// - pointer(eventJson, viewJson): feed a pointer event to the active tool → JSON answer (with the objects a gesture added).
 // - selectTool(id, viewJson): make a tool active → JSON answer.
+// - toolOptions(): the active tool's options → JSON answer.
+// - setToolOption(key, valueJson): set one option of the active tool → JSON answer.
+// - state(): canvas mode, artboards, selection and selected images → JSON answer.
+// - overlays(viewJson): what the active tool draws over the canvas → JSON answer.
 // - render(x, y, width, height, scale, out): draw part of the active document into a direct buffer.
 // - openCopied(tempPath, name, uri): open a file copied to a temporary file, with its URI as path.
 // - saveToTemp(mode, paramsJson, tempDir): write a save into temporary files and keep it pending.
@@ -163,4 +191,4 @@ class EngineBridge : AutoCloseable {
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
 // - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths.
-// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
+// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.

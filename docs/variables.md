@@ -35,6 +35,10 @@ Stored keys, paths, constants and identifiers.
 - Pointer event JSON: `{"kind": "down"|"drag"|"up"|"move"|"doubleclick"|"tripleclick", "pos": {"x", "y"}, "pressure"?, "mods"?: {"shift", "alt", "cmd", "ctrl", "space"}}`.
 - View JSON: `zoom`, `outline`, `smartGuides`, `guides`, `snapToGrid`, `pixelPreview`, `showBbox`, `snapToPixel`, `snapToPoint`, `snapToGlyph`, `artboard`.
 - Tool request JSON: `{"type": "dialog"|"panel"|"switchTool"|"status"|"place"|"heldPress", …}`.
+- Pointer answer JSON: `{"requests": [tool requests], "created": [ids]}`; `created` is filled on `up` with the outermost objects added since the `down`.
+- Tool options answer JSON: `{"tool": engine tool id, "options": {…}}`.
+- State JSON: `{"tool", "document", "canvas": "finite"|"infinite", "artboards": [{"index", "x", "y", "width", "height"}], "selection": [ids], "images": [ids], "editing"}` (points; finite = the document has artboards).
+- Overlay JSON: `{"type": "marquee"|"path"|"line"|"anchor"|"curvePoint"|"handle"|"label"|"measure"|"distance"|"highlight"|"swatch"|"gridLine", …}`; `path.d` is SVG path data, points are `[x, y]`, colours `[r, g, b]` or `[r, g, b, a]`.
 - Render pixels: premultiplied RGBA8, rows top to bottom (Android `ARGB_8888`).
 - Temporary files for open and save: `<cacheDir>/engine-files/` (`open-*.tmp`, `save-<uid>-<n>.tmp`).
 - Save modes the bridge takes: `save`, `saveAs`, `copy`, `template`.

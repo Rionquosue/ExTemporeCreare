@@ -3,13 +3,15 @@
 //! Every call answers with JSON text: `{"ok": <result>}` or `{"error": {"kind", "message"}}`, and a
 //! panic inside the engine is caught and answered as an error, never unwound into the JVM.
 
+use std::collections::HashSet;
+
 use serde_json::{Value, json};
 use vectorcraft_engine::EngineError;
 use vectorcraft_geom::Rect;
 use vectorcraft_render::{RenderOptions, Renderer};
-use vectorcraft_tools::PointerEvent;
+use vectorcraft_tools::{PointerEvent, PointerKind};
 
-use crate::convert::{ui_requests, view_info};
+use crate::convert::{overlays_json, ui_requests, view_info};
 use crate::sessions;
 
 /// The JSON answer for a result.
@@ -48,13 +50,116 @@ pub fn execute(handle: i64, command: &str, params: &str) -> String {
 }
 
 /// Feed a pointer event (JSON of the engine's `PointerEvent`, document coordinates) to the active
-/// tool with the view state `view` (JSON) → the tool's requests to the UI.
+/// tool with the view state `view` (JSON) → `{"requests": [the tool's requests to the UI],
+/// "created": [ids]}`. On a release the tool's edit is applied before answering (a tool may compute
+/// it on another thread), and `created` lists the outermost objects added to the document since the
+/// press, which the app's tools finish (stroke weight, feather); empty on other events.
 pub fn pointer(handle: i64, event: &str, view: &str) -> String {
     guarded(handle, |b| {
         let ev: PointerEvent = serde_json::from_str(event).map_err(|e| format!("event: {e}"))?;
-        let rs = b.session.pointer(&ev, view_info(view)).map_err(engine_error)?;
-        Ok(ui_requests(&rs))
+        if ev.kind == PointerKind::Down {
+            b.gesture_ids = node_ids(b);
+        }
+        let mut rs = b.session.pointer(&ev, view_info(view)).map_err(engine_error)?;
+        let mut created = Vec::new();
+        if ev.kind == PointerKind::Up {
+            rs.extend(b.session.finish_tool_edit().map_err(engine_error)?);
+            if let Some(ids) = b.gesture_ids.take() {
+                created = created_ids(b, &ids);
+            }
+        }
+        Ok(json!({ "requests": ui_requests(&rs), "created": created }))
     })
+}
+
+/// The ids of every object of the active document (`None`: no document is open).
+fn node_ids(b: &sessions::Bridge) -> Option<HashSet<u64>> {
+    let st = b.session.doc().ok()?;
+    let mut ids = HashSet::new();
+    st.doc.walk(|n| {
+        ids.insert(n.id.0);
+    });
+    Some(ids)
+}
+
+/// The outermost objects of the active document that are not in `before`, in paint order: an
+/// added group is listed, not the objects inside it.
+fn created_ids(b: &sessions::Bridge, before: &HashSet<u64>) -> Vec<u64> {
+    let Ok(st) = b.session.doc() else { return vec![] };
+    let mut added = Vec::new();
+    st.doc.walk(|n| {
+        if !before.contains(&n.id.0) {
+            added.push(n);
+        }
+    });
+    let mut inner = HashSet::new();
+    for n in &added {
+        for c in n.children().into_iter().flatten() {
+            c.walk(&mut |d| {
+                inner.insert(d.id.0);
+            });
+        }
+    }
+    added.into_iter().map(|n| n.id.0).filter(|id| !inner.contains(id)).collect()
+}
+
+/// The active tool's options → `{"tool": id, "options": {…}}`.
+pub fn tool_options(handle: i64) -> String {
+    guarded(handle, |b| Ok(json!({ "tool": b.session.tool_id(), "options": b.session.tool_options() })))
+}
+
+/// Set the active tool's option `key` to `value` (JSON text); the tool keeps it when another tool
+/// is chosen → the tool's options.
+pub fn set_tool_option(handle: i64, key: &str, value: &str) -> String {
+    guarded(handle, |b| {
+        let v: Value = serde_json::from_str(value).map_err(|e| format!("value: {e}"))?;
+        b.session.set_tool_option(key, &v);
+        Ok(json!({ "tool": b.session.tool_id(), "options": b.session.tool_options() }))
+    })
+}
+
+/// What the app's tools read before they act → `{"tool", "document": bool, "canvas":
+/// "finite"|"infinite", "artboards": [{"index", "x", "y", "width", "height"}], "selection": [ids],
+/// "images": [the selected image objects' ids], "editing": bool}`. A canvas with artboards is
+/// finite (`filestandard.md` §7A); the artboards are in document points.
+pub fn state(handle: i64) -> String {
+    guarded(handle, |b| {
+        let tool = b.session.tool_id();
+        let editing = b.session.tool_editing();
+        let Ok(st) = b.session.doc() else {
+            return Ok(json!({ "tool": tool, "document": false, "editing": editing }));
+        };
+        let artboards: Vec<Value> = st
+            .doc
+            .artboards
+            .iter()
+            .enumerate()
+            .map(|(i, a)| json!({ "index": i, "x": a.rect.x0, "y": a.rect.y0, "width": a.rect.width(), "height": a.rect.height() }))
+            .collect();
+        let selection: Vec<u64> = st.selection.objects.iter().map(|id| id.0).collect();
+        let images: Vec<u64> = st
+            .selection
+            .objects
+            .iter()
+            .filter(|id| st.doc.node(**id).is_some_and(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Image(_))))
+            .map(|id| id.0)
+            .collect();
+        Ok(json!({
+            "tool": tool,
+            "document": true,
+            "canvas": if artboards.is_empty() { "infinite" } else { "finite" },
+            "artboards": artboards,
+            "selection": selection,
+            "images": images,
+            "editing": editing,
+        }))
+    })
+}
+
+/// What the active tool draws over the canvas, in document coordinates → `[{"type", …}]`
+/// (`convert::overlay_json`).
+pub fn overlays(handle: i64, view: &str) -> String {
+    guarded(handle, |b| Ok(overlays_json(&b.session.overlays(view_info(view)))))
 }
 
 /// Make tool `id` the active tool.
@@ -105,6 +210,30 @@ mod tests {
         v["ok"].clone()
     }
 
+    /// A tool's gesture, the stroke weight and the feather the app's Brush gives what it drew, and
+    /// the undo group around them: one undo step.
+    #[test]
+    fn a_brush_stroke_and_its_finish_undo_together() {
+        let h = sessions::create();
+        ok(&execute(h, "file.new", r#"{"width": 200, "height": 200}"#));
+        ok(&select_tool(h, "paintbrush", "{}"));
+        ok(&execute(h, "edit.undoGroup.begin", r#"{"label": "Brush"}"#));
+        let mut created = Vec::new();
+        for (kind, x) in [("down", 20.0), ("drag", 40.0), ("drag", 60.0), ("drag", 80.0), ("up", 80.0)] {
+            let ev = json!({"kind": kind, "pos": {"x": x, "y": 20.0 + x / 2.0}}).to_string();
+            created = ok(&pointer(h, &ev, "{}"))["created"].as_array().unwrap().clone();
+        }
+        assert_eq!(created.len(), 1, "the stroke");
+        ok(&execute(h, "stroke.set", &json!({ "ids": created, "weight": 12 }).to_string()));
+        ok(&execute(h, "effect.apply", &json!({ "ids": created, "effect": "stylize.feather", "params": {"radius": 3} }).to_string()));
+        ok(&execute(h, "edit.undoGroup.end", "{}"));
+        let count = || sessions::with(h, |b| node_ids(b).map(|i| i.len())).flatten();
+        assert_eq!(count(), Some(2));
+        ok(&execute(h, "edit.undo", "{}"));
+        assert_eq!(count(), Some(1), "one undo removes the stroke with its finish");
+        sessions::destroy(h);
+    }
+
     #[test]
     fn a_session_runs_commands_takes_pointer_input_and_renders() {
         let h = sessions::create();
@@ -113,12 +242,18 @@ mod tests {
         let bad: Value = serde_json::from_str(&execute(h, "no.such.command", "")).unwrap();
         assert_eq!(bad["error"]["kind"], "engine");
         ok(&select_tool(h, "rectangle", "{}"));
-        for kind in ["down", "drag", "up"] {
-            let ev = json!({"kind": kind, "pos": {"x": 50.0, "y": 30.0}}).to_string();
-            if let Some(e) = serde_json::from_str::<Value>(&pointer(h, &ev, r#"{"zoom": 1}"#)).unwrap().get("error") {
-                panic!("{kind}: {e}");
-            }
+        let mut created = Vec::new();
+        for (kind, x, y) in [("down", 60.0, 25.0), ("drag", 75.0, 35.0), ("drag", 90.0, 45.0), ("up", 90.0, 45.0)] {
+            let ev = json!({"kind": kind, "pos": {"x": x, "y": y}}).to_string();
+            let out = ok(&pointer(h, &ev, r#"{"zoom": 1}"#));
+            created.extend(out["created"].as_array().unwrap().iter().cloned());
         }
+        assert_eq!(created.len(), 1, "the drawn rectangle is reported once");
+        let st = ok(&state(h));
+        assert_eq!(st["canvas"], "finite");
+        assert_eq!(st["artboards"][0]["width"], 100.0);
+        assert_eq!(ok(&tool_options(h))["tool"], "rectangle");
+        assert!(ok(&overlays(h, "{}")).is_array());
         let px = render(h, 0.0, 0.0, 100, 50, 1.0).expect("pixels");
         assert_eq!(px.len(), 100 * 50 * 4);
         assert!(px.chunks(4).any(|p| p[3] != 0), "something is drawn");
@@ -134,7 +269,13 @@ mod tests {
 // - `guarded`: run a call on a session with panics caught.
 // - `engine_error`: an engine error's message.
 // - `execute`: run an engine command with JSON params.
-// - `pointer`: feed a pointer event to the active tool.
+// - `pointer`: feed a pointer event to the active tool; on release, reports the objects the gesture added.
+// - `node_ids`: the ids of every object of the active document.
+// - `created_ids`: the outermost objects added since a set of ids was taken.
+// - `tool_options`: the active tool's options.
+// - `set_tool_option`: set one option of the active tool.
+// - `state`: canvas mode, artboards, selection and selected images, for the app's tools.
+// - `overlays`: what the active tool draws over the canvas.
 // - `select_tool`: make a tool active.
 // - `render`: premultiplied RGBA pixels of a region of the active document (`RENDERER`: one renderer per thread).
 // - `set_presets_root`: set the built-in presets folder.
