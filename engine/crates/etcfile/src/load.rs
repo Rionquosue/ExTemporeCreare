@@ -50,8 +50,10 @@ pub fn sniff(bytes: &[u8]) -> bool {
     let field = |at: usize| bytes.get(at..at + 2).map(|s| u16::from_le_bytes([s[0], s[1]]) as usize);
     let (Some(method), Some(name_len), Some(extra_len)) = (field(8), field(26), field(28)) else { return false };
     let start = 30 + name_len + extra_len;
+    let size = bytes.get(18..22).map(|s| u32::from_le_bytes([s[0], s[1], s[2], s[3]]) as usize);
     bytes.starts_with(b"PK\x03\x04")
         && method == 0
+        && size == Some(MIME.len())
         && bytes.get(30..30 + name_len) == Some(b"mimetype")
         && bytes.get(start..start + MIME.len()) == Some(MIME.as_bytes())
 }
@@ -177,6 +179,10 @@ pub fn load_file_capped(bytes: &[u8], max: u64) -> Result<EtcFile, EtcError> {
     tidy(&mut doc, &mut notes)?;
     // An id that came in through `extra` is not part of the document.
     doc.extra.remove(PROJECT_ID_KEY);
+    // The board links are the document's (`extra`), whichever place the file keeps them.
+    if let Some(boards) = project.reference_boards.filter(|v| v.is_array()) {
+        doc.extra.insert(crate::REFERENCE_BOARDS_KEY.into(), boards);
+    }
     let project_id = if project.project_id.is_empty() { crate::save::new_project_id() } else { project.project_id };
     Ok(EtcFile { doc, notes, info: FileInfo { format_version: id.format_version, project_id }, profiles })
 }

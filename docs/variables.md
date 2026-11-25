@@ -44,3 +44,11 @@ Stored keys, paths, constants and identifiers.
 - `applicationId` / `namespace`: `com.extemporecreare.app`; `minSdk` 26, `targetSdk` 35, `compileSdk` 35; ABIs `arm64-v8a`, `x86_64`.
 - Source sets of `app/`: Kotlin from `interface/`, `components/`, `tools/`; assets from `tools/Libraries` (so `presets/`); native libraries from `app/build/engine/jniLibs` (task `buildEngine`, cargo-ndk).
 - Presets on the device: `filesDir/presets/`, with `.version` (the app's last update time) marking the copy.
+
+## Reference boards (`.etcr`)
+
+- `ETCR_EXTENSION` = `etcr`; `ETCR_MIME` = `application/x-ex-tempore-creare-reference`; `ETCR_FORMAT` = `ex-tempore-creare-reference`; `ETCR_FORMAT_VERSION` = `0.1.0`; `BOARD_JSON` = `board.json`.
+- `REFERENCE_BOARDS_KEY` = `referenceBoards`: the `.etc` document `extra` key of its board links; saves mirror it to `project.json` `referenceBoards` (§7.5).
+- Link statuses: `found`, `changed` (SHA-256 differs), `uri` (only a content URI locates it), `missing`.
+- Find-missing limits: 6 folders deep, 20 000 files.
+- Temporary board copies on Android: `<cacheDir>/engine-boards/`.

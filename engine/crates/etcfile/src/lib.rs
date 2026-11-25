@@ -11,8 +11,10 @@
 
 pub mod atomic;
 pub mod base64;
+pub mod boardlinks;
 mod brushart;
 mod error;
+pub mod etcr;
 mod load;
 pub mod manifest;
 mod save;
@@ -50,6 +52,10 @@ pub const MAX_PRECISION: u8 = 9;
 /// The document `extra` key through which a caller gives a save its project id; the save writes it
 /// as `projectId` and not in the document, and reading never puts it back in.
 pub const PROJECT_ID_KEY: &str = "etcProjectId";
+
+/// The document `extra` key holding its links to `.etcr` boards (§7.5); a save also writes them
+/// as `project.json` `referenceBoards`.
+pub const REFERENCE_BOARDS_KEY: &str = "referenceBoards";
 
 /// Whether `ext` (without the dot, any case) is the native extension.
 pub fn is_native_ext(ext: &str) -> bool {
@@ -135,6 +141,7 @@ mod tests {
 
 // GLOSSARY
 // - `atomic`, `base64`, `manifest`, `zipread`, `zipwrite`: public modules (atomic saving, base64, project.json, ZIP reading and writing).
+// - `etcr`, `boardlinks`: public modules (`.etcr` reference boards; their linked images).
 // - `brushart`, `error`, `load`, `save`, `stack`: private modules re-exported below.
 // - `EXTENSION`: `etc`.
 // - `MIME`: `application/x-ex-tempore-creare`, the `mimetype` entry.
@@ -144,4 +151,5 @@ mod tests {
 // - `THUMBNAIL_MAX`: the thumbnail's longest side in pixels.
 // - `MAX_PRECISION`: the most decimal places geometry is rounded to.
 // - `PROJECT_ID_KEY`: the `Document::extra` key through which a save is given its project id.
+// - `REFERENCE_BOARDS_KEY`: the `Document::extra` key of the links to `.etcr` boards.
 // - `is_native_ext`, `is_native_name`: whether an extension or file name is `.etc`.

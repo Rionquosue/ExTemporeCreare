@@ -95,6 +95,26 @@ class EngineBridge : AutoCloseable {
         /** Whether the file at [path] is a valid `.etc` project → `{"ok": true}` or the error. */
         fun validate(path: String): String = nativeValidate(path)
 
+        /** A new empty reference board titled [title] → `{"ok": board}` (`board.json` as JSON). */
+        fun boardNew(title: String): String = nativeBoardNew(title)
+
+        /** Read the `.etcr` file at [path], checking its links from [boardDir] → `{"ok": {"board", "links"}}`. */
+        fun boardRead(path: String, boardDir: String): String = nativeBoardRead(path, boardDir)
+
+        /** Write [boardJson] as an `.etcr` file at [path] (atomically), with the PNG at [thumbnail] if not empty. */
+        fun boardWrite(path: String, boardJson: String, thumbnail: String = ""): String = nativeBoardWrite(path, boardJson, thumbnail)
+
+        /** The link status of each image of [boardJson], from [boardDir] → `{"ok": [{"id", "status", …}]}`. */
+        fun boardLinks(boardJson: String, boardDir: String): String = nativeBoardLinks(boardJson, boardDir)
+
+        /** [boardJson] with image [id] linked to the file at [file] → `{"ok": board}`. */
+        fun boardRelink(boardJson: String, id: String, file: String, boardDir: String): String =
+            nativeBoardRelink(boardJson, id, file, boardDir)
+
+        /** Files in [foldersJson] (a JSON array of paths) that are the board's missing images → `{"ok": [{"id", "path"}]}`. */
+        fun boardFindMissing(boardJson: String, boardDir: String, foldersJson: String): String =
+            nativeBoardFindMissing(boardJson, boardDir, foldersJson)
+
         /** Set the folder the built-in preset libraries are read from (once, at start). */
         fun setPresetsRoot(path: String) = nativeSetPresetsRoot(path)
 
@@ -108,6 +128,12 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeSave(handle: Long, mode: String, params: String, tempDir: String): String
         @JvmStatic private external fun nativeSaveFinish(handle: Long, ok: Boolean, finalUri: String): String
         @JvmStatic private external fun nativeValidate(path: String): String
+        @JvmStatic private external fun nativeBoardNew(title: String): String
+        @JvmStatic private external fun nativeBoardRead(path: String, boardDir: String): String
+        @JvmStatic private external fun nativeBoardWrite(path: String, board: String, thumbnail: String): String
+        @JvmStatic private external fun nativeBoardLinks(board: String, boardDir: String): String
+        @JvmStatic private external fun nativeBoardRelink(board: String, id: String, file: String, boardDir: String): String
+        @JvmStatic private external fun nativeBoardFindMissing(board: String, boardDir: String, folders: String): String
         @JvmStatic private external fun nativeRender(
             handle: Long,
             x: Double,
@@ -136,4 +162,5 @@ class EngineBridge : AutoCloseable {
 // - close(): close the engine session.
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
-// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
+// - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths.
+// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.

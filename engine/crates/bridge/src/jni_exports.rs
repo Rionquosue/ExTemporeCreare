@@ -10,7 +10,7 @@ use jni::JNIEnv;
 use jni::objects::{JByteBuffer, JClass, JString};
 use jni::sys::{jboolean, jdouble, jint, jlong, jstring};
 
-use crate::{calls, files, sessions};
+use crate::{boards, calls, files, sessions};
 
 /// A Java string as Rust text (empty when it can't be read).
 fn text(env: &mut JNIEnv, s: &JString) -> String {
@@ -133,6 +133,81 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     jtext(&mut env, &out)
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardNew(
+    mut env: JNIEnv,
+    _class: JClass,
+    title: JString,
+) -> jstring {
+    let title = text(&mut env, &title);
+    let out = boards::new_board(&title);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardRead(
+    mut env: JNIEnv,
+    _class: JClass,
+    path: JString,
+    board_dir: JString,
+) -> jstring {
+    let (path, board_dir) = (text(&mut env, &path), text(&mut env, &board_dir));
+    let out = boards::read(&path, &board_dir);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardWrite(
+    mut env: JNIEnv,
+    _class: JClass,
+    path: JString,
+    board: JString,
+    thumbnail: JString,
+) -> jstring {
+    let (path, board, thumbnail) = (text(&mut env, &path), text(&mut env, &board), text(&mut env, &thumbnail));
+    let out = boards::write(&path, &board, &thumbnail);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardLinks(
+    mut env: JNIEnv,
+    _class: JClass,
+    board: JString,
+    board_dir: JString,
+) -> jstring {
+    let (board, board_dir) = (text(&mut env, &board), text(&mut env, &board_dir));
+    let out = boards::links(&board, &board_dir);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardRelink(
+    mut env: JNIEnv,
+    _class: JClass,
+    board: JString,
+    id: JString,
+    file: JString,
+    board_dir: JString,
+) -> jstring {
+    let (board, id, file, board_dir) = (text(&mut env, &board), text(&mut env, &id), text(&mut env, &file), text(&mut env, &board_dir));
+    let out = boards::relink_image(&board, &id, &file, &board_dir);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardFindMissing(
+    mut env: JNIEnv,
+    _class: JClass,
+    board: JString,
+    board_dir: JString,
+    folders: JString,
+) -> jstring {
+    let (board, board_dir, folders) = (text(&mut env, &board), text(&mut env, &board_dir), text(&mut env, &folders));
+    let out = boards::find(&board, &board_dir, &folders);
+    jtext(&mut env, &out)
+}
+
 /// Render into `out`, a direct buffer of at least `width × height × 4` bytes → whether it was
 /// filled.
 #[unsafe(no_mangle)]
@@ -175,3 +250,9 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativeSave`: write a save into temporary files and keep it pending → JSON answer with the files.
 // - `..._nativeSaveFinish`: complete or drop the pending save → JSON answer.
 // - `..._nativeValidate`: whether a file is a valid `.etc` → JSON answer.
+// - `..._nativeBoardNew`: `boards::new_board` → JSON answer.
+// - `..._nativeBoardRead`: `boards::read` → JSON answer.
+// - `..._nativeBoardWrite`: `boards::write` → JSON answer.
+// - `..._nativeBoardLinks`: `boards::links` → JSON answer.
+// - `..._nativeBoardRelink`: `boards::relink_image` → JSON answer.
+// - `..._nativeBoardFindMissing`: `boards::find` → JSON answer.

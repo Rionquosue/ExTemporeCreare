@@ -72,6 +72,9 @@ pub struct Head<'a> {
     pub assets: &'a Assets,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preview: Option<serde_json::Value>,
+    /// Links to separate `.etcr` boards (§7.5): `[{"boardId", "path", "missingPolicy"}]`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reference_boards: Option<serde_json::Value>,
 }
 
 /// The identity fields, read first so a wrong or newer file is named before its document is read.
@@ -94,6 +97,9 @@ pub struct Project {
     pub color_profiles: BTreeMap<String, ProfileRef>,
     #[serde(default)]
     pub assets: Assets,
+    /// Links to separate `.etcr` boards (§7.5).
+    #[serde(default)]
+    pub reference_boards: Option<serde_json::Value>,
     pub document: Document,
 }
 
@@ -106,7 +112,12 @@ pub fn version_parts(v: &str) -> Option<[u64; 3]> {
 
 /// Whether a file's `formatVersion` is newer than [`FORMAT_VERSION`].
 pub fn is_newer(v: &str) -> bool {
-    match (version_parts(v), version_parts(FORMAT_VERSION)) {
+    is_newer_than(v, FORMAT_VERSION)
+}
+
+/// Whether version `v` is newer than `ours` (an unreadable one counts as newer).
+pub fn is_newer_than(v: &str, ours: &str) -> bool {
+    match (version_parts(v), version_parts(ours)) {
         (Some(file), Some(ours)) => file > ours,
         _ => true,
     }
@@ -184,6 +195,7 @@ pub fn is_etc_format(id: &str) -> bool {
 // - `Project`: `project.json` as read (project id, profiles, assets, document).
 // - `version_parts`: a `formatVersion` as three numbers.
 // - `is_newer`: whether a `formatVersion` is newer than `FORMAT_VERSION`.
+// - `is_newer_than`: whether one version is newer than another.
 // - `profile_ref`: the reference id of a document profile name.
 // - `canvas`: the descriptive `canvas` block of a document.
 // - `artboard_bounds`: the union of the document's artboards.

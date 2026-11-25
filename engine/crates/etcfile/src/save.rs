@@ -229,6 +229,7 @@ pub fn save_to(doc: &Document, o: &SaveOptions, w: impl Write) -> Result<(), Etc
         display_order: "top-to-bottom",
         assets: &assets,
         preview,
+        reference_boards: d.extra.get(crate::REFERENCE_BOARDS_KEY).filter(|v| v.is_array()).cloned(),
     };
     let project = manifest::project_json(&head, &document_json, o.pretty).map_err(EtcError::encode)?;
     drop(document_json);
