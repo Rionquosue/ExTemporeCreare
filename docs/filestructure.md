@@ -21,6 +21,8 @@ EXTEMPORECREARE
 |-- README.md
 |-- components/
 |   |-- readme.md
+|   |-- engine/
+|       |-- EngineBridge.kt
 |-- dependencies/
 |   |-- readme.md
 |-- docs/
@@ -55,6 +57,7 @@ EXTEMPORECREARE
 |       |-- affinity/
 |       |-- ai/
 |       |-- apischema/
+|       |-- bridge/
 |       |-- brush/
 |       |-- color/
 |       |-- doc/

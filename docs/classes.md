@@ -19,3 +19,14 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## engine/crates/engine (run-time presets)
 
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
+
+## engine/crates/bridge (interface layer, `libetcbridge.so`)
+
+- `src/sessions.rs`: `Bridge` (one engine session); `create`, `destroy`, `with`: open sessions by handle.
+- `src/calls.rs`: `execute`, `pointer`, `select_tool`, `render`, `set_presets_root`: what the UI asks of the engine, answered as `{"ok"}` / `{"error"}` JSON.
+- `src/convert.rs`: `view_info` (view state JSON → engine `ViewInfo`), `ui_request`, `ui_requests` (tool requests → JSON).
+- `src/jni_exports.rs`: the JNI functions of `EngineBridge`.
+
+## components/engine
+
+- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `render`, `close`; `renderBuffer`, `setPresetsRoot`.
