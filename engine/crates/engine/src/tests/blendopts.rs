@@ -396,7 +396,7 @@ fn a_document_with_bad_blend_easing_numbers_opens_clamped_while_commands_refuse(
     let (a, b) = (rect(&mut s, 0.0, 0.0, 10.0), rect(&mut s, 100.0, 0.0, 10.0));
     sel(&mut s, &[a, b]);
     let g = id_of(&s.execute("object.blend.make", &json!({"steps": 3, "easingType": "easeOut", "ramp": 40, "colorShift": -50})).unwrap());
-    let text = String::from_utf8(etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
+    let text = String::from_utf8(etcfile::project_json(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap()).unwrap();
     let blend_of = |doc: &vectorcraft_doc::Document| match doc.node(g).unwrap().kind.clone() {
         NodeKind::Blend { spec, .. } => *spec,
         _ => panic!("not a blend"),
@@ -404,7 +404,7 @@ fn a_document_with_bad_blend_easing_numbers_opens_clamped_while_commands_refuse(
     for (ramp, shift, want) in [("12.5", "-9000.0", (1.0, -100.0)), ("-3.0", "250.0", (0.0, 100.0)), ("null", "\"NaN\"", (0.0, 0.0))] {
         let t = text.replacen("\"ramp\":0.4", &format!("\"ramp\":{ramp}"), 1).replacen("\"colorShift\":-50.0", &format!("\"colorShift\":{shift}"), 1);
         assert!(t != text && t.contains("\"ramp\":") && t.contains(shift), "the saved blend carries ramp and colorShift");
-        let doc = etcfile::load(t.as_bytes()).expect("one bad blend number must not fail the document");
+        let doc = etcfile::load(&etcfile::from_project_json(t.as_bytes())).expect("one bad blend number must not fail the document");
         let spec = blend_of(&doc);
         assert_eq!((spec.ease.ramp, spec.color_shift), want, "{ramp} / {shift}");
     }

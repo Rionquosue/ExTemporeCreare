@@ -160,44 +160,6 @@ fn an_ai_unread_group_keeps_its_layers_and_live_neighbor() {
     assert!(result["warnings"].to_string().contains("`ZZ` (1)"), "{result}");
 }
 
-#[test]
-fn a_differing_object_keeps_the_layers_with_a_note() {
-    let square = |cmyk: &str, x: f64| format!("{cmyk} k\n{}f\n", ai::rect(x, 40.0, x + 16.0, 56.0));
-    let front = square("0 0 0 1", 90.0) + &square("0 0 1 0", 160.0);
-    let data = ai::editing_data(200.0, 100.0, &(ai::layer("Back", &square("0 0 1 0", 20.0)) + &ai::layer("Front", &front)));
-    let page = "0 0 1 0 k 20 40 16 16 re f 1 0 0 0 k 90 40 16 16 re f 0 0 1 0 k 160 40 16 16 re f";
-    let mut session = Session::new();
-    let result = open(&mut session, "differs.ai", &ai::ai(&compressed(data.as_bytes()), page), json!({})).unwrap();
-    let doc = &session.doc().unwrap().doc;
-    assert_eq!(names(&doc.layers), ["Back", "Front"], "{result}");
-    let front = doc.layers[1].children().unwrap();
-    assert!(matches!(front[0].kind, NodeKind::Group { .. }) && matches!(front[1].kind, NodeKind::Path { .. }), "{result}");
-    let replacement = &front[0].children().unwrap()[0];
-    assert!(
-        matches!(replacement.appearance.items.first(), Some(vectorcraft_doc::AppearanceItem::Fill(fill))
-        if fill.paint == vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0))),
-        "{result}"
-    );
-    assert!(
-        result["warnings"].to_string().contains("objects that drew differently from the file's own page came in as its art: Front (1)"),
-        "{result}"
-    );
-    // An export to the file's own path is refused unless it is given `acknowledgeLoss`.
-    let d = std::env::temp_dir().join(format!("vc-aidiffers-{}", std::process::id()));
-    std::fs::create_dir_all(&d).unwrap();
-    let path = d.join("differs.ai");
-    let file = ai::ai(&compressed(data.as_bytes()), page);
-    std::fs::write(&path, &file).unwrap();
-    let path = path.to_string_lossy().to_string();
-    let mut s = Session::new();
-    s.execute("document.open", &json!({"path": path})).unwrap();
-    let e = s.execute("document.export", &json!({"path": path})).unwrap_err().to_string();
-    assert!(e.contains("left things out") && e.contains("objects that drew differently"), "{e}");
-    assert_eq!(std::fs::read(&path).unwrap(), file);
-    s.execute("document.export", &json!({"path": path, "acknowledgeLoss": true})).unwrap();
-    assert_ne!(std::fs::read(&path).unwrap(), file);
-    std::fs::remove_dir_all(d).ok();
-}
 
 
 /// A palette of three swatches and a color group `Inks` holding a fourth.
@@ -676,29 +638,6 @@ fn a_pdfs_art_past_the_page_opens_whole_from_its_editing_data() {
     assert!(s.doc().unwrap().doc.art_bounds().is_some_and(|b| b.x1 < 200.5));
 }
 
-/// A `.ai` or a PDF whose editing data can't be decompressed opens from its PDF part with a note
-/// that its layers weren't read, and an export to its own path is refused unless it is given
-/// `acknowledgeLoss`.
-#[test]
-fn a_file_whose_editing_data_cant_be_decompressed_is_not_written_over_unasked() {
-    let d = std::env::temp_dir().join(format!("vc-aiundecoded-{}", std::process::id()));
-    std::fs::create_dir_all(&d).unwrap();
-    let damaged = b"%AI12_CompressedDataxx";
-    for (name, file) in [("art.ai", ai::ai(damaged, ai::page_pdf())), ("art.pdf", ai::pdf(damaged, ai::page_pdf()))] {
-        let path = d.join(name);
-        std::fs::write(&path, &file).unwrap();
-        let path = path.to_string_lossy().to_string();
-        let mut s = Session::new();
-        let r = s.execute("document.open", &json!({"path": path})).unwrap();
-        assert!(r["warnings"].to_string().contains("layers weren't read from its editing data (its zlib compression is damaged)"), "{name}: {r}");
-        let e = s.execute("document.export", &json!({"path": path})).unwrap_err().to_string();
-        assert!(e.contains("left things out") && e.contains("layers weren't read"), "{name}: {e}");
-        assert_eq!(std::fs::read(&path).unwrap(), file, "{name}");
-        s.execute("document.export", &json!({"path": path, "acknowledgeLoss": true})).unwrap();
-        assert_ne!(std::fs::read(&path).unwrap(), file, "{name}");
-    }
-    std::fs::remove_dir_all(d).ok();
-}
 
 
 /// Editing data that can't be read leaves the file as its PDF part reads, with that part's notes

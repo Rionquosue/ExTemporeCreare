@@ -627,11 +627,11 @@ fn saving_while_editing_writes_no_editing_layer() {
     // Still editing in the session.
     assert!(doc(&s).mask_edit.is_some() && has_edit_layer(doc(&s)));
     // A file saved mid-edit by an older version (editing record and layer written) opens clean.
-    let mut v: Value = serde_json::from_slice(&etcfile::save(doc(&s), false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::project_json(&etcfile::save(doc(&s), false)).unwrap()).unwrap();
     let full = serde_json::to_value(doc(&s)).unwrap();
     v["document"]["layers"] = full["layers"].clone();
     v["document"]["mask_edit"] = json!({"object": obj.0, "layer": doc(&s).mask_edit.unwrap().layer.0});
-    let old = etcfile::load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let old = etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&v).unwrap())).unwrap();
     assert!(old.mask_edit.is_none() && !has_edit_layer(&old) && old.layers.len() == 1);
 }
 

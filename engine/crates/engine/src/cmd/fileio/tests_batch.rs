@@ -141,9 +141,9 @@ fn document_formats_write_one_artboard_each() {
     let mut s = session(2);
     let second = s.doc().unwrap().doc.artboards[1].rect;
     s.execute("shape.ellipse", &json!({"x": second.x0 + 5.0, "y": 5, "width": 10, "height": 10})).unwrap();
-    let r = export(&mut s, json!({"formats": [{"format": "etc"}, {"format": "ai"}, {"format": "eps"}]}));
+    let r = export(&mut s, json!({"formats": [{"format": "etc"}, {"format": "pdf"}]}));
     let n = names(&r);
-    assert_eq!(n, ["Artboard-1.etc", "Artboard-1.ai", "Artboard-1.eps", "Artboard-2.etc", "Artboard-2.ai", "Artboard-2.eps"]);
+    assert_eq!(n, ["Artboard-1.etc", "Artboard-1.pdf", "Artboard-2.etc", "Artboard-2.pdf"]);
     let all = files(&r);
     for (name, bytes) in &all {
         let mut t = Session::new();

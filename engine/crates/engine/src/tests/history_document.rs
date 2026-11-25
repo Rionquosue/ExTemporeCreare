@@ -296,7 +296,7 @@ fn a_missing_file_keeps_its_relative_path_in_the_new_document() {
     s.execute(CMD, &json!({})).unwrap();
     let copy = b.file("copy.etc");
     s.execute("document.save", &json!({"path": copy})).unwrap();
-    let saved: Value = serde_json::from_slice(&std::fs::read(&copy).unwrap()).unwrap();
+    let saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&copy).unwrap()).unwrap()).unwrap();
     let link = &saved["document"]["layers"][0]["kind"]["children"][0]["kind"]["link"];
     assert_eq!(link["relative"].as_str(), Some("art/photo.png"), "{link}");
 }
@@ -337,7 +337,7 @@ fn a_file_back_beside_the_source_it_was_read_from_is_found_from_the_new_document
     std::fs::create_dir_all(b.0.join("new")).unwrap();
     let copy = b.file("new/copy.etc");
     s.execute("document.save", &json!({"path": copy})).unwrap();
-    let file: Value = serde_json::from_slice(&std::fs::read(&copy).unwrap()).unwrap();
+    let file: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&copy).unwrap()).unwrap()).unwrap();
     let link = &file["document"]["layers"][0]["kind"]["children"][0]["kind"]["link"];
     assert_eq!(link["relative"].as_str(), Some("../saved/art/photo.png"), "{link}");
 }

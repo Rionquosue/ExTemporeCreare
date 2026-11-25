@@ -71,6 +71,6 @@ fn arrow_align_and_profiles_survive_the_native_format() {
     assert_eq!(back.node(id).unwrap().appearance.stroke().unwrap(), &stroke(&s, id));
     // A stroke with the default alignment writes nothing new, so older builds read it unchanged.
     s.execute("stroke.set", &json!({"arrowAlign": "extend"})).unwrap();
-    let text = String::from_utf8(etcfile::save(&s.doc().unwrap().doc, true)).unwrap();
+    let text = String::from_utf8(etcfile::project_json(&etcfile::save(&s.doc().unwrap().doc, true)).unwrap()).unwrap();
     assert!(!text.contains("arrow_align"));
 }

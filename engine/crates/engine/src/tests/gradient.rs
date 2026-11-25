@@ -927,7 +927,7 @@ fn a_diamond_survives_saving_as_ai_pdf_and_svg() {
     let id = rect(&mut s, 100.0, 100.0, 200.0, 100.0);
     s.execute("paint.setFill", &json!({"gradient": {"kind": "diamond", "start": [180, 140], "end": [240, 110], "aspect": 60}})).unwrap();
     let want = fill_gradient(&s, id);
-    for format in ["ai", "pdf", "svg"] {
+    for format in ["pdf", "svg"] {
         let r = s.execute("file.saveCopy", &json!({"format": format, "preserveEditing": true})).unwrap();
         let mut back = session();
         back.execute("document.open", &json!({"name": format!("t.{format}"), "dataBase64": r["dataBase64"]})).unwrap();

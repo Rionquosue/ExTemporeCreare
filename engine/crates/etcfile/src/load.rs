@@ -81,6 +81,29 @@ pub fn project_json(bytes: &[u8]) -> Option<Vec<u8>> {
     entry(bytes, PROJECT_JSON, MAX_JSON)
 }
 
+/// `bytes` with its `project.json` replaced by `project`, every other entry kept as it was (for
+/// tools and tests that edit a manifest; the result is not validated).
+pub fn with_project_json(bytes: &[u8], project: &[u8]) -> Result<Vec<u8>, EtcError> {
+    use crate::zipwrite::{Method, ZipWriter};
+    let zip = ZipArchive::new(bytes)?;
+    check_mimetype(&zip)?;
+    let mut w = ZipWriter::new(Vec::with_capacity(bytes.len()));
+    for e in zip.entries() {
+        let data = if e.name == PROJECT_JSON { project.to_vec() } else { zip.read_entry(e, MAX_ASSET.max(MAX_JSON))? };
+        w.add(&e.name, &data, if e.method == 0 { Method::Stored } else { Method::Deflate }).map_err(EtcError::encode)?;
+    }
+    w.finish().map_err(EtcError::encode)
+}
+
+/// An `.etc` file holding only `mimetype` and `project` as its `project.json` (for tools and tests
+/// that build a manifest by hand; the result is not validated).
+pub fn from_project_json(project: &[u8]) -> Vec<u8> {
+    use crate::zipwrite::{Method, ZipWriter};
+    let mut w = ZipWriter::new(Vec::with_capacity(project.len() / 2 + 256));
+    let written = w.add("mimetype", MIME.as_bytes(), Method::Stored).and_then(|()| w.add(PROJECT_JSON, project, Method::Deflate));
+    written.and_then(|()| w.finish()).expect("writing to memory doesn't fail")
+}
+
 /// The thumbnail PNG of an `.etc` file.
 pub fn thumbnail(bytes: &[u8]) -> Option<Vec<u8>> {
     entry(bytes, THUMBNAIL, MAX_ASSET)
@@ -206,6 +229,8 @@ fn tidy(doc: &mut Document, notes: &mut Vec<String>) -> Result<(), EtcError> {
 // - `check_mimetype`: check the stored first `mimetype` entry.
 // - `entry`: one unpacked entry of an `.etc` file.
 // - `project_json`, `thumbnail`, `merged_image`: single entries of an `.etc` file.
+// - `with_project_json`: an `.etc` file with its `project.json` replaced.
+// - `from_project_json`: an `.etc` file of only `mimetype` and a given `project.json`.
 // - `load`, `load_file`, `load_file_capped`: read an `.etc` file.
 // - `validate`: check an `.etc` file without keeping the document.
 // - `within_budgets`: read within the engine's anchor, object and buffered-value budgets.

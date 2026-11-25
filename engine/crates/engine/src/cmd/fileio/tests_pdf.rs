@@ -191,8 +191,6 @@ fn a_page_with_a_user_unit_names_the_option_that_writes_it_in_points() {
         let v = export(&mut s, p.clone());
         assert!(warnings(&v).iter().any(|w| w.ends_with(SMALLER)) && !named(&v), "{p}: {v}");
     }
-    let ai = s.execute("document.export", &json!({"format": "ai", "longPagesInPoints": false})).unwrap();
-    assert!(warnings(&ai).iter().any(|w| w.ends_with(SMALLER)) && !named(&ai), "{ai}");
     // The art's bounds are within 14,400 pt.
     s.execute("select.all", &json!({})).unwrap();
     s.execute("edit.clear", &json!({})).unwrap();

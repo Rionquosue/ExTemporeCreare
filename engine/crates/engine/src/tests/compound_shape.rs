@@ -169,8 +169,8 @@ fn compound_shapes_survive_a_save() {
     assert_eq!(back.node(id), doc.node(id));
     assert!(back.node(id).unwrap().is_compound_shape());
     assert_eq!(back.node(front).unwrap().extras().shape_mode, ShapeMode::Subtract);
-    let text = String::from_utf8(bytes).unwrap().replace("\"shape_mode\":\"subtract\"", "\"shape_mode\":\"divide\"");
-    let odd = etcfile::load(text.as_bytes()).unwrap();
+    let text = String::from_utf8(etcfile::project_json(&bytes).unwrap()).unwrap().replace("\"shape_mode\":\"subtract\"", "\"shape_mode\":\"divide\"");
+    let odd = etcfile::load(&etcfile::from_project_json(text.as_bytes())).unwrap();
     assert_eq!(odd.node(front).unwrap().extras().shape_mode, ShapeMode::Add);
 }
 

@@ -1340,9 +1340,9 @@ fn the_document_remembers_its_export_settings() {
     // Saved with the document (native round trip); older files have none.
     let doc = etcfile::load(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(doc.export_settings, s.doc().unwrap().doc.export_settings);
-    let plain = String::from_utf8(etcfile::save(&vectorcraft_doc::Document::new(5.0, 5.0), false)).unwrap();
+    let plain = String::from_utf8(etcfile::project_json(&etcfile::save(&vectorcraft_doc::Document::new(5.0, 5.0), false)).unwrap()).unwrap();
     assert!(!plain.contains("export_settings") && !plain.contains("exportSettings"), "not written when empty");
-    assert!(etcfile::load(plain.as_bytes()).unwrap().export_settings.is_empty());
+    assert!(etcfile::load(&etcfile::from_project_json(plain.as_bytes())).unwrap().export_settings.is_empty());
 }
 
 /// Export PDFs As › Single file: with several artboards, a PDF row writes them as the pages of one

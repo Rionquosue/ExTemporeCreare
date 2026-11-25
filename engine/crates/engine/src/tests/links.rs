@@ -148,7 +148,7 @@ fn a_placed_link_records_the_file_and_the_document_saves_only_a_preview() {
     assert!(blob.proxy.is_some() && !blob.is_proxy(), "full pixels, with a preview to save");
     let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
-    let mut saved: Value = serde_json::from_slice(&std::fs::read(&doc_path).unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&doc_path).unwrap()).unwrap()).unwrap();
     let entry = &saved["images"][&im.key];
     assert_eq!(entry["proxy"], true);
     assert!(entry["data"].as_str().unwrap().len() * 3 / 4 < bytes.len(), "the preview is smaller than the file");
@@ -335,7 +335,7 @@ fn a_missing_link_keeps_its_relative_path_when_the_moved_document_is_saved() {
     std::fs::create_dir_all(b.0.join("copies")).unwrap();
     save(&mut s, &b.file("copies/poster.etc"));
     let relative = |path: &str| {
-        let mut saved: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(path).unwrap()).unwrap()).unwrap();
         saved_image(&mut saved)["link"]["relative"].as_str().map(str::to_string)
     };
     assert_eq!(relative(&b.file("poster.etc")).as_deref(), Some("art/photo.png"));
@@ -373,7 +373,7 @@ fn a_file_found_elsewhere_then_missing_keeps_the_place_it_was_found() {
     let away = dir.file("away.png");
     std::fs::rename(&beside, &away).unwrap();
     save(&mut s, &doc);
-    let mut saved: Value = serde_json::from_slice(&std::fs::read(&doc).unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&doc).unwrap()).unwrap()).unwrap();
     assert_eq!(saved_image(&mut saved)["link"]["relative"].as_str(), Some("photo.png"));
 }
 
@@ -398,7 +398,7 @@ fn a_file_update_links_finds_after_a_save_elsewhere_keeps_its_place() {
     assert_eq!(Path::new(&image(&s, id).link.unwrap().path), Path::new(&beside));
     std::fs::remove_file(&beside).unwrap();
     s.execute("document.save", &json!({})).unwrap();
-    let mut saved: Value = serde_json::from_slice(&std::fs::read(&doc).unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&doc).unwrap()).unwrap()).unwrap();
     assert_eq!(saved_image(&mut saved)["link"]["relative"].as_str(), Some("photo.png"));
 }
 
@@ -574,10 +574,10 @@ fn a_symbols_link_without_a_relative_path_follows_the_moved_file() {
             _ => 0,
         }
     }
-    let mut saved: Value = serde_json::from_slice(&std::fs::read(&doc_path).unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&doc_path).unwrap()).unwrap()).unwrap();
     assert_eq!(unrelative(&mut saved["document"]["symbols"]), 1, "the symbol's link");
     assert_eq!(unrelative(&mut saved["document"]["layers"].clone()), 1, "the layers' link keeps its relative path");
-    std::fs::write(&doc_path, serde_json::to_vec(&saved).unwrap()).unwrap();
+    std::fs::write(&doc_path, etcfile::from_project_json(&serde_json::to_vec(&saved).unwrap())).unwrap();
     std::fs::remove_dir_all(&b.0).unwrap();
     std::fs::rename(&a.0, &b.0).unwrap();
     let r = open(&mut s, &b.file("poster.etc"));
@@ -1098,13 +1098,13 @@ fn nested_objects_that_repeat_ids_open_with_ids_of_their_own() {
     let path = dir.file("poster.etc");
     save(&mut s, &path);
     // The symbol's image takes the id of the image in the layers, the mask's image none.
-    let mut saved: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&path).unwrap()).unwrap()).unwrap();
     saved["document"]["symbols"][0]["art"]["id"] = json!(layer_image.0);
     let layer = &mut saved["document"]["layers"][0]["kind"]["children"];
     let masked = layer.as_array_mut().unwrap().iter_mut().find(|n| n.get("mask").is_some() || n["extras"].get("mask").is_some()).unwrap();
     let mask = if masked.get("mask").is_some() { &mut masked["mask"] } else { &mut masked["extras"]["mask"] };
     mask["art"]["id"] = json!(0);
-    std::fs::write(&path, serde_json::to_vec(&saved).unwrap()).unwrap();
+    std::fs::write(&path, etcfile::from_project_json(&serde_json::to_vec(&saved).unwrap())).unwrap();
     open(&mut s, &path);
     let list = s.execute("links.list", &json!({})).unwrap();
     let ids: Vec<u64> = list["links"].as_array().unwrap().iter().map(|r| r["id"].as_u64().unwrap()).collect();
@@ -1616,10 +1616,10 @@ fn a_classic_mac_path_is_found_by_its_file_name() {
     write(&pic, &png(600, 300, RED));
     let mut s = session();
     place(&mut s, &pic);
-    let mut v: Value = serde_json::from_slice(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::project_json(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap()).unwrap();
     saved_image(&mut v)["link"] = json!({ "path": CLASSIC });
     let doc_path = dir.file("poster.etc");
-    write(&doc_path, &serde_json::to_vec(&v).unwrap());
+    write(&doc_path, &etcfile::from_project_json(&serde_json::to_vec(&v).unwrap()));
     let r = open(&mut s, &doc_path);
     let id = s.doc().unwrap().doc.layers[0].children().unwrap()[0].id;
     assert_eq!(r["missingLinks"], json!([{"name": "photo.png", "path": CLASSIC, "ids": [id.0]}]));
@@ -1824,7 +1824,7 @@ fn links_from_older_files_load_and_keep_their_pixels() {
     let mut s = session();
     s.execute("file.place", &json!({"path": pic, "at": [200, 150], "link": false})).unwrap();
     // As older versions saved a link: the path alone, the pixels embedded.
-    let mut v: Value = serde_json::from_slice(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::project_json(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap()).unwrap();
     saved_image(&mut v)["link"] = json!(pic);
     v["format"] = json!("drawcraft");
     let legacy = serde_json::to_vec(&v).unwrap();
@@ -2004,7 +2004,7 @@ fn links_of_an_imported_file_are_found_by_their_relative_folder() {
     // Saved beside it while the file is missing, the document keeps the folder the file is in.
     let native = dir.file("poster.etc");
     save(&mut s, &native);
-    let mut saved: Value = serde_json::from_slice(&std::fs::read(&native).unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&native).unwrap()).unwrap()).unwrap();
     assert_eq!(saved_image(&mut saved)["link"]["relative"].as_str(), Some("src/photo.png"));
 
     let bytes = png(600, 300, RED);
@@ -2040,7 +2040,7 @@ fn a_recovered_copy_of_an_imported_file_keeps_its_links_folder() {
     assert_eq!(r["restored"].as_array().map(Vec::len), Some(1), "{r}");
     let native = dir.file("poster.etc");
     save(&mut s, &native);
-    let mut saved: Value = serde_json::from_slice(&std::fs::read(&native).unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&native).unwrap()).unwrap()).unwrap();
     assert_eq!(saved_image(&mut saved)["link"]["relative"].as_str(), Some("src/photo.png"));
 }
 
@@ -2511,7 +2511,7 @@ fn confined_native_output_refuses_a_linked_image_file_outside_the_read_roots() {
     let file = |name: &str| home.file(name);
     let out = file("out");
     refused(&mut s, "document.serialize", json!({}));
-    for format in ["etc", "template", "pdf", "ai", "eps"] {
+    for format in ["etc", "pdf"] {
         refused(&mut s, "document.serialize", json!({"format": format}));
         refused(&mut s, "document.export", json!({"format": format}));
         refused(&mut s, "document.export", json!({"format": format, "selectedOnly": true}));
@@ -2559,7 +2559,7 @@ fn confined_screens_rows_check_the_artboard_each_file_holds() {
     s.execute("artboard.new", &json!({"x": 2000, "y": 0, "width": 100, "height": 100})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 2010, "y": 10, "width": 50, "height": 20})).unwrap();
     let roots = AutomationRoots::new(&[home.0.as_path()], &[home.0.as_path()]).unwrap();
-    for format in ["etc", "ai", "eps"] {
+    for format in ["etc"] {
         let p = |range: &str| json!({"range": range, "formats": [{"format": format}]});
         let r = confine(roots.as_ref(), || s.execute("document.exportForScreens", &p("2"))).unwrap_or_else(|e| panic!("{format}: {e}"));
         assert_eq!(r["files"].as_array().map(Vec::len), Some(1), "{format}: {r}");

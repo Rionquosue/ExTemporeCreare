@@ -172,7 +172,7 @@ fn a_placed_document_is_vectors_in_every_output() {
         .get_pixel(200, 150)
         .0;
     assert!(near([r, g, b], RED), "{:?}", [r, g, b]);
-    for format in ["eps", "emf", "dxf"] {
+    for format in ["pdf", "svg"] {
         let out = s.execute("document.serialize", &json!({"format": format})).unwrap();
         assert!(out.to_string().len() > 200, "{format}: {out}");
     }
@@ -192,7 +192,7 @@ fn the_preview_is_saved_so_the_document_shows_it_without_its_file() {
     let doc_path = dir.file("poster/poster.etc");
     std::fs::create_dir_all(dir.file("poster")).unwrap();
     save(&mut s, &doc_path);
-    let saved: Value = serde_json::from_slice(&std::fs::read(&doc_path).unwrap()).unwrap();
+    let saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&doc_path).unwrap()).unwrap()).unwrap();
     let kind = &saved["document"]["layers"][0]["kind"]["children"][0]["kind"];
     assert_eq!(kind["type"], "placeddocument");
     assert_eq!(kind["link"]["relative"], "../logo.etc");
@@ -866,7 +866,7 @@ fn a_placed_documents_resources_stay_its_own() {
     let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap();
     assert!(!svg["text"].as_str().unwrap().contains("<image"));
     // Nor its saves.
-    let saved = String::from_utf8(decode(&s.execute("document.serialize", &json!({"format": "etc"})).unwrap())).unwrap();
+    let saved = String::from_utf8(etcfile::project_json(&decode(&s.execute("document.serialize", &json!({"format": "etc"})).unwrap())).unwrap()).unwrap();
     assert!(!saved.contains(prefix), "{saved}");
     // Saved for older apps: the art and its resources, as plain objects.
     let old = etcfile::load(&decode(&s.execute("document.serialize", &json!({"format": "etc", "version": 2})).unwrap())).unwrap();
@@ -874,52 +874,6 @@ fn a_placed_documents_resources_stay_its_own() {
     assert!(near(centre_colour(&old), BLUE));
 }
 
-#[test]
-fn saved_for_older_apps_with_a_precision_the_placed_art_is_rounded_too() {
-    let dir = Folder::new("placed-precision");
-    let src = dir.file("triangle.etc");
-    let mut d = Document::new(100.0, 100.0);
-    let layer = d.layers[0].id;
-    let id = d.alloc_id();
-    let points = [(3.4876474632797176, 1.0), (90.0, 2.123456789), (40.0, 80.0)].map(|(x, y)| vectorcraft_geom::Point::new(x, y));
-    let path = vectorcraft_geom::PathData::single(vectorcraft_geom::path::SubPath::polyline(&points, true));
-    d.insert(Some(layer), 0, Node::path(id, path, look(BLUE))).unwrap();
-    write(&src, &etcfile::save_file(&d));
-    let mut s = session();
-    place(&mut s, &src);
-    // The coordinates of every anchor and handle in a file's layers.
-    fn coords(v: &Value, out: &mut Vec<f64>) {
-        match v {
-            Value::Object(o) => {
-                for a in o.get("anchors").and_then(Value::as_array).into_iter().flatten() {
-                    out.extend(["p", "in", "out"].iter().filter_map(|k| a[*k].as_array()).flatten().filter_map(Value::as_f64));
-                }
-                o.values().for_each(|c| coords(c, out));
-            }
-            Value::Array(a) => a.iter().for_each(|c| coords(c, out)),
-            _ => {}
-        }
-    }
-    let mut saved = |p: Value| {
-        let file: Value = serde_json::from_slice(&decode(&s.execute("document.serialize", &p).unwrap())).unwrap();
-        assert!(!file.to_string().contains("placeddocument"), "{file}");
-        let mut out = vec![];
-        coords(&file["document"]["layers"], &mut out);
-        out
-    };
-    let at4 = |x: f64| (x * 1e4).round() / 1e4 == x;
-    let exact = saved(json!({"format": "etc", "version": 3}));
-    assert!(exact.len() >= 6 && !exact.iter().all(|x| at4(*x)), "{exact:?}");
-    let rounded = saved(json!({"format": "etc", "version": 3, "precision": 4}));
-    assert_eq!(rounded.len(), exact.len());
-    assert!(rounded.iter().all(|x| at4(*x)), "{rounded:?}");
-    // The preview shows the rounded art the older app opens, not the placed file's exact art.
-    let file = decode(&s.execute("file.saveCopy", &json!({"version": 3, "precision": 0, "preview": true})).unwrap());
-    let preview = etcfile::thumbnail(&file);
-    assert!(preview.is_some());
-    assert_eq!(preview, crate::cmd::fileio::preview_png(&etcfile::load(&file).unwrap()).unwrap());
-    assert_ne!(preview, crate::cmd::fileio::preview_png(&s.doc().unwrap().doc).unwrap());
-}
 
 /// Saved for an older version, a placed document held only in stored brushes' art (a scatter
 /// brush's art and a pattern brush's tile) is saved as the art it shows, with the resources that art

@@ -1135,7 +1135,7 @@ fn native_files_keep_the_angle() {
     let plain = rect(&mut s, 0.0, 0.0, 10.0, 10.0);
     let a = turned_rect(&mut s);
     let data = s.execute("document.save", &json!({})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-    let text = String::from_utf8(etcfile::base64::decode(&data).unwrap()).unwrap();
+    let text = String::from_utf8(etcfile::project_json(&etcfile::base64::decode(&data).unwrap()).unwrap()).unwrap();
     // Only turned objects write it.
     assert_eq!(text.matches("bbox_angle").count(), 1);
     s.execute("document.open", &json!({"name": "turned.etc", "dataBase64": data})).unwrap();

@@ -186,7 +186,6 @@ fn an_option_only_another_format_reads_gets_a_note() {
     // The format's own options, the keys every export takes and null values get none.
     for p in [
         json!({"format": "jpg", "quality": 80, "scale": 2}),
-        json!({"format": "ai", "compatibility": "1.7"}),
         json!({"format": "pdf", "quality": null, "selectedOnly": false, "includeArtboardFill": false, "useArtboards": true}),
         json!({"format": "svg", "outlineText": true, "svg": {"decimals": 2}}),
     ] {
@@ -212,22 +211,6 @@ fn an_option_only_another_format_reads_gets_a_note() {
     assert_eq!(notes(&r), ["`artboard` was not used: VectorCraft files don't read it"], "{r}");
 }
 
-/// An export writes one file: only a save writes each artboard to a file of its own, so an export
-/// notes `separateArtboards`, and the `range` that names those files for a native file.
-#[test]
-fn an_export_notes_the_options_that_only_a_save_reads() {
-    let (mut s, notes) = (with_art(), unused);
-    let r = s.execute("document.export", &json!({"format": "ai", "separateArtboards": true, "range": "1"})).unwrap();
-    assert_eq!(notes(&r), ["`separateArtboards` was not used: PDF-compatible .ai files don't read it"], "{r}");
-    for (format, label) in [("etc", "VectorCraft"), ("template", "VectorCraft Template")] {
-        let r = s.execute("document.export", &json!({"format": format, "separateArtboards": true, "range": "1"})).unwrap();
-        assert_eq!(
-            notes(&r),
-            [format!("`range` was not used: {label} files don't read it"), format!("`separateArtboards` was not used: {label} files don't read it")],
-            "{r}"
-        );
-    }
-}
 
 
 

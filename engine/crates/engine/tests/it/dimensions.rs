@@ -151,7 +151,7 @@ fn every_stroke_arrowhead_draws_as_a_dimension_arrowhead() {
     }
     // A dimension saved before `arrowHead` existed.
     let id = run(&mut s, "dimension.create", json!({"a":[0,0],"b":[72,0],"options":{"arrowStyle":"open"}}))["id"].as_u64().unwrap();
-    let mut file: Value = serde_json::from_slice(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
+    let mut file: Value = serde_json::from_slice(&etcfile::project_json(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap()).unwrap();
     fn drop_head(v: &mut Value) {
         match v {
             Value::Object(m) => {
@@ -164,7 +164,7 @@ fn every_stroke_arrowhead_draws_as_a_dimension_arrowhead() {
     }
     drop_head(&mut file);
     let mut older = Session::new();
-    older.add_document(etcfile::load(&serde_json::to_vec(&file).unwrap()).unwrap(), None);
+    older.add_document(etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&file).unwrap())).unwrap(), None);
     let o = recipe(&older, id).options;
     assert_eq!((o.arrow_style, o.arrow_head.clone(), o.arrowhead()), (ArrowStyle::Open, None, Some(Arrowhead::TriangleOpen)));
     // Without a stroke head, the saved and recorded options carry no `arrowHead`, and a null one
@@ -1099,7 +1099,7 @@ fn a_dimension_that_cannot_be_drawn_again_keeps_its_art() {
     let rect = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":100,"height":100}))["id"].as_u64().unwrap();
     let id = clicks(&mut s, &[(100.0, 100.0), (200.0, 100.0), (150.0, 80.0)]);
     let saved = etcfile::save(&s.doc().unwrap().doc, false);
-    let mut v: Value = serde_json::from_slice(&saved).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::project_json(&saved).unwrap()).unwrap();
     fn bad_precision(v: &mut Value) {
         match v {
             Value::Object(m) => {
@@ -1114,7 +1114,7 @@ fn a_dimension_that_cannot_be_drawn_again_keeps_its_art() {
     }
     bad_precision(&mut v);
     let mut reopened = Session::new();
-    reopened.add_document(etcfile::load(&serde_json::to_vec(&v).unwrap()).unwrap(), None);
+    reopened.add_document(etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&v).unwrap())).unwrap(), None);
     let art = reopened.doc().unwrap().doc.node(NodeId(id)).unwrap().children().unwrap().clone();
     run(&mut reopened, "select.set", json!({"ids":[rect]}));
     run(&mut reopened, "edit.clear", json!({}));
@@ -1751,7 +1751,7 @@ fn unknown_dimension_options_are_refused_by_commands_but_a_newer_file_still_open
     assert!(s.set_tool_option_cmd(&json!({"tool":"dimension","values":{"style":{"precison":2}}})).is_err());
     let id = dim(&mut s, line);
     let saved = etcfile::save(&s.doc().unwrap().doc, false);
-    let mut v: Value = serde_json::from_slice(&saved).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::project_json(&saved).unwrap()).unwrap();
     // A later version's dimension carries fields this one doesn't know.
     fn add_unknown(v: &mut Value) {
         match v {
@@ -1769,7 +1769,7 @@ fn unknown_dimension_options_are_refused_by_commands_but_a_newer_file_still_open
         }
     }
     add_unknown(&mut v);
-    let doc = etcfile::load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let doc = etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&v).unwrap())).unwrap();
     assert!(doc.node(NodeId(id)).unwrap().extras().dimension.is_some());
 }
 

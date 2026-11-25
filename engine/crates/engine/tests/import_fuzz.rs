@@ -2619,15 +2619,6 @@ proptest! {
 
 // ---------- PDF saved with editing data ----------
 
-/// The rich document saved as a PDF-compatible .ai (the native document embedded, uncompressed).
-fn saved_ai() -> Vec<u8> {
-    static AI: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
-    AI.get_or_init(|| {
-        let r = rich_session().execute("document.save", &json!({"format": "ai", "compression": {"compressText": false}})).unwrap();
-        etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap()
-    })
-    .clone()
-}
 
 proptest! {
     #![proptest_config(config())]
@@ -4882,7 +4873,7 @@ fn art_by_name_survives(what: &str, doc: Document) {
         let _ = no_panic(s.execute(cmd, &p));
         assert!(!s.doc().unwrap().doc.too_deep(None), "{what}: {cmd}");
     }
-    for format in ["svg", "pdf", "eps", "png", "dxf", "emf"] {
+    for format in ["svg", "pdf", "png"] {
         let _ = no_panic(s.execute("document.export", &json!({"format": format})));
     }
 }
@@ -4951,7 +4942,7 @@ fn a_document_at_the_cap_saves_opens_and_exports() {
         // Every format that keeps the nesting reads its own file back within the cap.
         let mut s = vectorcraft_engine::Session::new();
         s.add_document(doc, None);
-        for format in ["svg", "pdf", "eps", "ai"] {
+        for format in ["svg", "pdf"] {
             let r = s.execute("document.export", &json!({"format": format})).unwrap();
             let bytes = etcfile::base64::decode(r["dataBase64"].as_str().unwrap()).unwrap();
             open_deep(&format!("cap.{format}"), &bytes).unwrap_or_else(|| panic!("{format} opens"));
@@ -4973,12 +4964,12 @@ fn a_native_file_nested_too_deep_is_merged_or_refused() {
         assert_eq!(paths_in(&doc), MAX_DEPTH + 3, "no art is lost");
         // Deeper than any version could open, and a hostile file: an error that says why. Written
         // by hand: a tree this deep can't be built and saved.
-        let text = String::from_utf8(etcfile::save(&nested_document(0), false)).unwrap();
+        let text = String::from_utf8(etcfile::project_json(&etcfile::save(&nested_document(0), false)).unwrap()).unwrap();
         let (open, close) = ("{\"id\":900000,\"kind\":{\"type\":\"group\",\"children\":[", "]}}");
         let at = text.find("\"children\":[").expect("the layer's children") + "\"children\":[".len();
         for levels in [100, 50_000] {
             let deep = format!("{}{}{},{}", &text[..at], open.repeat(levels), close.repeat(levels), &text[at..]);
-            let e = vectorcraft_engine::cmd::fileio::load("deep.etc", deep.as_bytes()).err().expect("refused").to_string();
+            let e = vectorcraft_engine::cmd::fileio::load("deep.etc", &etcfile::from_project_json(deep.as_bytes())).err().expect("refused").to_string();
             assert!(e.contains("nested too deep"), "{levels}: {e}");
         }
     });
@@ -5055,7 +5046,7 @@ fn symbols_survive(what: &str, doc: Document, kept: bool) {
         let _ = no_panic(s.execute(cmd, &json!({})));
         assert!(!s.doc().unwrap().doc.too_deep(None), "{what}: {cmd}");
     }
-    for format in ["svg", "pdf", "eps", "png"] {
+    for format in ["svg", "pdf", "png"] {
         let _ = no_panic(s.execute("document.export", &json!({"format": format})));
     }
 }
@@ -5116,20 +5107,6 @@ fn a_pattern_painting_its_own_tile_opens_without_the_paint() {
     });
 }
 
-/// A .ai cut short inside an array or dictionary of its PDF part (found by
-/// `ai_mutated_save_never_panics`): a value can't be read whole, and hayro's iterators over the
-/// array's items or the dictionary's entries would panic on it.
-#[test]
-fn ai_cut_inside_an_array_or_dictionary_opens_without_panicking() {
-    for flip in [None, Some((12262, b'/'))] {
-        let mut b = saved_ai();
-        if let Some((at, c)) = flip {
-            b[at] = c;
-        }
-        b.truncate(44902.min(b.len()));
-        survive("ai cut inside an array or dictionary", || vectorcraft_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc)).unwrap();
-    }
-}
 
 
 /// Found by the fuzzer above: a shape 3.3 million points long and 50 high, with a drop shadow,

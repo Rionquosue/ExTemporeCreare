@@ -177,7 +177,7 @@ fn save_as_takes_on_path_format_and_options() {
     let svg = s.execute("file.formatOptions", &json!({"format": "svg"})).unwrap();
     assert_eq!(svg["options"]["outlineText"]["value"], false, "another format shows its defaults");
     let ids: Vec<&str> = o["saveFormats"].as_array().unwrap().iter().map(|f| f["id"].as_str().unwrap()).collect();
-    assert_eq!(ids, ["etc", "template", "pdf", "svg", "svgz"]);
+    assert_eq!(ids, ["etc", "pdf", "svg", "svgz"]);
     // SVGZ is gzip-compressed SVG and reopens as SVGZ.
     let svgz = path(&d, "doc.svgz");
     s.execute("file.saveAs", &json!({"path": svgz})).unwrap();
@@ -435,7 +435,7 @@ fn a_pdf_opened_in_part_is_not_saved_back_over_the_whole_file() {
 fn a_template_places_like_a_native_file() {
     let mut s = session();
     rect(&mut s);
-    let tpl = s.execute("document.serialize", &json!({"format": "template"})).unwrap();
+    let tpl = s.execute("file.saveAsTemplate", &json!({})).unwrap();
     s.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
     let empty = s.doc().unwrap().doc.node_count();
     s.execute("file.place", &json!({"name": "card.etc", "dataBase64": tpl["dataBase64"]})).unwrap();
@@ -480,7 +480,7 @@ fn transparency_grid_round_trips_without_dirtying() {
 #[test]
 fn units_and_ruler_guides_survive_save_and_reopen() {
     let d = dir("units-guides");
-    for ext in ["etc", "pdf", "ai", "eps"] {
+    for ext in ["etc", "pdf"] {
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 200, "height": 100, "units": "Millimeters"})).unwrap();
         s.execute("guide.add", &json!({"vertical": true, "pos": 50})).unwrap();
@@ -503,7 +503,7 @@ fn units_and_ruler_guides_survive_save_and_reopen() {
 #[test]
 fn a_guide_hidden_or_locked_on_its_own_survives_save_and_reopen() {
     let d = dir("guide-flags");
-    for ext in ["etc", "pdf", "ai", "eps"] {
+    for ext in ["etc", "pdf"] {
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
         for pos in [10, 20, 30] {

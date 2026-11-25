@@ -23,7 +23,10 @@ pub mod zipwrite;
 pub use atomic::{read_only_location, sync_file, write_atomic, write_atomic_with, write_new_with};
 pub use brushart::{placed_as_groups, with_brush_art};
 pub use error::EtcError;
-pub use load::{EtcFile, FileInfo, MAX_ASSET, MAX_JSON, MAX_UNPACKED, load, load_file, load_file_capped, merged_image, project_json, sniff, thumbnail, validate};
+pub use load::{
+    EtcFile, FileInfo, MAX_ASSET, MAX_JSON, MAX_UNPACKED, load, load_file, load_file_capped, merged_image, project_json, sniff, thumbnail, validate,
+    from_project_json, with_project_json,
+};
 pub use save::{PRETTY_MAX_BYTES, PRETTY_MAX_OBJECTS, SaveOptions, new_project_id, save, save_file, save_to, save_with, sha256_hex, with_project_id};
 pub use stack::stack_xml;
 
@@ -96,7 +99,8 @@ mod tests {
         assert_eq!(f.info.project_id, id);
         assert_eq!(f.doc, doc, "the document reads back as it was");
         // Saving what was read writes the same document again.
-        assert_eq!(project_json(&save(&f.doc, true)), project_json(&save(&doc, true)));
+        let document = |d: &Document| serde_json::from_slice::<serde_json::Value>(&project_json(&save(d, true)).unwrap()).unwrap()["document"].clone();
+        assert_eq!(document(&f.doc), document(&doc));
     }
 
     #[test]

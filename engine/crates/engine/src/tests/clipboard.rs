@@ -2230,9 +2230,9 @@ fn paste_remembers_layers_survives_save_and_old_files_load_without_it() {
     s.execute("layer.pasteRemembersLayers", &json!({"on": true})).unwrap();
     let bytes = etcfile::save(doc(&s), false);
     assert!(etcfile::load(&bytes).unwrap().paste_remembers_layers);
-    let v: Value = serde_json::from_slice(&etcfile::save(&Document::new(10.0, 10.0), false)).unwrap();
+    let v: Value = serde_json::from_slice(&etcfile::project_json(&etcfile::save(&Document::new(10.0, 10.0), false)).unwrap()).unwrap();
     assert!(v.get("paste_remembers_layers").is_none(), "off is not written");
-    assert!(!etcfile::load(v.to_string().as_bytes()).unwrap().paste_remembers_layers);
+    assert!(!etcfile::load(&etcfile::from_project_json(v.to_string().as_bytes())).unwrap().paste_remembers_layers);
 }
 
 /// Verify document-scoped object IDs, grab-point placement and one destination Undo/Redo step.

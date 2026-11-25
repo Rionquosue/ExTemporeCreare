@@ -274,7 +274,7 @@ fn artboard_color_round_trips_through_the_native_format() {
     s.execute("artboard.new", &json!({})).unwrap();
     s.execute("artboard.setProps", &json!({"index": 1, "color": {"c": 10, "m": 20, "y": 30, "k": 40}})).unwrap();
     let bytes = etcfile::save(&s.doc().unwrap().doc, false);
-    let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(&etcfile::project_json(&bytes).unwrap()).unwrap();
     let keys = |i: usize| saved["document"]["artboards"][i].as_object().unwrap().keys().cloned().collect::<Vec<_>>();
     assert_eq!(keys(0), ["id", "name", "rect", "show_center_mark", "show_cross_hairs"]);
     assert!(keys(1).contains(&"color".to_string()), "{:?}", keys(1));
@@ -1288,7 +1288,7 @@ fn artboard_lock_round_trips_through_the_native_format() {
     let before = save(&s);
     s.execute("artboard.setProps", &json!({"index": 1, "locked": true})).unwrap();
     let bytes = save(&s);
-    let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(&etcfile::project_json(&bytes).unwrap()).unwrap();
     let keys = saved["document"]["artboards"][0].as_object().unwrap().keys().cloned().collect::<Vec<_>>();
     assert_eq!(keys, ["id", "name", "rect", "show_center_mark", "show_cross_hairs"]);
     assert_eq!(saved["document"]["artboards"][1]["locked"], true);
@@ -1368,7 +1368,7 @@ fn artboard_display_marks_round_trip_through_the_native_format() {
     let before = save(&s);
     s.execute("artboard.setProps", &json!({"artboards": [{"index": 0, "showCenterMark": true}, {"index": 1, "showCrossHairs": true}]})).unwrap();
     let bytes = save(&s);
-    let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(&etcfile::project_json(&bytes).unwrap()).unwrap();
     let ab = |i: usize| saved["document"]["artboards"][i].clone();
     assert_eq!((ab(0)["show_center_mark"].clone(), ab(0)["show_cross_hairs"].clone()), (json!(true), json!(false)));
     assert_eq!((ab(1)["show_center_mark"].clone(), ab(1)["show_cross_hairs"].clone()), (json!(false), json!(true)));
@@ -1383,7 +1383,7 @@ fn artboard_display_marks_round_trip_through_the_native_format() {
         a.remove("show_center_mark");
         a.remove("show_cross_hairs");
     }
-    let back = etcfile::load(&serde_json::to_vec(&old).unwrap()).unwrap();
+    let back = etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&old).unwrap())).unwrap();
     assert!(back.artboards.iter().all(|a| !a.show_center_mark && !a.show_cross_hairs));
 }
 
@@ -1579,7 +1579,7 @@ fn artboard_guide_labels_round_trip_through_the_native_format() {
     let plain = (*s.doc().unwrap().doc).clone();
     s.execute("artboard.setProps", &json!({"artboards": [{"index": 0, "guideLabel": "Green"}, {"index": 1, "guideLabel": "#102030"}]})).unwrap();
     let bytes = save(&s);
-    let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(&etcfile::project_json(&bytes).unwrap()).unwrap();
     let ab = |i: usize| saved["document"]["artboards"][i]["guide_label"].clone();
     assert_eq!((ab(0), ab(1)), (json!({"Preset": 2}), json!({"Custom": [16, 32, 48]})));
     let back = etcfile::load(&bytes).unwrap();
@@ -1596,14 +1596,14 @@ fn artboard_guide_labels_round_trip_through_the_native_format() {
     let mut edited = saved.clone();
     edited["document"]["artboards"][0]["guide_label"] = json!({"Preset": 27});
     edited["document"]["artboards"][1]["guide_label"] = json!({"Preset": 26});
-    let back = etcfile::load(&serde_json::to_vec(&edited).unwrap()).unwrap();
+    let back = etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&edited).unwrap())).unwrap();
     assert_eq!((back.artboards[0].guide_label, back.artboards[1].guide_label), (None, Some(LayerColor::Preset(26))));
     for bad in [json!({"Preset": 256}), json!({"Custom": [1, 2]}), json!("Red"), json!({"Custom": [1, 2, 300]})] {
         edited["document"]["artboards"][0]["guide_label"] = bad.clone();
-        assert!(etcfile::load(&serde_json::to_vec(&edited).unwrap()).is_err(), "{bad}");
+        assert!(etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&edited).unwrap())).is_err(), "{bad}");
     }
     edited["document"]["artboards"][0]["guide_label"] = json!(null);
-    let back = etcfile::load(&serde_json::to_vec(&edited).unwrap()).unwrap();
+    let back = etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&edited).unwrap())).unwrap();
     assert_eq!(back.artboards[0].guide_label, None);
 }
 
@@ -1623,7 +1623,7 @@ fn artboard_video_display_options_round_trip_through_the_native_format() {
     )
     .unwrap();
     let bytes = save(&s);
-    let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let saved: serde_json::Value = serde_json::from_slice(&etcfile::project_json(&bytes).unwrap()).unwrap();
     let ab = |i: usize| saved["document"]["artboards"][i].clone();
     assert_eq!(ab(0)["show_video_safe_areas"], json!(true));
     assert!(ab(0).get("video_ruler_pixel_aspect_ratio").is_none(), "square pixels aren't written: {}", ab(0));
@@ -1642,12 +1642,12 @@ fn artboard_video_display_options_round_trip_through_the_native_format() {
         a.remove("show_video_safe_areas");
         a.remove("video_ruler_pixel_aspect_ratio");
     }
-    let back = etcfile::load(&serde_json::to_vec(&old).unwrap()).unwrap();
+    let back = etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&old).unwrap())).unwrap();
     assert!(back.artboards.iter().all(|a| !a.show_video_safe_areas && a.video_ruler_pixel_aspect_ratio == 1.0));
     for (written, opens) in [(json!(0), 0.1), (json!(-3), 0.1), (json!(1e9), 10.0), (json!(2.5), 2.5)] {
         let mut file: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
         file["document"]["artboards"][1]["video_ruler_pixel_aspect_ratio"] = written.clone();
-        let back = etcfile::load(&serde_json::to_vec(&file).unwrap()).unwrap();
+        let back = etcfile::load(&etcfile::from_project_json(&serde_json::to_vec(&file).unwrap())).unwrap();
         assert_eq!(back.artboards[1].video_ruler_pixel_aspect_ratio, opens, "{written}");
     }
 }

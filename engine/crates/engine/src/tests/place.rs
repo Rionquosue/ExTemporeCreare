@@ -596,9 +596,9 @@ fn a_file_read_apart_from_the_session_is_placed_against_the_artboard_as_it_is_th
     let mut src = Session::new();
     src.execute("file.new", &json!({"width": 100, "height": 50})).unwrap();
     src.execute("shape.rectangle", &json!({"x": 5, "y": 5, "width": 20, "height": 10})).unwrap();
-    let dxf = serialize(&mut src, "dxf");
+    let svg = serialize(&mut src, "svg");
     let text = with(file("notes.txt", b"Words to place"), json!({"text": {}, "at": [100, 150]}));
-    for p in [text, with(file("plan.dxf", &dxf), json!({"dxf": {"fit": true}, "at": [100, 150]}))] {
+    for p in [text, with(file("plan.svg", &svg), json!({"at": [100, 150]}))] {
         let (mut a, mut b) = (session(), session());
         let read = b.prepare_place(&p).unwrap().read().unwrap();
         for s in [&mut a, &mut b] {

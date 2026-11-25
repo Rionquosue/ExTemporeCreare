@@ -11,7 +11,7 @@ fn document(far_object: bool) -> Value {
     s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 30})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 20, "height": 20})).unwrap();
-    let mut v: Value = serde_json::from_slice(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&etcfile::project_json(&etcfile::save(&s.doc().unwrap().doc, false)).unwrap()).unwrap();
     if far_object {
         let far = &mut v["document"]["layers"][0]["kind"]["children"][0]["kind"];
         far["path"]["subpaths"][0]["anchors"].as_array_mut().unwrap().iter_mut().for_each(|a| a["p"][1] = json!(a["p"][1].as_f64().unwrap() + 1e17));
@@ -23,7 +23,7 @@ fn document(far_object: bool) -> Value {
 /// Open `v` from a file, select everything and move it: → the open reply's warnings.
 fn open_and_move(v: &Value, tag: &str) -> (Session, Value) {
     let path = std::env::temp_dir().join(format!("vectorcraft-beyond-canvas-{tag}-{}.etc", std::process::id()));
-    std::fs::write(&path, serde_json::to_vec(v).unwrap()).unwrap();
+    std::fs::write(&path, etcfile::from_project_json(&serde_json::to_vec(v).unwrap())).unwrap();
     let mut s = Session::new();
     let opened = s.execute("document.open", &json!({"path": path}));
     let _ = std::fs::remove_file(&path);
@@ -61,7 +61,7 @@ fn a_file_whose_artboards_all_lie_beyond_the_canvas_is_refused() {
     let mut v = document(false);
     v["document"]["artboards"][0]["rect"] = json!({"x0": 0.0, "y0": 1e17, "x1": 100.0, "y1": 1e17 + 100.0});
     let path = std::env::temp_dir().join(format!("vectorcraft-beyond-canvas-pages-{}.etc", std::process::id()));
-    std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+    std::fs::write(&path, etcfile::from_project_json(&serde_json::to_vec(&v).unwrap())).unwrap();
     let r = Session::new().execute("document.open", &json!({"path": path}));
     let _ = std::fs::remove_file(&path);
     let e = r.unwrap_err().to_string();

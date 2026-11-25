@@ -222,7 +222,7 @@ fn outputs_write_the_masked_pixels() {
     let (mut s, _) = open(&framed());
     let export =
         |s: &Session, format: &str| crate::cmd::fileio::encode_all(doc(s), format, &json!({"useArtboards": true})).unwrap().files.remove(0).1;
-    let (png0, svg0, pdf0, eps0) = (export(&s, "png"), export(&s, "svg"), export(&s, "pdf"), export(&s, "eps"));
+    let (png0, svg0, pdf0) = (export(&s, "png"), export(&s, "svg"), export(&s, "pdf"));
     s.execute(COLOR_MASK, &hide_white()).unwrap();
     let alpha = |bytes: &[u8]| {
         craft_image_codecs::decode(bytes)
@@ -251,7 +251,6 @@ fn outputs_write_the_masked_pixels() {
     assert_eq!((svg_alpha(&svg0), svg_alpha(&export(&s, "svg"))), (255, 0), "SVG");
     let has = |bytes: &[u8], what: &[u8]| bytes.windows(what.len()).any(|w| w == what);
     assert!(!has(&pdf0, b"/SMask") && has(&export(&s, "pdf"), b"/SMask"), "PDF: the image with an alpha channel");
-    assert!(!has(&eps0, b"/MaskColor") && has(&export(&s, "eps"), b"/MaskColor"), "EPS: the hidden pixels masked out");
 }
 
 

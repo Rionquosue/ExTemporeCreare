@@ -586,7 +586,7 @@ fn placement_options_read_set_and_round_trip() {
     // Saved and opened again.
     let doc_path = dir.file("poster.etc");
     save(&mut s, &doc_path);
-    let saved: Value = serde_json::from_slice(&std::fs::read(&doc_path).unwrap()).unwrap();
+    let saved: Value = serde_json::from_slice(&etcfile::project_json(&std::fs::read(&doc_path).unwrap()).unwrap()).unwrap();
     assert_eq!(
         saved["document"]["layers"][0]["kind"]["children"][0]["kind"]["placement"],
         json!({"preserve": "fill", "align": "topRight", "clip": true})

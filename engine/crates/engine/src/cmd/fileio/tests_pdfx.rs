@@ -364,12 +364,6 @@ fn art_that_fills_the_bleed_or_stays_inside_does_not_warn() {
     let mask = plain_rect(&mut s, [20.0, 30.0, 60.0, 60.0]);
     s.execute("transparency.makeOpacityMask", &json!({"ids": [band, mask]})).unwrap();
     assert!(short_of_bleed(&mut s).is_empty());
-    // A `.ai` save with a bleed doesn't warn: the check is PDF export's.
-    let mut s = bleed_session(json!(9));
-    plain_rect(&mut s, [0.0, 0.0, 200.0, 20.0]);
-    assert_eq!(short_of_bleed(&mut s).len(), 1);
-    let r = s.execute("document.export", &json!({"format": "ai", "bleed": {"useDocument": true}})).unwrap();
-    assert!(!r["warnings"].to_string().contains("short of the bleed"), "{}", r["warnings"]);
 }
 
 

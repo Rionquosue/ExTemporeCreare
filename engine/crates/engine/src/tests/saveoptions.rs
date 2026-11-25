@@ -74,7 +74,7 @@ fn a_linked_pngs_bytes_are_embedded() {
     s.execute("file.place", &json!({"path": pic, "link": true})).unwrap();
     let images = |v: &Value| -> Value {
         let text = bytes_of(&v["dataBase64"]);
-        serde_json::from_slice::<Value>(&text).unwrap()["images"].clone()
+        serde_json::from_slice::<Value>(&etcfile::project_json(&text).unwrap()).unwrap()["images"].clone()
     };
     // By default only the preview.
     let plain = images(&s.execute("file.saveCopy", &json!({})).unwrap());
