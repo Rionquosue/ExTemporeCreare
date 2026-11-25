@@ -183,6 +183,10 @@ pub fn load_file_capped(bytes: &[u8], max: u64) -> Result<EtcFile, EtcError> {
     if let Some(boards) = project.reference_boards.filter(|v| v.is_array()) {
         doc.extra.insert(crate::REFERENCE_BOARDS_KEY.into(), boards);
     }
+    // So are the export slices and grid.
+    if let Some(export) = project.export.filter(|v| v.is_object()) {
+        doc.extra.insert(crate::EXPORT_KEY.into(), export);
+    }
     let project_id = if project.project_id.is_empty() { crate::save::new_project_id() } else { project.project_id };
     Ok(EtcFile { doc, notes, info: FileInfo { format_version: id.format_version, project_id }, profiles })
 }

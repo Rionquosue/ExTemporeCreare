@@ -4,11 +4,11 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## engine/crates/etcfile (`.etc` project files)
 
-- `src/lib.rs`: crate root. Constants `EXTENSION`, `MIME`, `FORMAT`, `FORMAT_VERSION`, entry names; `is_native_ext`, `is_native_name`.
+- `src/lib.rs`: crate root. Constants `EXTENSION`, `MIME`, `FORMAT`, `FORMAT_VERSION`, entry names, `REFERENCE_BOARDS_KEY`, `EXPORT_KEY`; `is_native_ext`, `is_native_name`.
 - `src/error.rs`: `EtcError`, the read and write errors (`NotEtc`, `TooNew`, `BadAsset`, `TooBig`, `Zip`, `Encode`).
 - `src/save.rs`: `SaveOptions` (how a document is written); `save`, `save_file`, `save_with`, `save_to`, `ensure_project_id`, `new_project_id`, `sha256_hex`.
 - `src/load.rs`: `EtcFile` (a file read), `FileInfo` (`formatVersion`, `projectId`); `load`, `load_file`, `load_file_capped`, `validate`, `sniff`, `project_json`, `thumbnail`, `merged_image`.
-- `src/manifest.rs`: `project.json` types: `Head` (written), `Identity` and `Project` (read), `Assets`, `AssetRef`, `ProfileRef`, `Region`; `canvas`, `artboard_bounds`, `project_json`, `version_parts`, `is_newer`.
+- `src/manifest.rs`: `project.json` types: `Head` (written; `referenceBoards`, `export`), `Identity` and `Project` (read), `Assets`, `AssetRef`, `ProfileRef`, `Region`; `canvas`, `artboard_bounds`, `project_json`, `version_parts`, `is_newer`.
 - `src/stack.rs`: `stack_xml`, the ORA-style `stack.xml` projection.
 - `src/zipwrite.rs`: `ZipWriter` and `Method` (`Stored`, `Deflate`): writes ZIP archives with ZIP64 when needed.
 - `src/zipread.rs`: `ZipArchive`, `Entry`, `ZipError`: reads and checks ZIP archives; `safe_name`.
@@ -18,8 +18,9 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/etcr.rs`: reference boards (`.etcr`): `Board` (`new`, `image`, `image_mut`, `problem`), `BoardImage`, `Source`, `Transform`, `Crop`, `Viewport`; `read_board`, `write_board`, `sniff_board`, `board_thumbnail`.
 - `src/boardlinks.rs`: board image links on a file system: `LinkStatus` (`Found`, `Changed`, `Uri`, `Missing`); `link_statuses`, `status`, `relink`, `find_missing`.
 
-## engine/crates/engine (run-time presets)
+## engine/crates/engine (run-time presets, export slices)
 
+- `src/cmd/exportslices.rs`: export slices and grid as document data (`Document::extra["export"]`): `export.slice.list`, `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; `EXPORT_KEY`, `SLICE_FORMATS`, `DEFAULT_GRID_SPACING`.
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
 
 ## engine/crates/bridge (interface layer, `libetcbridge.so`)
@@ -43,6 +44,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `CanvasTool.kt`: `CanvasTool`, a rotary dial tool: `name`, `activate`, `pointer`, `deactivate`.
 - `EngineTool.kt`: `EngineTool<S>`, a dial tool built on an engine tool, with saved settings: `settings`, `isActive`, `engineToolId`, `pushSettings`, `update`, `setOption`.
+- `DragBox.kt`: `DragBox`, a rectangle a drag edits (`Grip`: `INSIDE`, `BOTTOM_RIGHT`; `gripAt`, `drag`, `snap`, `resizeAboutCentre`, `contains`, `copy`, `sameAs`; `of`, `reach`). Crop's canvas box and Export's slices.
 - `EngineAnswer.kt`: `EngineAnswer`, one bridge answer parsed: `isOk`, `okObject`, `error`.
 - `ToolPointer.kt`: `ToolPointer` (`Kind`: `DOWN`, `DRAG`, `UP`, `MOVE`), a pointer event in document points: `toJson`.
 - `ToolResult.kt`: `ToolResult` (`requests`, `created`, `error`): `NONE`, `failed`, `failedOrNone`, `fromPointer`.
@@ -60,5 +62,6 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `Fill/FillTool.kt`: `FillTool` (engine `fillArea`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
 - `Selection/SelectionTool.kt`: `SelectionTool` (engine `selection`).
 - `Shapes/ShapesTool.kt`: `ShapesTool` (engine `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`); `Shapes/ShapesToolSettings.kt`: `ShapeKind`, `ShapesToolSettings`.
-- `Crop/CropTool.kt`: `CropTool` (engine `cropImage` for one selected image; else a canvas box applied with `artboard.setProps`): `mode`, `canvasBox`, `apply`, `cancel`; `Crop/CropMode.kt`: `CropMode` (`IMAGE`, `CANVAS`, `UNAVAILABLE`); `Crop/CanvasCropBox.kt`: `CanvasCropBox` (`Grip`, `gripAt`, `drag`, `contains`).
+- `Crop/CropTool.kt`: `CropTool` (engine `cropImage` for one selected image; else a canvas box applied with `artboard.setProps`): `mode`, `canvasBox`, `apply`, `cancel`; `canvasIndex`; `Crop/CropMode.kt`: `CropMode` (`IMAGE`, `CANVAS`, `UNAVAILABLE`).
+- `Export/ExportTool.kt`: `ExportTool` (slice editing; engine `hand` chosen, no input): `slices`, `selectedId`, `editing`, `revealDimensions`, `autoSlice`, `refresh`, `select`, `dimensionsShown`, `setAspect`, `setDimensions`, `setOutput`, `duplicate`, `delete`, `setGrid`; `Export/ExportSlice.kt`: `ExportSlice`, `ExportGrid`, `ExportSliceList`; `Export/ExportSliceCommands.kt`: `ExportSliceCommands` (`list`, `add`, `move`, `update`, `delete`, `duplicate`, `setGrid`); `Export/ExportSliceWriter.kt`: `ExportSliceWriter(context)` (`Region`, `regions`, `write`).
 - `Move/MoveTool.kt`: `MoveTool` (`object.move` per drag step in one undo group; engine `selection` chosen for its frame).

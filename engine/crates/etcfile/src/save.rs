@@ -230,6 +230,7 @@ pub fn save_to(doc: &Document, o: &SaveOptions, w: impl Write) -> Result<(), Etc
         assets: &assets,
         preview,
         reference_boards: d.extra.get(crate::REFERENCE_BOARDS_KEY).filter(|v| v.is_array()).cloned(),
+        export: d.extra.get(crate::EXPORT_KEY).filter(|v| v.is_object()).cloned(),
     };
     let project = manifest::project_json(&head, &document_json, o.pretty).map_err(EtcError::encode)?;
     drop(document_json);

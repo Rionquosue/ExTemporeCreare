@@ -1,6 +1,7 @@
 package com.extemporecreare.app.tools.crop
 
 import com.extemporecreare.app.components.engine.EngineBridge
+import com.extemporecreare.app.components.tools.DragBox
 import com.extemporecreare.app.components.tools.EngineAnswer
 import com.extemporecreare.app.components.tools.EngineTool
 import com.extemporecreare.app.components.tools.NoToolSettings
@@ -13,7 +14,7 @@ import org.json.JSONObject
 /**
  * The Crop tool. With one placed image selected it crops that image, built on the engine's Crop
  * Image tool (its box, handles and dimmed outside; [apply] runs `object.cropImage`). Otherwise, on
- * a finite canvas, it crops the canvas: a [CanvasCropBox] starts on an artboard, a tap on another
+ * a finite canvas, it crops the canvas: a [DragBox] starts on an artboard, a tap on another
  * artboard moves it there, and [apply] gives the artboard the box's bounds (`artboard.setProps`,
  * the art left where it is). An infinite canvas has no bounds to crop. Each apply is one undo step.
  */
@@ -24,14 +25,18 @@ class CropTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, stor
         private set
 
     /** The canvas crop box (canvas mode), for the canvas to draw. */
-    var canvasBox: CanvasCropBox? = null
+    var canvasBox: DragBox? = null
+        private set
+
+    /** The artboard the canvas crop box is on. */
+    var canvasIndex: Int = 0
         private set
 
     /** The artboards of the document when the tool became active, as `[{"index", "x", "y", "width", "height"}]`. */
     private var artboards = JSONArray()
 
     /** The canvas box's grip held by the drag in progress, and where the drag was last. */
-    private var held: Pair<CanvasCropBox.Grip, Pair<Double, Double>>? = null
+    private var held: Pair<DragBox.Grip, Pair<Double, Double>>? = null
 
     /** The engine tool for the mode: Crop Image for an image, else the Hand tool, which gets no input. */
     override fun engineToolId(): String = if (mode == CropMode.IMAGE) "cropImage" else "hand"
@@ -72,9 +77,9 @@ class CropTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, stor
         CropMode.CANVAS -> {
             val box = canvasBox ?: return ToolResult.failed("There is no crop box")
             val params = JSONObject()
-                .put("index", box.index)
+                .put("index", canvasIndex)
                 .put("x", box.left).put("y", box.top)
-                .put("width", box.right - box.left).put("height", box.bottom - box.top)
+                .put("width", box.width).put("height", box.height)
                 .put("moveArt", false).put("scaleArt", false)
             val set = EngineAnswer(engine.execute("artboard.setProps", params.toString()))
             if (!set.isOk) ToolResult.failed(set.error ?: "can't crop the canvas") else activate(engine, viewJson)
@@ -86,7 +91,7 @@ class CropTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, stor
     fun cancel(engine: EngineBridge): ToolResult = when (mode) {
         CropMode.IMAGE -> ToolResult.failedOrNone(setOption(engine, "rect", JSONObject.NULL))
         CropMode.CANVAS -> {
-            canvasBox = canvasBox?.let { boxFor(it.index) }
+            canvasBox = boxFor(canvasIndex)
             held = null
             ToolResult.NONE
         }
@@ -98,8 +103,7 @@ class CropTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, stor
         val box = canvasBox ?: return ToolResult.NONE
         when (event.kind) {
             ToolPointer.Kind.DOWN -> {
-                val zoom = runCatching { JSONObject(viewJson).optDouble("zoom", 1.0) }.getOrDefault(1.0).takeIf { it > 0 } ?: 1.0
-                val grip = box.gripAt(event.x, event.y, REACH_PX / zoom)
+                val grip = box.gripAt(event.x, event.y, DragBox.reach(REACH_PX, viewJson))
                 if (grip != null) {
                     held = grip to (event.x to event.y)
                 } else {
@@ -116,10 +120,11 @@ class CropTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, stor
         return ToolResult.NONE
     }
 
-    /** A box on artboard [index] as it was when the tool became active, or `null` when there is none. */
-    private fun boxFor(index: Int): CanvasCropBox? {
+    /** A box on artboard [index] as it was when the tool became active (and [canvasIndex] set to it), or `null` when there is none. */
+    private fun boxFor(index: Int): DragBox? {
         val a = artboards.optJSONObject(index) ?: return null
-        return CanvasCropBox(index, a.optDouble("x"), a.optDouble("y"), a.optDouble("width"), a.optDouble("height"))
+        canvasIndex = index
+        return DragBox.of(a.optDouble("x"), a.optDouble("y"), a.optDouble("width"), a.optDouble("height"))
     }
 
     /** The index of the artboard under ([x], [y]), or `null`. */
@@ -143,6 +148,7 @@ class CropTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, stor
 // - CropTool: the Crop tool: the selected image (engine Crop Image) or the finite canvas's artboard.
 // - mode: what the tool crops while active (CropMode).
 // - canvasBox: the canvas crop box, for drawing.
+// - canvasIndex: the artboard the canvas box is on.
 // - artboards: the document's artboards when the tool became active.
 // - held: the grip and last position of the canvas box drag in progress.
 // - engineToolId(): "cropImage" in image mode, else "hand" (gets no input).
@@ -151,7 +157,7 @@ class CropTool(store: ToolSettingsStore) : EngineTool<NoToolSettings>(NAME, stor
 // - apply(engine, viewJson): crop the image (object.cropImage) or the artboard (artboard.setProps).
 // - cancel(engine): put the box back.
 // - canvasPointer(event, viewJson): drag the canvas box, or move it to the artboard tapped.
-// - boxFor(index): a box on an artboard.
+// - boxFor(index): a box on an artboard (sets canvasIndex).
 // - artboardAt(x, y): the artboard under a point.
 // - NAME: "Crop".
 // - REACH_PX: the grip reach in screen pixels, 24.

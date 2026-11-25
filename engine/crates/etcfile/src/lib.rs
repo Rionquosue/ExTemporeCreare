@@ -57,6 +57,10 @@ pub const PROJECT_ID_KEY: &str = "etcProjectId";
 /// as `project.json` `referenceBoards`.
 pub const REFERENCE_BOARDS_KEY: &str = "referenceBoards";
 
+/// The `Document::extra` key of the export slices and grid (§7A), which saves mirror to
+/// `project.json`'s `export` object.
+pub const EXPORT_KEY: &str = "export";
+
 /// Whether `ext` (without the dot, any case) is the native extension.
 pub fn is_native_ext(ext: &str) -> bool {
     ext.eq_ignore_ascii_case(EXTENSION)
@@ -84,6 +88,8 @@ mod tests {
     fn round_trips_a_document_with_identity_and_layout() {
         let mut doc = Document::new(400.0, 300.0);
         doc.title = "Round trip".into();
+        let export = serde_json::json!({"grid": {"visible": true, "snapEnabled": false, "spacingPx": 32.0}, "slices": [{"id": "slice-001", "name": "Detail", "rectPx": {"x": -250.0, "y": 175.0, "width": 1600.0, "height": 900.0}}]});
+        doc.extra.insert(EXPORT_KEY.into(), export.clone());
         let id = new_project_id();
         let mut saved = doc.clone();
         with_project_id(&mut saved, &id);
@@ -99,6 +105,7 @@ mod tests {
         assert_eq!(json["canvas"]["mode"], "finite");
         assert_eq!((json["canvas"]["width"].as_u64(), json["canvas"]["height"].as_u64()), (Some(400), Some(300)));
         assert!(json["document"].get(PROJECT_ID_KEY).is_none(), "the id is written once, at the top");
+        assert_eq!(json["export"], export, "the export slices are in project.json's export object (§7A)");
         assert_eq!(thumbnail(&bytes), Some(png()));
         let f = load_file(&bytes).unwrap();
         assert_eq!(f.doc.title, "Round trip");
@@ -152,4 +159,5 @@ mod tests {
 // - `MAX_PRECISION`: the most decimal places geometry is rounded to.
 // - `PROJECT_ID_KEY`: the `Document::extra` key through which a save is given its project id.
 // - `REFERENCE_BOARDS_KEY`: the `Document::extra` key of the links to `.etcr` boards.
+// - `EXPORT_KEY`: the `Document::extra` key of the export slices and grid.
 // - `is_native_ext`, `is_native_name`: whether an extension or file name is `.etc`.

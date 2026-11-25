@@ -39,6 +39,7 @@ EXTEMPORECREARE
 |   |   |-- UriReplace.kt
 |   |-- tools/
 |       |-- CanvasTool.kt
+|       |-- DragBox.kt
 |       |-- EngineAnswer.kt
 |       |-- EngineTool.kt
 |       |-- StrokeFinish.kt
@@ -112,12 +113,16 @@ EXTEMPORECREARE
     |   |-- BrushTool.kt
     |   |-- BrushToolSettings.kt
     |-- Crop/
-    |   |-- CanvasCropBox.kt
     |   |-- CropMode.kt
     |   |-- CropTool.kt
     |-- Eraser/
     |   |-- EraserTool.kt
     |   |-- EraserToolSettings.kt
+    |-- Export/
+    |   |-- ExportSlice.kt
+    |   |-- ExportSliceCommands.kt
+    |   |-- ExportSliceWriter.kt
+    |   |-- ExportTool.kt
     |-- Fill/
     |   |-- FillTool.kt
     |   |-- FillToolSettings.kt

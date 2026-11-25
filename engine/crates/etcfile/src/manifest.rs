@@ -75,6 +75,9 @@ pub struct Head<'a> {
     /// Links to separate `.etcr` boards (§7.5): `[{"boardId", "path", "missingPolicy"}]`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reference_boards: Option<serde_json::Value>,
+    /// Export slices and dot grid (§7A): `{"grid", "slices"}`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub export: Option<serde_json::Value>,
 }
 
 /// The identity fields, read first so a wrong or newer file is named before its document is read.
@@ -100,6 +103,9 @@ pub struct Project {
     /// Links to separate `.etcr` boards (§7.5).
     #[serde(default)]
     pub reference_boards: Option<serde_json::Value>,
+    /// Export slices and dot grid (§7A).
+    #[serde(default)]
+    pub export: Option<serde_json::Value>,
     pub document: Document,
 }
 
