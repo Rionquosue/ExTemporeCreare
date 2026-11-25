@@ -26,7 +26,7 @@ fn no_session() -> String {
 }
 
 /// Run `f` on session `handle`, catching panics; answers as JSON.
-fn guarded(handle: i64, f: impl FnOnce(&mut sessions::Bridge) -> Result<Value, String>) -> String {
+pub(crate) fn guarded(handle: i64, f: impl FnOnce(&mut sessions::Bridge) -> Result<Value, String>) -> String {
     let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| sessions::with(handle, f)));
     match run {
         Ok(Some(r)) => answer(r),

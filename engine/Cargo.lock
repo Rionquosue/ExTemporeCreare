@@ -767,6 +767,7 @@ dependencies = [
 name = "etc-bridge"
 version = "0.1.0"
 dependencies = [
+ "etcfile",
  "jni",
  "serde",
  "serde_json",

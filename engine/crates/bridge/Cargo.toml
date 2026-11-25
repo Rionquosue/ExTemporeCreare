@@ -17,6 +17,7 @@ vectorcraft-engine = { workspace = true, features = ["bundled-fonts", "heif"] }
 vectorcraft-tools = { workspace = true }
 vectorcraft-geom = { workspace = true }
 vectorcraft-render = { workspace = true }
+etcfile = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 jni = { workspace = true }

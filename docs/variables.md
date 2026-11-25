@@ -36,3 +36,5 @@ Stored keys, paths, constants and identifiers.
 - View JSON: `zoom`, `outline`, `smartGuides`, `guides`, `snapToGrid`, `pixelPreview`, `showBbox`, `snapToPixel`, `snapToPoint`, `snapToGlyph`, `artboard`.
 - Tool request JSON: `{"type": "dialog"|"panel"|"switchTool"|"status"|"place"|"heldPress", …}`.
 - Render pixels: premultiplied RGBA8, rows top to bottom (Android `ARGB_8888`).
+- Temporary files for open and save: `<cacheDir>/engine-files/` (`open-*.tmp`, `save-<uid>-<n>.tmp`).
+- Save modes the bridge takes: `save`, `saveAs`, `copy`, `template`.

@@ -10,7 +10,7 @@ use jni::JNIEnv;
 use jni::objects::{JByteBuffer, JClass, JString};
 use jni::sys::{jboolean, jdouble, jint, jlong, jstring};
 
-use crate::{calls, sessions};
+use crate::{calls, files, sessions};
 
 /// A Java string as Rust text (empty when it can't be read).
 fn text(env: &mut JNIEnv, s: &JString) -> String {
@@ -81,6 +81,56 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     jtext(&mut env, &out)
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeOpen(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    temp: JString,
+    name: JString,
+    uri: JString,
+) -> jstring {
+    let (temp, name, uri) = (text(&mut env, &temp), text(&mut env, &name), text(&mut env, &uri));
+    let out = files::open(handle, &temp, &name, &uri);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeSave(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    mode: JString,
+    params: JString,
+    temp_dir: JString,
+) -> jstring {
+    let (mode, params, temp_dir) = (text(&mut env, &mode), text(&mut env, &params), text(&mut env, &temp_dir));
+    let out = files::save(handle, &mode, &params, &temp_dir);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeSaveFinish(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    ok: jboolean,
+) -> jstring {
+    let out = files::save_finish(handle, ok != 0);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeValidate(
+    mut env: JNIEnv,
+    _class: JClass,
+    path: JString,
+) -> jstring {
+    let path = text(&mut env, &path);
+    let out = files::validate(&path);
+    jtext(&mut env, &out)
+}
+
 /// Render into `out`, a direct buffer of at least `width × height × 4` bytes → whether it was
 /// filled.
 #[unsafe(no_mangle)]
@@ -119,3 +169,7 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativePointer`: feed a pointer event → JSON answer with the tool's UI requests.
 // - `..._nativeSelectTool`: make a tool active → JSON answer.
 // - `..._nativeRender`: render a region of the active document into a direct byte buffer.
+// - `..._nativeOpen`: open a copied file with its URI as the path → JSON answer.
+// - `..._nativeSave`: write a save into temporary files and keep it pending → JSON answer with the files.
+// - `..._nativeSaveFinish`: complete or drop the pending save → JSON answer.
+// - `..._nativeValidate`: whether a file is a valid `.etc` → JSON answer.

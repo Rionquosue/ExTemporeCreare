@@ -7,9 +7,10 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use vectorcraft_engine::Session;
 
-/// One open engine session.
+/// One open engine session, with the save it is waiting to finish ([`crate::files::save`]).
 pub struct Bridge {
     pub session: Session,
+    pub pending: Option<crate::files::PendingSave>,
 }
 
 /// The next handle to give out (0 is never a valid handle).
@@ -23,7 +24,7 @@ fn table() -> &'static Mutex<HashMap<i64, Arc<Mutex<Bridge>>>> {
 /// Open a new session; returns its handle.
 pub fn create() -> i64 {
     let handle = NEXT.fetch_add(1, Ordering::Relaxed);
-    let bridge = Bridge { session: Session::new() };
+    let bridge = Bridge { session: Session::new(), pending: None };
     table().lock().unwrap_or_else(|e| e.into_inner()).insert(handle, Arc::new(Mutex::new(bridge)));
     handle
 }
@@ -41,7 +42,7 @@ pub fn with<T>(handle: i64, f: impl FnOnce(&mut Bridge) -> T) -> Option<T> {
 }
 
 // GLOSSARY
-// - `Bridge`: one open engine session.
+// - `Bridge`: one open engine session and its pending save.
 // - `NEXT`: the next handle to give out.
 // - `table`: the open sessions by handle.
 // - `create`: open a session and return its handle.

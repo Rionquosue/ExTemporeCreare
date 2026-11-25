@@ -5,6 +5,7 @@
 
 pub mod calls;
 mod convert;
+pub mod files;
 mod jni_exports;
 mod sessions;
 
@@ -13,6 +14,7 @@ pub use sessions::{create, destroy};
 // GLOSSARY
 // - `calls`: the operations the UI asks of the engine, answered as JSON.
 // - `convert`: JSON conversions of view state and tool requests.
+// - `files`: opening and saving through temporary files for content URIs.
 // - `jni_exports`: the JNI functions of `EngineBridge`.
 // - `sessions`: open engine sessions by handle.
 // - `create`, `destroy`: open and close a session (re-exported from `sessions`).

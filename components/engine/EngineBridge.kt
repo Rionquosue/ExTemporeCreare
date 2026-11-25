@@ -53,6 +53,25 @@ class EngineBridge : AutoCloseable {
         return nativeRender(live(), x, y, width, height, scale, out)
     }
 
+    /**
+     * Open the file copied to [tempPath] (its display name [name] gives the title and type) as a
+     * document whose path is [uri] → the JSON answer. [EngineFiles] does the copying.
+     */
+    fun openCopied(tempPath: String, name: String, uri: String): String =
+        nativeOpen(live(), tempPath, name, uri)
+
+    /**
+     * Write a save of the active document into temporary files in [tempDir] and keep it pending →
+     * the JSON answer, whose `ok.files` lists `{"target", "temp"}` for each file. [mode] is `save`,
+     * `saveAs`, `copy` or `template`; [paramsJson] holds `path` (the target URI) and the save options.
+     * End it with [saveFinish].
+     */
+    fun saveToTemp(mode: String, paramsJson: String, tempDir: String): String =
+        nativeSave(live(), mode, paramsJson, tempDir)
+
+    /** End the pending save: [ok] when every file reached its URI → the JSON answer. */
+    fun saveFinish(ok: Boolean): String = nativeSaveFinish(live(), ok)
+
     /** Close the engine session. Calling it again does nothing. */
     override fun close() {
         if (handle != 0L) {
@@ -70,6 +89,9 @@ class EngineBridge : AutoCloseable {
         fun renderBuffer(width: Int, height: Int): ByteBuffer =
             ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder())
 
+        /** Whether the file at [path] is a valid `.etc` project → `{"ok": true}` or the error. */
+        fun validate(path: String): String = nativeValidate(path)
+
         /** Set the folder the built-in preset libraries are read from (once, at start). */
         fun setPresetsRoot(path: String) = nativeSetPresetsRoot(path)
 
@@ -79,6 +101,10 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeExecute(handle: Long, command: String, params: String): String
         @JvmStatic private external fun nativePointer(handle: Long, event: String, view: String): String
         @JvmStatic private external fun nativeSelectTool(handle: Long, id: String, view: String): String
+        @JvmStatic private external fun nativeOpen(handle: Long, temp: String, name: String, uri: String): String
+        @JvmStatic private external fun nativeSave(handle: Long, mode: String, params: String, tempDir: String): String
+        @JvmStatic private external fun nativeSaveFinish(handle: Long, ok: Boolean): String
+        @JvmStatic private external fun nativeValidate(path: String): String
         @JvmStatic private external fun nativeRender(
             handle: Long,
             x: Double,
@@ -100,7 +126,11 @@ class EngineBridge : AutoCloseable {
 // - pointer(eventJson, viewJson): feed a pointer event to the active tool → JSON answer.
 // - selectTool(id, viewJson): make a tool active → JSON answer.
 // - render(x, y, width, height, scale, out): draw part of the active document into a direct buffer.
+// - openCopied(tempPath, name, uri): open a file copied to a temporary file, with its URI as path.
+// - saveToTemp(mode, paramsJson, tempDir): write a save into temporary files and keep it pending.
+// - saveFinish(ok): complete or drop the pending save.
+// - validate(path): whether a file is a valid .etc project.
 // - close(): close the engine session.
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
-// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
+// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
