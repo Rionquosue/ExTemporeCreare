@@ -767,6 +767,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "etcfile"
+version = "0.1.0"
+dependencies = [
+ "crc32fast",
+ "flate2",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "uuid",
+ "vectorcraft-brush",
+ "vectorcraft-doc",
+ "vectorcraft-geom 0.24.1",
+]
+
+[[package]]
 name = "euclid"
 version = "0.22.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2609,6 +2625,7 @@ version = "1.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cc1186384beb7dd8eedea376413fd654937285ea6c9cfbb928dc3043ea4b606"
 dependencies = [
+ "getrandom",
  "js-sys",
  "wasm-bindgen",
 ]

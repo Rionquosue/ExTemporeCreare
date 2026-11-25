@@ -61,6 +61,7 @@ vectorcraft-render = { path = "crates/render" }
 vectorcraft-svg = { path = "crates/svg" }
 vectorcraft-pdf = { path = "crates/pdf" }
 vectorcraft-format = { path = "crates/format" }
+etcfile = { path = "crates/etcfile" }
 vectorcraft-tools = { path = "crates/tools" }
 # Without its default `bundled-fonts`, as vectorcraft-text: each crate that wants the fonts asks for
 # them, so an embedder can build without them (docs/development.md › Leaving out the bundled fonts).
@@ -83,6 +84,8 @@ log = "0.4"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 proptest = "1"
 crc32fast = "1.5"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
 # tests: a TCP port bound without listening (connections to it are refused)
 socket2 = "0.6"
 # Sandboxed WebAssembly plug-ins: a pure-Rust interpreter (MIT OR Apache-2.0) that builds for wasm32
