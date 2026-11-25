@@ -1,0 +1,268 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Sky Gradients",
+  "swatches": [
+    {
+      "name": "Dawn",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.3019608,
+                "g": 0.3137255,
+                "b": 0.5058824
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.8666667,
+                "g": 0.5176471,
+                "b": 0.6862745
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.84313726,
+                "b": 0.627451
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Noon",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.16470589,
+                "g": 0.45882353,
+                "b": 0.7294118
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.4862745,
+                "g": 0.75686276,
+                "b": 0.9137255
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.8509804,
+                "g": 0.95686275,
+                "b": 0.99215686
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Sunset",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.25882354,
+                "g": 0.18039216,
+                "b": 0.38431373
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.8666667,
+                "g": 0.3019608,
+                "b": 0.34117648
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.7529412,
+                "b": 0.45882353
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Dusk",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.09803922,
+                "g": 0.11372549,
+                "b": 0.25882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.29803923,
+                "b": 0.5294118
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.8352941,
+                "g": 0.5254902,
+                "b": 0.4745098
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Night",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.019607844,
+                "g": 0.03529412,
+                "b": 0.10980392
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.10980392,
+                "g": 0.17254902,
+                "b": 0.31764707
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Overcast",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.49411765,
+                "g": 0.53333336,
+                "b": 0.5568628
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.8392157
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    }
+  ],
+  "groups": []
+}

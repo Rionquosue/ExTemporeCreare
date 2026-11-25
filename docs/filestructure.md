@@ -80,4 +80,12 @@ EXTEMPORECREARE
 |   |-- readme.md
 |-- tools/
     |-- readme.md
+    |-- Libraries/
+        |-- presets/
+            |-- brushes/
+            |-- gradients/
+            |-- graphic-styles/
+            |-- patterns/
+            |-- swatches/
+            |-- symbols/
 ```

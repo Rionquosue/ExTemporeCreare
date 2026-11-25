@@ -1,0 +1,354 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Pastels",
+  "swatches": [],
+  "groups": [
+    {
+      "name": "Pastel",
+      "swatches": [
+        {
+          "name": "Pastel Red",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 1.0,
+              "g": 0.8392157,
+              "b": 0.8235294
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Orange",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 1.0,
+              "g": 0.8509804,
+              "b": 0.7490196
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Amber",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.96862745,
+              "g": 0.8666667,
+              "b": 0.7254902
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Yellow",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9137255,
+              "g": 0.8901961,
+              "b": 0.7254902
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Lime",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8509804,
+              "g": 0.9098039,
+              "b": 0.75686276
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Green",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.79607844,
+              "g": 0.9254902,
+              "b": 0.79607844
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Teal",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7294118,
+              "g": 0.93333334,
+              "b": 0.8901961
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Cyan",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7176471,
+              "g": 0.92941177,
+              "b": 0.9529412
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Azure",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.75686276,
+              "g": 0.9098039,
+              "b": 1.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Blue",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.827451,
+              "g": 0.8862745,
+              "b": 1.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Violet",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8901961,
+              "g": 0.8627451,
+              "b": 1.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pastel Magenta",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.96862745,
+              "g": 0.8352941,
+              "b": 0.9529412
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Soft",
+      "swatches": [
+        {
+          "name": "Soft Red",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.99215686,
+              "g": 0.70980394,
+              "b": 0.6862745
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Orange",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.96862745,
+              "g": 0.7372549,
+              "b": 0.58431375
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Amber",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.92156863,
+              "g": 0.7647059,
+              "b": 0.54901963
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Yellow",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.84313726,
+              "g": 0.8,
+              "b": 0.54509807
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Lime",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.74509805,
+              "g": 0.8352941,
+              "b": 0.59607846
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Green",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.65882355,
+              "g": 0.85490197,
+              "b": 0.6627451
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Teal",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5411765,
+              "g": 0.8666667,
+              "b": 0.8039216
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Cyan",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5176471,
+              "g": 0.85882354,
+              "b": 0.8980392
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Azure",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5764706,
+              "g": 0.83137256,
+              "b": 0.98039216
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Blue",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.69803923,
+              "g": 0.7921569,
+              "b": 1.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Violet",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.80784315,
+              "g": 0.7529412,
+              "b": 0.99215686
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Soft Magenta",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.92156863,
+              "g": 0.7176471,
+              "b": 0.8980392
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    }
+  ]
+}

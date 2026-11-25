@@ -1,0 +1,230 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Status Effects",
+  "styles": [
+    {
+      "name": "Poison Tint",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.18039216,
+                "g": 0.8,
+                "b": 0.44313726
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 6.0,
+              "color": "#58d68d",
+              "mode": "normal",
+              "opacity": 80.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Freeze Edge",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.68235296,
+                "g": 0.8392157,
+                "b": 0.94509804
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.3647059,
+                "g": 0.6784314,
+                "b": 0.8862745
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.innerGlow",
+            "params": {
+              "blur": 5.0,
+              "color": "#d6eaf8",
+              "mode": "screen",
+              "opacity": 70.0,
+              "source": "edge"
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Burn Aura",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9019608,
+                "g": 0.49411765,
+                "b": 0.13333334
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 8.0,
+              "color": "#f39c12",
+              "mode": "normal",
+              "opacity": 85.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Stun Pulse",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.95686275,
+                "g": 0.8156863,
+                "b": 0.24705882
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 7.0,
+              "color": "#f7dc6f",
+              "mode": "normal",
+              "opacity": 75.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Stealth Fade",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.49803922,
+                "g": 0.54901963,
+                "b": 0.5529412
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.17254902,
+                "g": 0.24313726,
+                "b": 0.3137255
+              }
+            },
+            "width": 1.0
+          }
+        ]
+      },
+      "opacity": 0.45,
+      "unit_box": true
+    },
+    {
+      "name": "Shield Buff",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.52156866,
+                "g": 0.75686276,
+                "b": 0.9137255
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.15686275,
+                "g": 0.45490196,
+                "b": 0.6509804
+              }
+            },
+            "width": 2.0,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 5.0,
+              "color": "#5dade2",
+              "mode": "normal",
+              "opacity": 70.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

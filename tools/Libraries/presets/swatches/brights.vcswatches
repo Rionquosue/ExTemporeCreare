@@ -1,0 +1,354 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Brights",
+  "swatches": [],
+  "groups": [
+    {
+      "name": "Vivid",
+      "swatches": [
+        {
+          "name": "Vivid Red",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 1.0,
+              "g": 0.44313726,
+              "b": 0.41960785
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Orange",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9647059,
+              "g": 0.5019608,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Amber",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.85882354,
+              "g": 0.5803922,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Yellow",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.73333335,
+              "g": 0.64705884,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Lime",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.54509807,
+              "g": 0.7176471,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Green",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.78039217,
+              "b": 0.21568628
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Teal",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.7490196,
+              "b": 0.65882355
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Cyan",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.7294118,
+              "b": 0.7882353
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Azure",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.69803923,
+              "b": 0.9647059
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Blue",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.47058824,
+              "g": 0.6313726,
+              "b": 1.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Violet",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6784314,
+              "g": 0.5529412,
+              "b": 1.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Vivid Magenta",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 1.0,
+              "g": 0.25490198,
+              "b": 0.96862745
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Deep",
+      "swatches": [
+        {
+          "name": "Deep Red",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7764706,
+              "g": 0.0,
+              "b": 0.12156863
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Orange",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.62352943,
+              "g": 0.31764707,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Amber",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5529412,
+              "g": 0.36862746,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Yellow",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.47058824,
+              "g": 0.4117647,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Lime",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.34509805,
+              "g": 0.45882353,
+              "b": 0.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Green",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.5019608,
+              "b": 0.1254902
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Teal",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.47843137,
+              "b": 0.41960785
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Cyan",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.46666667,
+              "b": 0.5058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Azure",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.44705883,
+              "b": 0.62352943
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Blue",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.101960786,
+              "g": 0.29411766,
+              "b": 1.0
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Violet",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.49411765,
+              "g": 0.0,
+              "b": 0.9647059
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Deep Magenta",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6745098,
+              "g": 0.0,
+              "b": 0.654902
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,343 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Textures",
+  "styles": [
+    {
+      "name": "Fine Grain",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.7882353,
+                "g": 0.6784314,
+                "b": 0.654902
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.2901961,
+                "g": 0.30588236,
+                "b": 0.4117647
+              }
+            },
+            "width": 1.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "texture.grain",
+            "params": {
+              "contrast": 55.0,
+              "grainType": "regular",
+              "intensity": 35.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Canvas Weave",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9137255,
+                "g": 0.84705883,
+                "b": 0.6509804
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "texture.texturizer",
+            "params": {
+              "invert": false,
+              "lightDirection": "topLeft",
+              "relief": 6.0,
+              "scaling": 100.0,
+              "texture": "canvas"
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Burlap Sack",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.7372549,
+                "g": 0.5411765,
+                "b": 0.37254903
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.27058825,
+                "b": 0.09411765
+              }
+            },
+            "width": 1.5
+          }
+        ],
+        "effects": [
+          {
+            "id": "texture.texturizer",
+            "params": {
+              "invert": false,
+              "lightDirection": "top",
+              "relief": 8.0,
+              "scaling": 120.0,
+              "texture": "burlap"
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Cracked Glaze",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.5803922,
+                "g": 0.8235294,
+                "b": 0.7411765
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.0,
+                "g": 0.37254903,
+                "b": 0.4509804
+              }
+            },
+            "width": 1.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "texture.craquelure",
+            "params": {
+              "crackBrightness": 8.0,
+              "crackDepth": 5.0,
+              "crackSpacing": 12.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Mosaic Floor",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.039215688,
+                "g": 0.5764706,
+                "b": 0.5882353
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "texture.mosaicTiles",
+            "params": {
+              "groutWidth": 3.0,
+              "lightenGrout": 8.0,
+              "tileSize": 10.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Quilted Squares",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.93333334,
+                "g": 0.60784316,
+                "b": 0.0
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "texture.patchwork",
+            "params": {
+              "relief": 10.0,
+              "squareSize": 5.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Leaded Glass",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "gradient",
+              "gradient": {
+                "kind": "Linear",
+                "stops": [
+                  {
+                    "offset": 0.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 0.68235296,
+                      "g": 0.1254902,
+                      "b": 0.07058824
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "offset": 0.5,
+                    "color": {
+                      "model": "rgb",
+                      "r": 0.93333334,
+                      "g": 0.60784316,
+                      "b": 0.0
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "offset": 1.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 0.0,
+                      "g": 0.37254903,
+                      "b": 0.4509804
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  }
+                ]
+              },
+              "angle": -45.0
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "texture.stainedGlass",
+            "params": {
+              "borderThickness": 4.0,
+              "cellSize": 8.0,
+              "lightIntensity": 3.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Damp Paper",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.28235295,
+                "g": 0.58431375,
+                "b": 0.9372549
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.24705882,
+                "g": 0.21568628,
+                "b": 0.7882353
+              }
+            },
+            "width": 1.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "sketch.waterPaper",
+            "params": {
+              "brightness": 55.0,
+              "contrast": 60.0,
+              "fiberLength": 12.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

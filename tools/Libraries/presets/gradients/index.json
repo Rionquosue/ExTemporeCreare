@@ -1,0 +1,39 @@
+{
+  "libraries": [
+    {
+      "file": "spectrum-gradients.vcswatches",
+      "id": "spectrum-gradients",
+      "name": "Spectrum Gradients"
+    },
+    {
+      "file": "sky-gradients.vcswatches",
+      "id": "sky-gradients",
+      "name": "Sky Gradients"
+    },
+    {
+      "file": "neutral-gradients.vcswatches",
+      "id": "neutral-gradients",
+      "name": "Neutral Gradients"
+    },
+    {
+      "file": "organic-fades.vcswatches",
+      "id": "organic-fades",
+      "name": "Organic Fades"
+    },
+    {
+      "file": "holographic.vcswatches",
+      "id": "holographic",
+      "name": "Holographic"
+    },
+    {
+      "file": "duotone-gradients.vcswatches",
+      "id": "duotone-gradients",
+      "name": "Duotone Gradients"
+    },
+    {
+      "file": "radial-glows.vcswatches",
+      "id": "radial-glows",
+      "name": "Radial Glows"
+    }
+  ]
+}

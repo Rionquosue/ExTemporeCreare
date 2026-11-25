@@ -1,0 +1,281 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Neutral Gradients",
+  "swatches": [
+    {
+      "name": "White to Black",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "gray",
+                "k": 0.0
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "gray",
+                "k": 1.0
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Light Grays",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "gray",
+                "k": 0.0
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "gray",
+                "k": 0.4
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Dark Grays",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "gray",
+                "k": 0.6
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "gray",
+                "k": 1.0
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Warm Grays",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.95686275,
+                "g": 0.92941177,
+                "b": 0.9019608
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.19607843,
+                "g": 0.1764706,
+                "b": 0.15294118
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Cool Grays",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.90588236,
+                "g": 0.9411765,
+                "b": 0.972549
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.15686275,
+                "g": 0.18431373,
+                "b": 0.20784314
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Fade to Transparent",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "gray",
+                "k": 1.0
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "gray",
+                "k": 1.0
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "White Fade",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "gray",
+                "k": 0.0
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "gray",
+                "k": 0.0
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Vignette",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "gray",
+                "k": 1.0
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.6,
+              "color": {
+                "model": "gray",
+                "k": 1.0
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "gray",
+                "k": 1.0
+              },
+              "opacity": 0.7,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    }
+  ],
+  "groups": []
+}

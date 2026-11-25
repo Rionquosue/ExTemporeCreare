@@ -1,0 +1,698 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Metallic Gradients",
+  "swatches": [
+    {
+      "name": "Gold",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.9137255,
+                "b": 0.73333335
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.85882354,
+                "g": 0.69411767,
+                "b": 0.33333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.6039216,
+                "g": 0.4509804,
+                "b": 0.0
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.8509804,
+                "b": 0.53333336
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.78039217,
+                "g": 0.61960787,
+                "b": 0.25490198
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Silver",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.9372549,
+                "g": 0.9490196,
+                "b": 0.9607843
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.73333335,
+                "g": 0.74509805,
+                "b": 0.75686276
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.49411765,
+                "g": 0.5019608,
+                "b": 0.5137255
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.8862745,
+                "g": 0.8980392,
+                "b": 0.9098039
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.65882355,
+                "g": 0.67058825,
+                "b": 0.68235296
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Bronze",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.8784314,
+                "g": 0.6745098,
+                "b": 0.4745098
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.6745098,
+                "g": 0.48235294,
+                "b": 0.28627452
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.43137255,
+                "g": 0.25490198,
+                "b": 0.03137255
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.8235294,
+                "g": 0.62352943,
+                "b": 0.42745098
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.6,
+                "g": 0.4117647,
+                "b": 0.21568628
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Copper",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.99607843,
+                "g": 0.6431373,
+                "b": 0.4862745
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.78039217,
+                "g": 0.4509804,
+                "b": 0.29411766
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.5254902,
+                "g": 0.21568628,
+                "b": 0.03529412
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.9411765,
+                "g": 0.59607846,
+                "b": 0.43529412
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.7019608,
+                "g": 0.38039216,
+                "b": 0.22352941
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Brass",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.9764706,
+                "g": 0.8980392,
+                "b": 0.5882353
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.77254903,
+                "g": 0.69411767,
+                "b": 0.39215687
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.5294118,
+                "g": 0.4509804,
+                "b": 0.13725491
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.9254902,
+                "g": 0.84313726,
+                "b": 0.5411765
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.69803923,
+                "g": 0.61960787,
+                "b": 0.31764707
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Chrome",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.8156863,
+                "g": 0.8509804,
+                "b": 0.87058824
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.6156863,
+                "g": 0.6509804,
+                "b": 0.67058825
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.38431373,
+                "g": 0.41568628,
+                "b": 0.43529412
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.7647059,
+                "g": 0.8,
+                "b": 0.81960785
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.54509807,
+                "g": 0.5803922,
+                "b": 0.59607846
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Rose Gold",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.85882354,
+                "b": 0.8352941
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.85490197,
+                "g": 0.6313726,
+                "b": 0.5921569
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.6,
+                "g": 0.39607844,
+                "b": 0.36078432
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.7882353,
+                "b": 0.7490196
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.7764706,
+                "g": 0.5568628,
+                "b": 0.52156866
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Gunmetal",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.49019608,
+                "g": 0.5176471,
+                "b": 0.54901963
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.30980393,
+                "g": 0.3372549,
+                "b": 0.36862746
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.10980392,
+                "g": 0.13333334,
+                "b": 0.16078432
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.44313726,
+                "g": 0.47058824,
+                "b": 0.5019608
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.24705882,
+                "g": 0.27450982,
+                "b": 0.3019608
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Platinum",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.98039216,
+                "g": 0.972549,
+                "b": 0.9490196
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.827451,
+                "g": 0.81960785,
+                "b": 0.79607844
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.5803922,
+                "g": 0.57254905,
+                "b": 0.5529412
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.98039216,
+                "g": 0.972549,
+                "b": 0.9490196
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.7529412,
+                "g": 0.74509805,
+                "b": 0.72156864
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Pewter",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.6666667,
+                "g": 0.7019608,
+                "b": 0.7019608
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.3,
+              "color": {
+                "model": "rgb",
+                "r": 0.47843137,
+                "g": 0.50980395,
+                "b": 0.50980395
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.5,
+              "color": {
+                "model": "rgb",
+                "r": 0.25882354,
+                "g": 0.28627452,
+                "b": 0.2901961
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 0.72,
+              "color": {
+                "model": "rgb",
+                "r": 0.61960787,
+                "g": 0.654902,
+                "b": 0.654902
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.40784314,
+                "g": 0.4392157,
+                "b": 0.44313726
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ]
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    }
+  ],
+  "groups": []
+}

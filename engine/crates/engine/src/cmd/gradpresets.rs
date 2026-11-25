@@ -9,7 +9,8 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_color::libraries::{GRADIENT_LIBRARIES, SWATCH_LIBRARIES, builtin_library};
+use super::swatchlib::{builtin_library, builtins};
+use crate::presets::{Entry, Kind};
 use vectorcraft_color::{Gradient, GradientPaint, Paint};
 use vectorcraft_tools::params::{gradient_params, stops_json};
 
@@ -70,24 +71,31 @@ pub struct GradientPreset {
 pub struct GradientPresetEntry {
     pub name: String,
     /// The built-in library (theme) it comes from; `None` for a saved preset.
-    pub library: Option<&'static str>,
+    pub library: Option<String>,
     pub gradient: Gradient,
 }
 
 /// The built-in presets: every built-in library's gradient swatches, the gradient libraries first.
 fn builtin_presets() -> impl Iterator<Item = GradientPresetEntry> {
-    GRADIENT_LIBRARIES.iter().chain(SWATCH_LIBRARIES).flat_map(|b| {
-        let lib = builtin_library(b.id);
+    gradients_first().into_iter().flat_map(|b| {
+        let lib = builtin_library(&b.id);
         let gradients: Vec<GradientPresetEntry> = lib
             .iter()
             .flat_map(|lib| lib.iter())
             .filter_map(|w| match &w.paint {
-                Paint::Gradient(g) => Some(GradientPresetEntry { name: w.name.clone(), library: Some(b.name), gradient: g.gradient.clone() }),
+                Paint::Gradient(g) => Some(GradientPresetEntry { name: w.name.clone(), library: Some(b.name.clone()), gradient: g.gradient.clone() }),
                 _ => None,
             })
             .collect();
         gradients
     })
+}
+
+/// The built-in swatch libraries, the gradient libraries first.
+fn gradients_first() -> Vec<Entry> {
+    let all = builtins();
+    let of = |kind: Kind| all.iter().filter(move |(_, k, _)| *k == kind).map(|(_, _, e)| e.clone());
+    of(Kind::Gradients).chain(of(Kind::Swatches)).collect()
 }
 
 /// Do `a` and `b` have the same color ramp (type, method, dither, spread as it paints and stops),
@@ -167,8 +175,8 @@ impl Session {
     /// The name of the preset `g` is (its colour ramp, swatch links aside): a built-in one first,
     /// then a saved one. Cheap enough for every frame: nothing is copied but the name found.
     pub fn gradient_preset_name(&self, g: &Gradient) -> Option<String> {
-        let builtin = GRADIENT_LIBRARIES.iter().chain(SWATCH_LIBRARIES).find_map(|b| {
-            let lib = builtin_library(b.id)?;
+        let builtin = gradients_first().into_iter().find_map(|b| {
+            let lib = builtin_library(&b.id)?;
             lib.iter().find(|w| matches!(&w.paint, Paint::Gradient(x) if same_ramp(&x.gradient, g))).map(|w| w.name.clone())
         });
         builtin.or_else(|| self.prefs.gradient_presets.iter().find(|p| same_ramp(&p.gradient, g)).map(|p| p.name.clone()))

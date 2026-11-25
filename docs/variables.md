@@ -19,3 +19,9 @@ Stored keys, paths, constants and identifiers.
 - `PRETTY_MAX_OBJECTS` = 2000, `PRETTY_MAX_BYTES` = 1 MiB: limits for an indented `project.json`.
 - Native save options (`document.save`): `precision`, `separateArtboards`, `range`, `includeLinked`, `embedProfiles`.
 - Engine format id of `.etc`: `etc` (`SAVE_FORMATS`, `TEMPLATE_FORMATS`).
+
+## Preset libraries (engine/crates/engine/src/presets.rs)
+
+- `tools/Libraries/presets/`: the presets root in the repository; the host sets the root at run time (`presets::set_root`), on Android the folder the app copies its bundled presets into.
+- Kind folders: `brushes/` (`.etc`), `symbols/` (`.etc`), `patterns/` (`.etc`), `swatches/` (`.vcswatches`), `gradients/` (`.vcswatches`), `graphic-styles/` (`.vcstyles`).
+- `index.json` in each kind folder: `{"libraries": [{"id", "name", "file"}]}`, in menu order. `id` is the library id the commands take; `file` is a plain file name in the same folder.

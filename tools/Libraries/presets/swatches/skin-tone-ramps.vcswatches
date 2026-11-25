@@ -1,0 +1,476 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Skin Tone Ramps",
+  "swatches": [],
+  "groups": [
+    {
+      "name": "Rosy",
+      "swatches": [
+        {
+          "name": "Rosy 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.99215686,
+              "g": 0.88235295,
+              "b": 0.8509804
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Rosy 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8980392,
+              "g": 0.7607843,
+              "b": 0.7294118
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Rosy 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8,
+              "g": 0.64705884,
+              "b": 0.6156863
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Rosy 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7019608,
+              "g": 0.5372549,
+              "b": 0.5058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Rosy 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6039216,
+              "g": 0.43137255,
+              "b": 0.4
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Rosy 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5058824,
+              "g": 0.32941177,
+              "b": 0.30588236
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Rosy 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.40392157,
+              "g": 0.23529412,
+              "b": 0.21176471
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Rosy 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.30980393,
+              "g": 0.14509805,
+              "b": 0.12941177
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Neutral",
+      "swatches": [
+        {
+          "name": "Neutral 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9764706,
+              "g": 0.8901961,
+              "b": 0.83137256
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Neutral 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8784314,
+              "g": 0.77254903,
+              "b": 0.7058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Neutral 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.78039217,
+              "g": 0.6627451,
+              "b": 0.5882353
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Neutral 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.68235296,
+              "g": 0.5529412,
+              "b": 0.4745098
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Neutral 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.58431375,
+              "g": 0.44705883,
+              "b": 0.36862746
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Neutral 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.4862745,
+              "g": 0.34509805,
+              "b": 0.27058825
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Neutral 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.39215687,
+              "g": 0.2509804,
+              "b": 0.1764706
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Neutral 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.29411766,
+              "g": 0.15686275,
+              "b": 0.09019608
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Golden",
+      "swatches": [
+        {
+          "name": "Golden 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.972549,
+              "g": 0.89411765,
+              "b": 0.8117647
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Golden 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8745098,
+              "g": 0.78039217,
+              "b": 0.6784314
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Golden 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7764706,
+              "g": 0.6666667,
+              "b": 0.5568628
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Golden 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6784314,
+              "g": 0.5568628,
+              "b": 0.4392157
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Golden 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5803922,
+              "g": 0.45490196,
+              "b": 0.32941177
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Golden 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.48235294,
+              "g": 0.3529412,
+              "b": 0.22352941
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Golden 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3882353,
+              "g": 0.25490198,
+              "b": 0.1254902
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Golden 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.29411766,
+              "g": 0.16470589,
+              "b": 0.023529412
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Olive",
+      "swatches": [
+        {
+          "name": "Olive 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.90588236,
+              "b": 0.83137256
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Olive 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8392157,
+              "g": 0.7921569,
+              "b": 0.7058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Olive 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7372549,
+              "g": 0.68235296,
+              "b": 0.58431375
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Olive 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.63529414,
+              "g": 0.5764706,
+              "b": 0.47058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Olive 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5372549,
+              "g": 0.47058824,
+              "b": 0.36078432
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Olive 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.44313726,
+              "g": 0.37254903,
+              "b": 0.25882354
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Olive 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.34901962,
+              "g": 0.27450982,
+              "b": 0.16078432
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Olive 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.25490198,
+              "g": 0.18431373,
+              "b": 0.07058824
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    }
+  ]
+}

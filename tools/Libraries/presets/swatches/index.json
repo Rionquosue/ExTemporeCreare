@@ -1,0 +1,49 @@
+{
+  "libraries": [
+    {
+      "file": "web-safe-216.vcswatches",
+      "id": "web-safe-216",
+      "name": "Web Safe 216"
+    },
+    {
+      "file": "grays-neutrals.vcswatches",
+      "id": "grays-neutrals",
+      "name": "Grays and Neutrals"
+    },
+    {
+      "file": "earth-tones.vcswatches",
+      "id": "earth-tones",
+      "name": "Earth Tones"
+    },
+    {
+      "file": "skin-tone-ramps.vcswatches",
+      "id": "skin-tone-ramps",
+      "name": "Skin Tone Ramps"
+    },
+    {
+      "file": "pastels.vcswatches",
+      "id": "pastels",
+      "name": "Pastels"
+    },
+    {
+      "file": "brights.vcswatches",
+      "id": "brights",
+      "name": "Brights"
+    },
+    {
+      "file": "metallic-gradients.vcswatches",
+      "id": "metallic-gradients",
+      "name": "Metallic Gradients"
+    },
+    {
+      "file": "perceptual-scales.vcswatches",
+      "id": "perceptual-scales",
+      "name": "Perceptual Scales"
+    },
+    {
+      "file": "harmony-sets.vcswatches",
+      "id": "harmony-sets",
+      "name": "Harmony Sets"
+    }
+  ]
+}

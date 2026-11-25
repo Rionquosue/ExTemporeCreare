@@ -1,0 +1,3032 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Web Safe 216",
+  "swatches": [
+    {
+      "name": "#000000",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#000033",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#000066",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#000099",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0000CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0000FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#003300",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.2,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#003333",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.2,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#003366",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.2,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#003399",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.2,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0033CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.2,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0033FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.2,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#006600",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.4,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#006633",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.4,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#006666",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.4,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#006699",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.4,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0066CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.4,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0066FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.4,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#009900",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.6,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#009933",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.6,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#009966",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.6,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#009999",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.6,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0099CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.6,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#0099FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.6,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00CC00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.8,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00CC33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.8,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00CC66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.8,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00CC99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.8,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00CCCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.8,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00CCFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 0.8,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00FF00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 1.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00FF33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 1.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00FF66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 1.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00FF99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 1.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00FFCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 1.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#00FFFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.0,
+          "g": 1.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#330000",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#330033",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#330066",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#330099",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3300CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3300FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#333300",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.2,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#333333",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.2,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#333366",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.2,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#333399",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.2,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3333CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.2,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3333FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.2,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#336600",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.4,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#336633",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.4,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#336666",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.4,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#336699",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.4,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3366CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.4,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3366FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.4,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#339900",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.6,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#339933",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.6,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#339966",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.6,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#339999",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.6,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3399CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.6,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#3399FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.6,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33CC00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.8,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33CC33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.8,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33CC66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.8,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33CC99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.8,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33CCCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.8,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33CCFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 0.8,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33FF00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 1.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33FF33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 1.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33FF66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 1.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33FF99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 1.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33FFCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 1.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#33FFFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.2,
+          "g": 1.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#660000",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#660033",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#660066",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#660099",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6600CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6600FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#663300",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.2,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#663333",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.2,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#663366",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.2,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#663399",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.2,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6633CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.2,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6633FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.2,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#666600",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.4,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#666633",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.4,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#666666",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.4,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#666699",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.4,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6666CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.4,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6666FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.4,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#669900",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.6,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#669933",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.6,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#669966",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.6,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#669999",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.6,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6699CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.6,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#6699FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.6,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66CC00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.8,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66CC33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.8,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66CC66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.8,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66CC99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.8,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66CCCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.8,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66CCFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 0.8,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66FF00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 1.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66FF33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 1.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66FF66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 1.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66FF99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 1.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66FFCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 1.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#66FFFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.4,
+          "g": 1.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#990000",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#990033",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#990066",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#990099",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9900CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9900FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#993300",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.2,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#993333",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.2,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#993366",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.2,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#993399",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.2,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9933CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.2,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9933FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.2,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#996600",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.4,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#996633",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.4,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#996666",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.4,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#996699",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.4,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9966CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.4,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9966FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.4,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#999900",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.6,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#999933",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.6,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#999966",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.6,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#999999",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.6,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9999CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.6,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#9999FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.6,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99CC00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.8,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99CC33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.8,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99CC66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.8,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99CC99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.8,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99CCCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.8,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99CCFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 0.8,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99FF00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 1.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99FF33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 1.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99FF66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 1.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99FF99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 1.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99FFCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 1.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#99FFFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.6,
+          "g": 1.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC0000",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC0033",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC0066",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC0099",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC00CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC00FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC3300",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.2,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC3333",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.2,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC3366",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.2,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC3399",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.2,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC33CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.2,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC33FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.2,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC6600",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.4,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC6633",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.4,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC6666",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.4,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC6699",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.4,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC66CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.4,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC66FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.4,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC9900",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.6,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC9933",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.6,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC9966",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.6,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC9999",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.6,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC99CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.6,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CC99FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.6,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCCC00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.8,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCCC33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.8,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCCC66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.8,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCCC99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.8,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCCCCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.8,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCCCFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 0.8,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCFF00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 1.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCFF33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 1.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCFF66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 1.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCFF99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 1.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCFFCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 1.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#CCFFFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 0.8,
+          "g": 1.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF0000",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF0033",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF0066",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF0099",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF00CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF00FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF3300",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.2,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF3333",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.2,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF3366",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.2,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF3399",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.2,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF33CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.2,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF33FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.2,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF6600",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.4,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF6633",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.4,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF6666",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.4,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF6699",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.4,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF66CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.4,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF66FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.4,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF9900",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.6,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF9933",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.6,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF9966",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.6,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF9999",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.6,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF99CC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.6,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FF99FF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.6,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFCC00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.8,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFCC33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.8,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFCC66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.8,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFCC99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.8,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFCCCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.8,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFCCFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 0.8,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFFF00",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 1.0,
+          "b": 0.0
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFFF33",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 1.0,
+          "b": 0.2
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFFF66",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 1.0,
+          "b": 0.4
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFFF99",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 1.0,
+          "b": 0.6
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFFFCC",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 1.0,
+          "b": 0.8
+        }
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "#FFFFFF",
+      "paint": {
+        "type": "solid",
+        "color": {
+          "model": "rgb",
+          "r": 1.0,
+          "g": 1.0,
+          "b": 1.0
+        }
+      },
+      "global": false,
+      "spot": false
+    }
+  ],
+  "groups": []
+}

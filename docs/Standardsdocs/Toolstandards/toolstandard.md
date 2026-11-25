@@ -68,7 +68,7 @@ This document lists the app's own tools and the engine components that provide t
 ### 2.11 Preset libraries
 
 - Built-in brush, symbol, swatch, pattern and gradient presets and graphic styles, plus the Libraries panel.
-- Preset data is stored as data files under `tools/<ToolName>/presets/` and loaded by the engine at run time.
+- Preset data is stored as data files under `tools/Libraries/presets/<kind>/` (brushes, symbols, swatches, gradients, patterns, graphic-styles), each kind with an `index.json` in menu order, and loaded by the engine at run time.
 - Engine component: `engine/crates/engine` library commands.
 
 ### 2.12 File handling

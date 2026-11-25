@@ -1,0 +1,323 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Neon & Glow",
+  "styles": [
+    {
+      "name": "Cyan Neon",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.0,
+                "g": 0.8980392,
+                "b": 1.0
+              }
+            },
+            "width": 6.0,
+            "cap": "Round",
+            "join": "Round",
+            "opacity": 0.7
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 8.0,
+              "color": "#00e5ff",
+              "mode": "screen",
+              "opacity": 85.0,
+              "x": 0.0,
+              "y": 0.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Magenta Laser",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.0,
+                "b": 0.49803922
+              }
+            },
+            "width": 5.0,
+            "cap": "Round",
+            "join": "Round",
+            "blend": "Screen"
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 8.0,
+              "color": "#ff007f",
+              "mode": "screen",
+              "opacity": 90.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "blend": "Screen",
+      "unit_box": true
+    },
+    {
+      "name": "Amber Tube",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.54901963,
+                "b": 0.0
+              }
+            },
+            "width": 6.0,
+            "cap": "Round",
+            "join": "Round",
+            "opacity": 0.8
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.91764706,
+                "b": 0.0
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 8.0,
+              "color": "#ff8c00",
+              "mode": "screen",
+              "opacity": 85.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Electric Lime",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.22352941,
+                "g": 1.0,
+                "b": 0.078431375
+              }
+            },
+            "width": 6.0,
+            "cap": "Round",
+            "join": "Round",
+            "opacity": 0.75
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 8.0,
+              "color": "#39ff14",
+              "mode": "screen",
+              "opacity": 90.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Pulse Violet",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.48235294,
+                "g": 0.17254902,
+                "b": 0.7490196
+              }
+            },
+            "width": 5.0,
+            "cap": "Round",
+            "join": "Round",
+            "opacity": 0.75
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.8784314,
+                "g": 0.6666667,
+                "b": 1.0
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.innerGlow",
+            "params": {
+              "blur": 6.0,
+              "color": "#c77dff",
+              "mode": "screen",
+              "opacity": 75.0,
+              "source": "edge"
+            },
+            "visible": true
+          },
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 8.0,
+              "color": "#7b2cbf",
+              "mode": "screen",
+              "opacity": 85.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Cobalt Phosphor",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.0,
+                "g": 0.2784314,
+                "b": 0.67058825
+              }
+            },
+            "width": 6.0,
+            "cap": "Round",
+            "join": "Round"
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "blur.gaussian",
+            "params": {
+              "radius": 2.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

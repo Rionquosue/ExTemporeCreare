@@ -1,0 +1,44 @@
+{
+  "libraries": [
+    {
+      "file": "basic-shapes.etc",
+      "id": "basic-shapes",
+      "name": "Basic Shapes"
+    },
+    {
+      "file": "ui-frames.etc",
+      "id": "ui-frames",
+      "name": "UI Frames"
+    },
+    {
+      "file": "map-markers.etc",
+      "id": "map-markers",
+      "name": "Map Markers"
+    },
+    {
+      "file": "inventory-icons.etc",
+      "id": "inventory-icons",
+      "name": "Inventory Icons"
+    },
+    {
+      "file": "skill-icons.etc",
+      "id": "skill-icons",
+      "name": "Skill Icons"
+    },
+    {
+      "file": "weather-icons.etc",
+      "id": "weather-icons",
+      "name": "Weather Icons"
+    },
+    {
+      "file": "nature-icons.etc",
+      "id": "nature-icons",
+      "name": "Nature Icons"
+    },
+    {
+      "file": "media-controls.etc",
+      "id": "media-controls",
+      "name": "Media Controls"
+    }
+  ]
+}

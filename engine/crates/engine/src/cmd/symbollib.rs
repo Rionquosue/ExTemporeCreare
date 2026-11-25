@@ -2,25 +2,25 @@
 //! of symbols the library panel shows. A library is a document holding the symbols with the
 //! resources they use (nested symbols, patterns, swatches, brushes, graphic styles, images) and
 //! their Symbol Options; saved, it is a native `.etc` file, which File › Open also opens.
-//! The built-in libraries are generated here ([`BUILTIN`]); User Defined ones are the `.etc`
+//! The built-in libraries are data files in the presets folder ([`crate::presets`]); User Defined ones are the `.etc`
 //! files in the user library folder ([`Libraries`]), and Other Library… loads the symbols of any
 //! document VectorCraft opens. `symbol.addFromLibrary` copies symbols into the document;
 //! `symbol.saveLibrary` writes the document's.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeId, NodeKind, Symbol, SymbolNineSlice};
-use vectorcraft_geom::{Affine, Anchor, AnchorKind, PathData, Point, Rect, SubPath, shapes};
+use vectorcraft_doc::{Document, Node, NodeId, NodeKind, Symbol};
+use vectorcraft_geom::{Affine, Point};
 
-use super::brushsym::{CURRENT_SYMBOL, Placement, natural_size, normalize, place_xf, set_natural_size};
+use super::brushsym::{CURRENT_SYMBOL, Placement, natural_size, place_xf, set_natural_size};
 use super::clipboard::Clipboard;
 use super::clipboard::resources::SwatchChoices;
 use super::swatch::str_list;
 use super::swatchlib::{FileData, LibraryFile, LibraryInfo, concealed_library_id, concealed_library_ids, shown_id, shown_library_id, stem};
 use super::{CommandSpec, Result, Session, always, bad, bool_or, cmd, has_doc, number_or, str_param, u64_req};
+use crate::presets::{Entry, Kind};
 
 /// The extension of saved symbol libraries: native documents.
 pub const SYMBOLS_EXT: &str = etcfile::EXTENSION;
@@ -155,563 +155,18 @@ impl LibraryFile for SymbolLibrary {
 /// User Defined and loaded symbol libraries.
 pub type Libraries = super::swatchlib::Libraries<SymbolLibrary>;
 
-/// A library generated in code.
-pub struct BuiltinSymbolLibrary {
-    pub id: &'static str,
-    pub name: &'static str,
-    make: fn() -> SymbolLibrary,
+/// Built-in library `id`, read from the presets folder ([`crate::presets`]) once.
+fn builtin_library(id: &str) -> Option<Arc<SymbolLibrary>> {
+    crate::presets::library(Kind::Symbols, id, |bytes, e| SymbolLibrary::read(bytes, &e.name).ok())
 }
 
-/// The built-in symbol libraries, in menu order: original art generated in code.
-pub const BUILTIN: &[BuiltinSymbolLibrary] = &[
-    BuiltinSymbolLibrary { id: "basic-shapes", name: "Basic Shapes", make: basic_shapes },
-    BuiltinSymbolLibrary { id: "ui-frames", name: "UI Frames", make: ui_frames },
-    BuiltinSymbolLibrary { id: "map-markers", name: "Map Markers", make: map_markers },
-    BuiltinSymbolLibrary { id: "inventory-icons", name: "Inventory Icons", make: inventory_icons },
-    BuiltinSymbolLibrary { id: "skill-icons", name: "Skill Icons", make: skill_icons },
-    BuiltinSymbolLibrary { id: "weather-icons", name: "Weather Icons", make: weather_icons },
-    BuiltinSymbolLibrary { id: "nature-icons", name: "Nature Icons", make: nature_icons },
-    BuiltinSymbolLibrary { id: "media-controls", name: "Media Controls", make: media_controls },
-];
 
-/// Built-in library `id`, made once.
-pub(crate) fn builtin_library(id: &str) -> Option<Arc<SymbolLibrary>> {
-    static MADE: LazyLock<Vec<Arc<SymbolLibrary>>> = LazyLock::new(|| BUILTIN.iter().map(|b| Arc::new((b.make)())).collect());
-    BUILTIN.iter().position(|b| b.id == id).and_then(|i| MADE.get(i).cloned())
-}
 
-/// Basic Shapes: plain filled and outlined shapes, 40 pt (the arrow 48 × 32 pt).
-fn basic_shapes() -> SymbolLibrary {
-    let square = Rect::new(-20.0, -20.0, 20.0, 20.0);
-    let c = Point::ZERO;
-    let arrow = [(-24.0, -6.0), (4.0, -6.0), (4.0, -16.0), (24.0, 0.0), (4.0, 16.0), (4.0, 6.0), (-24.0, 6.0)];
-    let arrow: Vec<Point> = arrow.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let shapes = [
-        ("Circle", shapes::ellipse(square), "#2f80c9"),
-        ("Square", shapes::rectangle(square), "#d9534f"),
-        ("Rounded Square", shapes::rounded_rectangle(square, 8.0), "#f0ad4e"),
-        ("Triangle", shapes::polygon(c, 22.0, 3, 0.0), "#5cb85c"),
-        ("Diamond", shapes::polygon(c, 20.0, 4, 0.0), "#8e5bc6"),
-        ("Hexagon", shapes::polygon(c, 20.0, 6, 0.0), "#1fa39b"),
-        ("Star", shapes::star(c, 21.0, 9.0, 5, 0.0), "#f2c233"),
-        ("Burst", shapes::star(c, 21.0, 15.0, 12, 0.0), "#e8743b"),
-        ("Arrow", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&arrow, true)), "#4a5a6a"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, path, hex) in shapes {
-        let fill = Color::from_hex(hex).unwrap_or(Color::BLACK);
-        // The outline: the fill, darkened.
-        let edge = fill.lerp(&Color::BLACK, 0.4);
-        let id = doc.alloc_id();
-        let art = Node::path(id, path, Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.0));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-    }
-    doc.title = "Basic Shapes".into();
-    SymbolLibrary { name: "Basic Shapes".into(), doc }
-}
 
-/// UI Frames: panel, button and bar HUD chrome with default 9-slice guides (original art).
-fn ui_frames() -> SymbolLibrary {
-    // Heights keep default 9-slice (0.25) past each corner radius so a vertical resize
-    // stretches only the flat middle, not the curves.
-    let frames = [
-        ("Panel", Rect::new(-48.0, -36.0, 48.0, 36.0), 10.0, "#2b3340", "#8aa0b8"),
-        ("Button", Rect::new(-36.0, -18.0, 36.0, 18.0), 8.0, "#3a6ea5", "#d7e6f5"),
-        ("Bar", Rect::new(-56.0, -24.0, 56.0, 24.0), 10.0, "#1f6b4a", "#b7e0c9"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, rect, radius, fill_hex, edge_hex) in frames {
-        let fill = Color::from_hex(fill_hex).unwrap_or(Color::BLACK);
-        let edge = Color::from_hex(edge_hex).unwrap_or(Color::BLACK);
-        let id = doc.alloc_id();
-        let art = Node::path(id, shapes::rounded_rectangle(rect, radius), Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.5));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-        doc.set_symbol_nine_slice(name, Some(SymbolNineSlice::default()));
-    }
-    doc.title = "UI Frames".into();
-    SymbolLibrary { name: "UI Frames".into(), doc }
-}
 
-/// Map Markers: pin, flag, crosshair and checkpoint for map/HUD art (original, no 9-slice).
-fn map_markers() -> SymbolLibrary {
-    let c = Point::ZERO;
-    let pin = [(0.0, 22.0), (-9.0, 4.0), (-12.0, -6.0), (-8.0, -16.0), (0.0, -20.0), (8.0, -16.0), (12.0, -6.0), (9.0, 4.0)];
-    let flag = [(-16.0, 22.0), (-12.0, 22.0), (-12.0, -8.0), (18.0, -14.0), (-12.0, -20.0), (-12.0, -22.0), (-16.0, -22.0)];
-    let pin: Vec<Point> = pin.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let flag: Vec<Point> = flag.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let markers = [
-        ("Pin", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&pin, true)), "#e74c3c"),
-        ("Flag", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&flag, true)), "#3498db"),
-        ("Crosshair", shapes::star(c, 20.0, 5.0, 4, 0.0), "#2c3e50"),
-        ("Checkpoint", shapes::polygon(c, 18.0, 4, 0.0), "#27ae60"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, path, hex) in markers {
-        let fill = Color::from_hex(hex).unwrap_or(Color::BLACK);
-        let edge = fill.lerp(&Color::BLACK, 0.35);
-        let id = doc.alloc_id();
-        let art = Node::path(id, path, Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.25));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-    }
-    doc.title = "Map Markers".into();
-    SymbolLibrary { name: "Map Markers".into(), doc }
-}
 
-/// Inventory Icons: sword, shield, potion, key and gem for loot/RPG art (original, no 9-slice).
-fn inventory_icons() -> SymbolLibrary {
-    let c = Point::ZERO;
-    let sword = [
-        (0.0, -22.0),
-        (3.0, -10.0),
-        (3.0, 6.0),
-        (8.0, 8.0),
-        (8.0, 12.0),
-        (3.0, 12.0),
-        (3.0, 20.0),
-        (-3.0, 20.0),
-        (-3.0, 12.0),
-        (-8.0, 12.0),
-        (-8.0, 8.0),
-        (-3.0, 6.0),
-        (-3.0, -10.0),
-    ];
-    let shield = [(0.0, -20.0), (16.0, -12.0), (14.0, 8.0), (0.0, 20.0), (-14.0, 8.0), (-16.0, -12.0)];
-    let potion =
-        [(-4.0, -20.0), (4.0, -20.0), (4.0, -12.0), (10.0, -6.0), (12.0, 6.0), (8.0, 18.0), (-8.0, 18.0), (-12.0, 6.0), (-10.0, -6.0), (-4.0, -12.0)];
-    let key = [
-        (-4.0, -18.0),
-        (4.0, -18.0),
-        (6.0, -14.0),
-        (6.0, -8.0),
-        (4.0, -6.0),
-        (4.0, 16.0),
-        (8.0, 16.0),
-        (8.0, 20.0),
-        (-2.0, 20.0),
-        (-2.0, 12.0),
-        (0.0, 12.0),
-        (0.0, -6.0),
-        (-4.0, -8.0),
-        (-6.0, -14.0),
-    ];
-    let sword: Vec<Point> = sword.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let shield: Vec<Point> = shield.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let potion: Vec<Point> = potion.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let key: Vec<Point> = key.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let icons = [
-        ("Sword", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&sword, true)), "#95a5a6"),
-        ("Shield", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&shield, true)), "#3498db"),
-        ("Potion", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&potion, true)), "#9b59b6"),
-        ("Key", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&key, true)), "#f1c40f"),
-        ("Gem", shapes::polygon(c, 16.0, 6, 0.0), "#1abc9c"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, path, hex) in icons {
-        let fill = Color::from_hex(hex).unwrap_or(Color::BLACK);
-        let edge = fill.lerp(&Color::BLACK, 0.35);
-        let id = doc.alloc_id();
-        let art = Node::path(id, path, Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.25));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-    }
-    doc.title = "Inventory Icons".into();
-    SymbolLibrary { name: "Inventory Icons".into(), doc }
-}
 
-/// Skill Icons: attack, defend, heal, buff and ult marks for RPG/UI art (original, no 9-slice).
-fn skill_icons() -> SymbolLibrary {
-    let c = Point::ZERO;
-    let attack = [(-18.0, 14.0), (-6.0, 2.0), (-2.0, 6.0), (18.0, -14.0), (14.0, -18.0), (-6.0, -2.0), (-10.0, 2.0), (-18.0, 6.0)];
-    let defend = [(0.0, -18.0), (14.0, -10.0), (12.0, 6.0), (0.0, 18.0), (-12.0, 6.0), (-14.0, -10.0)];
-    let heal = [
-        (-4.0, -18.0),
-        (4.0, -18.0),
-        (4.0, -4.0),
-        (18.0, -4.0),
-        (18.0, 4.0),
-        (4.0, 4.0),
-        (4.0, 18.0),
-        (-4.0, 18.0),
-        (-4.0, 4.0),
-        (-18.0, 4.0),
-        (-18.0, -4.0),
-        (-4.0, -4.0),
-    ];
-    let buff = [(0.0, -18.0), (10.0, -2.0), (4.0, -2.0), (4.0, 18.0), (-4.0, 18.0), (-4.0, -2.0), (-10.0, -2.0)];
-    let attack: Vec<Point> = attack.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let defend: Vec<Point> = defend.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let heal: Vec<Point> = heal.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let buff: Vec<Point> = buff.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let icons = [
-        ("Attack", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&attack, true)), "#e74c3c"),
-        ("Defend", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&defend, true)), "#3498db"),
-        ("Heal", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&heal, true)), "#2ecc71"),
-        ("Buff", vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&buff, true)), "#f1c40f"),
-        ("Ult", shapes::star(c, 18.0, 7.0, 8, 0.0), "#9b59b6"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, path, hex) in icons {
-        let fill = Color::from_hex(hex).unwrap_or(Color::BLACK);
-        let edge = fill.lerp(&Color::BLACK, 0.35);
-        let id = doc.alloc_id();
-        let art = Node::path(id, path, Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.25));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-    }
-    doc.title = "Skill Icons".into();
-    SymbolLibrary { name: "Skill Icons".into(), doc }
-}
 
-/// Weather Icons: sun, moon, cloud, rain, thunder and snow for weather/status art (original, no 9-slice).
-fn weather_icons() -> SymbolLibrary {
-    // 1. Sun: Central circular disk with radial rays.
-    let mut sun_subpaths = Vec::new();
-    sun_subpaths.extend(shapes::ellipse(Rect::new(-8.5, -8.5, 8.5, 8.5)).subpaths);
-    for i in 0..8 {
-        let angle = (i as f64) * std::f64::consts::PI / 4.0;
-        let (sin, cos) = angle.sin_cos();
-        let r_in = 11.5;
-        let r_out = 18.5;
-        let w = 1.5;
-        let p1 = Point::new(r_in * cos - w * sin, r_in * sin + w * cos);
-        let tip = Point::new(r_out * cos, r_out * sin);
-        let p2 = Point::new(r_in * cos + w * sin, r_in * sin - w * cos);
-        sun_subpaths.push(SubPath::polyline(&[p1, tip, p2], true));
-    }
-    let sun = PathData::new(sun_subpaths);
-
-    // 2. Moon: Crescent moon shape.
-    let moon_anchors = vec![
-        Anchor { p: Point::new(3.0, -17.0), h_in: Point::new(-2.0, -10.0), h_out: Point::new(-8.0, -17.0), kind: AnchorKind::Corner },
-        Anchor { p: Point::new(-16.0, 0.0), h_in: Point::new(-16.0, -9.0), h_out: Point::new(-16.0, 9.0), kind: AnchorKind::Smooth },
-        Anchor { p: Point::new(5.0, 16.0), h_in: Point::new(-6.0, 16.0), h_out: Point::new(0.0, 8.0), kind: AnchorKind::Corner },
-        Anchor { p: Point::new(-4.0, -1.0), h_in: Point::new(-4.0, 6.0), h_out: Point::new(-4.0, -8.0), kind: AnchorKind::Smooth },
-    ];
-    let moon = PathData::single(SubPath::new(moon_anchors, true));
-
-    // Helper for cloud contour
-    let cloud_subpath = |offset_y: f64, scale: f64| -> SubPath {
-        let mut pts = Vec::new();
-        let base_y = 8.0 * scale + offset_y;
-        pts.push(Point::new(9.0 * scale, base_y));
-        pts.push(Point::new(-9.0 * scale, base_y));
-
-        let c1 = Point::new(-9.0 * scale, 2.0 * scale + offset_y);
-        let r1 = 6.0 * scale;
-        let steps_lobe = 8;
-        for i in 1..=steps_lobe {
-            let a = std::f64::consts::FRAC_PI_2 + (i as f64) * std::f64::consts::PI / (steps_lobe as f64);
-            pts.push(Point::new(c1.x + r1 * a.cos(), c1.y + r1 * a.sin()));
-        }
-
-        let c2 = Point::new(0.0, -3.0 * scale + offset_y);
-        let r2 = 9.0 * scale;
-        let a_start = -2.973;
-        let a_end = -0.169;
-        let steps_top = 10;
-        for i in 1..=steps_top {
-            let a = a_start + (i as f64) * (a_end - a_start) / (steps_top as f64);
-            pts.push(Point::new(c2.x + r2 * a.cos(), c2.y + r2 * a.sin()));
-        }
-
-        let c3 = Point::new(9.0 * scale, 2.0 * scale + offset_y);
-        let r3 = 6.0 * scale;
-        for i in 1..steps_lobe {
-            let a = -std::f64::consts::FRAC_PI_2 + (i as f64) * std::f64::consts::PI / (steps_lobe as f64);
-            pts.push(Point::new(c3.x + r3 * a.cos(), c3.y + r3 * a.sin()));
-        }
-
-        SubPath::polyline(&pts, true)
-    };
-
-    // 3. Cloud: Merged circular lobes with a flat base.
-    let cloud = PathData::single(cloud_subpath(0.0, 1.0));
-
-    // 4. Rain: Cloud outline with angled falling droplet/dash lines.
-    let mut rain_subpaths = vec![cloud_subpath(-4.0, 0.9)];
-    let drops = [(-6.0, 6.0), (0.0, 8.0), (6.0, 6.0)];
-    for &(x0, y0) in &drops {
-        let (dx, dy) = (-2.0, 6.0);
-        let w = 1.0;
-        let d = [Point::new(x0 + w, y0), Point::new(x0 + dx + w, y0 + dy), Point::new(x0 + dx - w, y0 + dy), Point::new(x0 - w, y0)];
-        rain_subpaths.push(SubPath::polyline(&d, true));
-    }
-    let rain = PathData::new(rain_subpaths);
-
-    // 5. Thunder: Angular zigzag lightning bolt polygon.
-    let bolt = [(3.0, -18.0), (-8.0, -1.0), (-1.0, -1.0), (-5.0, 18.0), (8.0, 1.0), (1.0, 1.0)];
-    let bolt_pts: Vec<Point> = bolt.iter().map(|&(x, y)| Point::new(x, y)).collect();
-    let thunder = PathData::single(SubPath::polyline(&bolt_pts, true));
-
-    // 6. Snow: Symmetrical snowflake with hexagonal cross and branching ticks.
-    let mut snow_pts = Vec::new();
-    let r_hub = 3.5;
-    for k in 0..6 {
-        let angle = (k as f64) * std::f64::consts::PI / 3.0;
-        let (u_sin, u_cos) = angle.sin_cos();
-        let u = Point::new(u_cos, u_sin);
-        let v = Point::new(-u_sin, u_cos);
-        let to_pt = |du: f64, dv: f64| Point::new(du * u.x + dv * v.x, du * u.y + dv * v.y);
-
-        let valley_angle = angle - std::f64::consts::PI / 6.0;
-        snow_pts.push(Point::new(r_hub * valley_angle.cos(), r_hub * valley_angle.sin()));
-
-        snow_pts.push(to_pt(5.0, -1.0));
-        snow_pts.push(to_pt(8.5, -1.0));
-        snow_pts.push(to_pt(10.0, -3.0));
-        snow_pts.push(to_pt(11.5, -1.0));
-        snow_pts.push(to_pt(15.5, -1.0));
-        snow_pts.push(to_pt(15.5, -2.5));
-
-        snow_pts.push(to_pt(18.0, 0.0));
-
-        snow_pts.push(to_pt(15.5, 2.5));
-        snow_pts.push(to_pt(15.5, 1.0));
-        snow_pts.push(to_pt(11.5, 1.0));
-        snow_pts.push(to_pt(10.0, 3.0));
-        snow_pts.push(to_pt(8.5, 1.0));
-        snow_pts.push(to_pt(5.0, 1.0));
-    }
-    let snow = PathData::single(SubPath::polyline(&snow_pts, true));
-
-    let icons = [
-        ("Sun", sun, "#f39c12"),
-        ("Moon", moon, "#5c6bc0"),
-        ("Cloud", cloud, "#78909c"),
-        ("Rain", rain, "#3498db"),
-        ("Thunder", thunder, "#f1c40f"),
-        ("Snow", snow, "#29b6f6"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, path, hex) in icons {
-        let fill = Color::from_hex(hex).unwrap_or(Color::BLACK);
-        let edge = fill.lerp(&Color::BLACK, 0.35);
-        let id = doc.alloc_id();
-        let art = Node::path(id, path, Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.25));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-    }
-    doc.title = "Weather Icons".into();
-    SymbolLibrary { name: "Weather Icons".into(), doc }
-}
-
-/// Nature Icons: five original silhouettes for diagrams and reusable artwork.
-fn nature_icons() -> SymbolLibrary {
-    let poly = |coords: &[(f64, f64)]| {
-        let points: Vec<Point> = coords.iter().map(|&(x, y)| Point::new(x, y)).collect();
-        SubPath::polyline(&points, true)
-    };
-    let leaf = PathData::new(vec![
-        poly(&[(0.0, -20.0), (12.0, -13.0), (17.0, -2.0), (12.0, 10.0), (0.0, 19.0), (-12.0, 10.0), (-17.0, -2.0), (-12.0, -13.0)]),
-        poly(&[(-1.0, -13.0), (1.0, -13.0), (1.0, 20.0), (-1.0, 20.0)]),
-    ]);
-    let mut flower_parts = shapes::ellipse(Rect::new(-6.0, -6.0, 6.0, 6.0)).subpaths;
-    for i in 0..6 {
-        let angle = i as f64 * std::f64::consts::PI / 3.0;
-        let (sin, cos) = angle.sin_cos();
-        let x = 12.0 * cos;
-        let y = 12.0 * sin;
-        flower_parts.extend(shapes::ellipse(Rect::new(x - 5.5, y - 5.5, x + 5.5, y + 5.5)).subpaths);
-    }
-    let flower = PathData::new(flower_parts);
-    let tree = PathData::new(vec![
-        poly(&[(-3.0, 6.0), (3.0, 6.0), (3.0, 20.0), (-3.0, 20.0)]),
-        poly(&[
-            (0.0, -21.0),
-            (12.0, -8.0),
-            (8.0, -8.0),
-            (17.0, 4.0),
-            (11.0, 4.0),
-            (18.0, 12.0),
-            (-18.0, 12.0),
-            (-11.0, 4.0),
-            (-17.0, 4.0),
-            (-8.0, -8.0),
-            (-12.0, -8.0),
-        ]),
-    ]);
-    let mountain = PathData::new(vec![
-        poly(&[(-21.0, 17.0), (-6.0, -17.0), (2.0, 0.0), (8.0, -11.0), (21.0, 17.0)]),
-        poly(&[(-12.0, -4.0), (-6.0, -17.0), (0.0, -4.0), (-5.0, -7.0), (-8.0, -3.0)]),
-    ]);
-    let wave = PathData::new(
-        (0..3)
-            .map(|row| {
-                let y = row as f64 * 9.0 - 10.0;
-                poly(&[
-                    (-20.0, y),
-                    (-14.0, y - 4.0),
-                    (-8.0, y - 4.0),
-                    (-2.0, y),
-                    (4.0, y + 4.0),
-                    (10.0, y + 4.0),
-                    (16.0, y),
-                    (20.0, y),
-                    (20.0, y + 3.0),
-                    (16.0, y + 3.0),
-                    (10.0, y + 7.0),
-                    (4.0, y + 7.0),
-                    (-2.0, y + 3.0),
-                    (-8.0, y - 1.0),
-                    (-14.0, y - 1.0),
-                    (-20.0, y + 3.0),
-                ])
-            })
-            .collect(),
-    );
-    let icons = [
-        ("Leaf", leaf, "#4f9d59"),
-        ("Flower", flower, "#d977a7"),
-        ("Tree", tree, "#287c53"),
-        ("Mountain", mountain, "#768899"),
-        ("Wave", wave, "#388fb8"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, path, hex) in icons {
-        let fill = Color::from_hex(hex).unwrap_or(Color::BLACK);
-        let edge = fill.lerp(&Color::BLACK, 0.35);
-        let id = doc.alloc_id();
-        let art = Node::path(id, path, Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.25));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-    }
-    doc.title = "Nature Icons".into();
-    SymbolLibrary { name: "Nature Icons".into(), doc }
-}
-
-/// Media Controls: play, pause, stop, skip next, shuffle and repeat for audio/video UI art (original, no 9-slice).
-fn media_controls() -> SymbolLibrary {
-    // 1. Play: Right-pointing equilateral triangle.
-    let play = shapes::polygon(Point::ZERO, 18.0, 3, 90.0);
-
-    // 2. Pause: Two parallel vertical rounded bars.
-    let mut pause_subpaths = Vec::new();
-    pause_subpaths.extend(shapes::rounded_rectangle(Rect::new(-11.0, -15.0, -3.0, 15.0), 3.0).subpaths);
-    pause_subpaths.extend(shapes::rounded_rectangle(Rect::new(3.0, -15.0, 11.0, 15.0), 3.0).subpaths);
-    let pause = PathData::new(pause_subpaths);
-
-    // 3. Stop: Rounded square.
-    let stop = shapes::rounded_rectangle(Rect::new(-14.0, -14.0, 14.0, 14.0), 4.0);
-
-    // 4. Skip Next: Right-pointing triangle with adjacent vertical bar.
-    let mut skip_subpaths = Vec::new();
-    let tri_pts = [Point::new(-14.0, -14.0), Point::new(6.0, 0.0), Point::new(-14.0, 14.0)];
-    skip_subpaths.push(SubPath::polyline(&tri_pts, true));
-    skip_subpaths.extend(shapes::rounded_rectangle(Rect::new(8.0, -14.0, 13.0, 14.0), 2.0).subpaths);
-    let skip_next = PathData::new(skip_subpaths);
-
-    // Helper for ribbon arrows with optional arrowhead
-    let make_arrow = |pts: &[Point], half_w: f64, head: Option<(f64, f64)>| -> SubPath {
-        let n = pts.len();
-        let mut left_pts = Vec::new();
-        let mut right_pts = Vec::new();
-
-        let mut seg_normals = Vec::with_capacity(n - 1);
-        let mut seg_dirs = Vec::with_capacity(n - 1);
-        for i in 0..(n - 1) {
-            let d = pts[i + 1] - pts[i];
-            let len = (d.x * d.x + d.y * d.y).sqrt().max(1e-6);
-            let dir = Point::new(d.x / len, d.y / len);
-            let normal = Point::new(-dir.y, dir.x);
-            seg_dirs.push(dir);
-            seg_normals.push(normal);
-        }
-
-        for i in 0..n {
-            let normal = if i == 0 {
-                seg_normals[0]
-            } else if i == n - 1 {
-                seg_normals[n - 2]
-            } else {
-                let n1 = seg_normals[i - 1];
-                let n2 = seg_normals[i];
-                let avg = Point::new((n1.x + n2.x) * 0.5, (n1.y + n2.y) * 0.5);
-                let len = (avg.x * avg.x + avg.y * avg.y).sqrt().max(1e-6);
-                Point::new(avg.x / len, avg.y / len)
-            };
-            left_pts.push(Point::new(pts[i].x + normal.x * half_w, pts[i].y + normal.y * half_w));
-            right_pts.push(Point::new(pts[i].x - normal.x * half_w, pts[i].y - normal.y * half_w));
-        }
-
-        let mut poly = left_pts;
-        if let Some((head_w, head_len)) = head {
-            let end_pt = pts[n - 1];
-            let end_dir = seg_dirs[n - 2];
-            let end_norm = seg_normals[n - 2];
-            poly.push(Point::new(end_pt.x + end_norm.x * head_w, end_pt.y + end_norm.y * head_w));
-            poly.push(Point::new(end_pt.x + end_dir.x * head_len, end_pt.y + end_dir.y * head_len));
-            poly.push(Point::new(end_pt.x - end_norm.x * head_w, end_pt.y - end_norm.y * head_w));
-        }
-        right_pts.reverse();
-        poly.extend(right_pts);
-        SubPath::polyline(&poly, true)
-    };
-
-    // 5. Shuffle: Two crossing/intertwined arrows.
-    let a1 = [Point::new(-14.0, -9.0), Point::new(-5.0, -9.0), Point::new(5.0, 9.0), Point::new(8.0, 9.0)];
-    let a2a = [Point::new(-14.0, 9.0), Point::new(-5.0, 9.0), Point::new(-1.8, 3.24)];
-    let a2b = [Point::new(1.8, -3.24), Point::new(5.0, -9.0), Point::new(8.0, -9.0)];
-    let shuffle = PathData::new(vec![make_arrow(&a1, 1.4, Some((4.0, 6.0))), make_arrow(&a2a, 1.4, None), make_arrow(&a2b, 1.4, Some((4.0, 6.0)))]);
-
-    // 6. Repeat: Looping circular arrows.
-    let r_mid = 11.5;
-    let r_in = 9.8;
-    let r_out = 13.2;
-    let head_w = 4.0;
-    let tip_len = 5.0;
-    let a_start = -150.0_f64.to_radians();
-    let a_end = -15.0_f64.to_radians();
-    let steps = 14;
-
-    let mut top_pts = Vec::new();
-    for i in 0..=steps {
-        let a = a_start + (a_end - a_start) * (i as f64) / (steps as f64);
-        top_pts.push(Point::new(r_out * a.cos(), r_out * a.sin()));
-    }
-    top_pts.push(Point::new((r_mid + head_w) * a_end.cos(), (r_mid + head_w) * a_end.sin()));
-    let t_dir = Point::new(-a_end.sin(), a_end.cos());
-    top_pts.push(Point::new(r_mid * a_end.cos() + tip_len * t_dir.x, r_mid * a_end.sin() + tip_len * t_dir.y));
-    top_pts.push(Point::new((r_mid - head_w) * a_end.cos(), (r_mid - head_w) * a_end.sin()));
-    for i in (0..=steps).rev() {
-        let a = a_start + (a_end - a_start) * (i as f64) / (steps as f64);
-        top_pts.push(Point::new(r_in * a.cos(), r_in * a.sin()));
-    }
-
-    let bottom_pts: Vec<Point> = top_pts.iter().map(|p| Point::new(-p.x, -p.y)).collect();
-
-    let repeat = PathData::new(vec![SubPath::polyline(&top_pts, true), SubPath::polyline(&bottom_pts, true)]);
-
-    let icons = [
-        ("Play", play, "#2ecc71"),
-        ("Pause", pause, "#f39c12"),
-        ("Stop", stop, "#e74c3c"),
-        ("Skip Next", skip_next, "#3498db"),
-        ("Shuffle", shuffle, "#9b59b6"),
-        ("Repeat", repeat, "#1abc9c"),
-    ];
-    let mut doc = Document::new(100.0, 100.0);
-    for (name, path, hex) in icons {
-        let fill = Color::from_hex(hex).unwrap_or(Color::BLACK);
-        let edge = fill.lerp(&Color::BLACK, 0.35);
-        let id = doc.alloc_id();
-        let art = Node::path(id, path, Appearance::basic(Paint::solid(fill), Paint::solid(edge), 1.25));
-        let Ok((art, size, _)) = normalize(art) else { continue };
-        doc.symbols.push(Symbol { dynamic: false, name: name.into(), art: Arc::new(art) });
-        set_natural_size(&mut doc, name, Some(size));
-    }
-    doc.title = "Media Controls".into();
-    SymbolLibrary { name: "Media Controls".into(), doc }
-}
 
 /// An instance of symbol `name` (what the resource gathering follows).
 fn instance(name: &str) -> Node {
@@ -728,13 +183,13 @@ fn copy_options(src: &Document, from: &str, d: &mut Document, to: &str) {
     d.set_symbol_pixel_aligned(to, src.symbol_pixel_aligned(from));
 }
 
-fn builtin_info(b: &BuiltinSymbolLibrary) -> LibraryInfo {
-    LibraryInfo { id: b.id.into(), name: b.name.into(), category: "builtIn" }
+fn builtin_info(e: &Entry) -> LibraryInfo {
+    LibraryInfo { id: e.id.clone(), name: e.name.clone(), category: "builtIn" }
 }
 
 /// Every symbol library, in menu order: built-in, User Defined, loaded.
 pub fn libraries(s: &Session) -> Vec<LibraryInfo> {
-    BUILTIN.iter().map(builtin_info).chain(s.symbol_libraries.infos().cloned()).collect()
+    crate::presets::entries(Kind::Symbols).iter().map(builtin_info).chain(s.symbol_libraries.infos().cloned()).collect()
 }
 
 /// Library `key` (an id, or a name in any case) with its info.
@@ -745,8 +200,8 @@ pub fn library(s: &Session, key: &str) -> Option<(LibraryInfo, Arc<SymbolLibrary
     if let Some(found) = concealed_library_id(s, key).and_then(|id| s.symbol_libraries.get(&id)) {
         return Some(found);
     }
-    if let Some(b) = BUILTIN.iter().find(|b| b.id == key) {
-        return Some((builtin_info(b), builtin_library(key)?));
+    if let Some(e) = crate::presets::entry(Kind::Symbols, key) {
+        return Some((builtin_info(&e), builtin_library(key)?));
     }
     let id = libraries(s).into_iter().find(|l| l.name.eq_ignore_ascii_case(key))?.id;
     library(s, &id)

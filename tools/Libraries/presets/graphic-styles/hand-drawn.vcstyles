@@ -1,0 +1,457 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Hand-Drawn",
+  "styles": [
+    {
+      "name": "Sketchy Line",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.99607843,
+                "g": 0.98039216,
+                "b": 0.8784314
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.11372549,
+                "g": 0.20784314,
+                "b": 0.34117648
+              }
+            },
+            "width": 1.25,
+            "cap": "Round",
+            "join": "Round",
+            "effects": [
+              {
+                "id": "distort.roughen",
+                "params": {
+                  "detail": 8.0,
+                  "points": "smooth",
+                  "relative": true,
+                  "seed": 1,
+                  "size": 1.5
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.11372549,
+                "g": 0.20784314,
+                "b": 0.34117648
+              }
+            },
+            "width": 0.75,
+            "cap": "Round",
+            "join": "Round",
+            "effects": [
+              {
+                "id": "distort.roughen",
+                "params": {
+                  "detail": 8.0,
+                  "points": "smooth",
+                  "relative": true,
+                  "seed": 7,
+                  "size": 1.5
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Scribble Fill",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9019608,
+                "g": 0.22352941,
+                "b": 0.27450982
+              }
+            },
+            "effects": [
+              {
+                "id": "stylize.scribble",
+                "params": {
+                  "angle": 30.0,
+                  "curviness": 5.0,
+                  "spacing": 4.0,
+                  "strokeWidth": 1.5,
+                  "variation": 0.5
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.11372549,
+                "g": 0.20784314,
+                "b": 0.34117648
+              }
+            },
+            "width": 1.25,
+            "cap": "Round",
+            "join": "Round",
+            "effects": [
+              {
+                "id": "distort.roughen",
+                "params": {
+                  "detail": 8.0,
+                  "points": "smooth",
+                  "relative": true,
+                  "seed": 3,
+                  "size": 1.5
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Crosshatch",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.27058825,
+                "g": 0.48235294,
+                "b": 0.6156863
+              }
+            },
+            "opacity": 0.8,
+            "effects": [
+              {
+                "id": "stylize.scribble",
+                "params": {
+                  "angle": 45.0,
+                  "curviness": 5.0,
+                  "spacing": 4.0,
+                  "strokeWidth": 1.5,
+                  "variation": 0.5
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.27058825,
+                "g": 0.48235294,
+                "b": 0.6156863
+              }
+            },
+            "opacity": 0.8,
+            "effects": [
+              {
+                "id": "stylize.scribble",
+                "params": {
+                  "angle": -45.0,
+                  "curviness": 5.0,
+                  "spacing": 4.0,
+                  "strokeWidth": 1.5,
+                  "variation": 0.5
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.11372549,
+                "g": 0.20784314,
+                "b": 0.34117648
+              }
+            },
+            "width": 1.0,
+            "cap": "Round",
+            "join": "Round",
+            "effects": [
+              {
+                "id": "distort.roughen",
+                "params": {
+                  "detail": 8.0,
+                  "points": "smooth",
+                  "relative": true,
+                  "seed": 5,
+                  "size": 1.5
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Wobble",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.65882355,
+                "g": 0.85490197,
+                "b": 0.8627451
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.11372549,
+                "g": 0.20784314,
+                "b": 0.34117648
+              }
+            },
+            "width": 2.0,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "distort.tweak",
+            "params": {
+              "h": 3.0,
+              "relative": true,
+              "seed": 5,
+              "v": 3.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Zig Zag Edge",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.94509804,
+                "g": 0.98039216,
+                "b": 0.93333334
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9019608,
+                "g": 0.22352941,
+                "b": 0.27450982
+              }
+            },
+            "width": 1.5,
+            "effects": [
+              {
+                "id": "distort.zigZag",
+                "params": {
+                  "points": "corner",
+                  "relative": false,
+                  "ridges": 6,
+                  "size": 3.0
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Wavy Edge",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.7411765,
+                "g": 0.8784314,
+                "b": 0.99607843
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.22745098,
+                "g": 0.3529412,
+                "b": 0.60784316
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "distort.zigZag",
+            "params": {
+              "points": "smooth",
+              "relative": false,
+              "ridges": 5,
+              "size": 3.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Puffy",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.78431374,
+                "b": 0.8666667
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.7882353,
+                "g": 0.09411765,
+                "b": 0.2901961
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "distort.puckerBloat",
+            "params": {
+              "amount": 25.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Starburst",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.74509805,
+                "b": 0.043137256
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9843137,
+                "g": 0.3372549,
+                "b": 0.02745098
+              }
+            },
+            "width": 1.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "distort.puckerBloat",
+            "params": {
+              "amount": -40.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

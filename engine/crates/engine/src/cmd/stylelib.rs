@@ -10,7 +10,8 @@ use std::sync::Arc;
 
 use serde_json::{Value, json};
 use vectorcraft_color::Paint;
-use vectorcraft_doc::style_libs::{self, STYLE_LIBRARIES, STYLES_EXT, builtin_style_library};
+use vectorcraft_doc::style_libs::{self, STYLES_EXT};
+use crate::presets::{Entry, Kind};
 use vectorcraft_doc::{Document, GraphicStyle, PatternDef, StyleLibrary};
 
 use super::menucmds::squash;
@@ -82,13 +83,18 @@ impl LibraryFile for StyleLibrary {
 /// User Defined and loaded graphic style libraries.
 pub type Libraries = super::swatchlib::Libraries<StyleLibrary>;
 
-fn builtin_info(b: &style_libs::BuiltinStyleLibrary) -> LibraryInfo {
-    LibraryInfo { id: b.id.into(), name: b.name.into(), category: "builtIn" }
+fn builtin_info(e: &Entry) -> LibraryInfo {
+    LibraryInfo { id: e.id.clone(), name: e.name.clone(), category: "builtIn" }
+}
+
+/// Built-in library `id`, read from the presets folder ([`crate::presets`]) once.
+fn builtin_style_library(id: &str) -> Option<Arc<StyleLibrary>> {
+    crate::presets::library(Kind::GraphicStyles, id, |bytes, e| StyleLibrary::read(bytes, &e.name).ok())
 }
 
 /// Every graphic style library, in menu order: built-in, User Defined, loaded.
 pub fn libraries(s: &Session) -> Vec<LibraryInfo> {
-    STYLE_LIBRARIES.iter().map(builtin_info).chain(s.style_libraries.infos().cloned()).collect()
+    crate::presets::entries(Kind::GraphicStyles).iter().map(builtin_info).chain(s.style_libraries.infos().cloned()).collect()
 }
 
 /// Library `key` (an id, or a name in any case) with its info.
@@ -99,8 +105,8 @@ pub fn library(s: &Session, key: &str) -> Option<(LibraryInfo, Arc<StyleLibrary>
     if let Some(found) = concealed_library_id(s, key).and_then(|id| s.style_libraries.get(&id)) {
         return Some(found);
     }
-    if let Some(b) = STYLE_LIBRARIES.iter().find(|b| b.id == key) {
-        return Some((builtin_info(b), builtin_style_library(key)?));
+    if let Some(e) = crate::presets::entry(Kind::GraphicStyles, key) {
+        return Some((builtin_info(&e), builtin_style_library(key)?));
     }
     let id = libraries(s).into_iter().find(|l| l.name.eq_ignore_ascii_case(key))?.id;
     library(s, &id)

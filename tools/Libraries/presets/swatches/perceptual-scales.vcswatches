@@ -1,0 +1,925 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Perceptual Scales",
+  "swatches": [],
+  "groups": [
+    {
+      "name": "Ember",
+      "swatches": [
+        {
+          "name": "Ember 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.13725491,
+              "g": 0.02745098,
+              "b": 0.25490198
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.27450982,
+              "g": 0.105882354,
+              "b": 0.25882354
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.43137255,
+              "g": 0.15294118,
+              "b": 0.2509804
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.59607846,
+              "g": 0.19215687,
+              "b": 0.22352941
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.77254903,
+              "g": 0.21960784,
+              "b": 0.16078432
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.84313726,
+              "g": 0.41568628,
+              "b": 0.21960784
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.90588236,
+              "g": 0.58431375,
+              "b": 0.2784314
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9607843,
+              "g": 0.7529412,
+              "b": 0.34509805
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ember 9",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 1.0,
+              "g": 0.91764706,
+              "b": 0.41960785
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Lagoon",
+      "swatches": [
+        {
+          "name": "Lagoon 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.06666667,
+              "g": 0.12156863,
+              "b": 0.2627451
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.050980393,
+              "g": 0.23137255,
+              "b": 0.34509805
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.34117648,
+              "b": 0.43137255
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.45490196,
+              "b": 0.50980395
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.57254905,
+              "b": 0.59607846
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.22352941,
+              "g": 0.68235296,
+              "b": 0.6313726
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.44705883,
+              "g": 0.78039217,
+              "b": 0.6392157
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6313726,
+              "g": 0.8784314,
+              "b": 0.6431373
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Lagoon 9",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8039216,
+              "g": 0.972549,
+              "b": 0.63529414
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Dusk",
+      "swatches": [
+        {
+          "name": "Dusk 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.06666667,
+              "g": 0.05490196,
+              "b": 0.22352941
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.20784314,
+              "g": 0.12941177,
+              "b": 0.3254902
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.35686275,
+              "g": 0.20392157,
+              "b": 0.43529412
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.52156866,
+              "g": 0.2784314,
+              "b": 0.54901963
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6901961,
+              "g": 0.35686275,
+              "b": 0.6666667
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7764706,
+              "g": 0.4862745,
+              "b": 0.6901961
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8627451,
+              "g": 0.60784316,
+              "b": 0.7058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9490196,
+              "g": 0.73333335,
+              "b": 0.7137255
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Dusk 9",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 1.0,
+              "g": 0.8666667,
+              "b": 0.7647059
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Moss",
+      "swatches": [
+        {
+          "name": "Moss 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.050980393,
+              "g": 0.15686275,
+              "b": 0.078431375
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.14901961,
+              "g": 0.23921569,
+              "b": 0.14509805
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.24705882,
+              "g": 0.3254902,
+              "b": 0.21568628
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.34509805,
+              "g": 0.41568628,
+              "b": 0.2901961
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.4509804,
+              "g": 0.50980395,
+              "b": 0.36862746
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.56078434,
+              "g": 0.60784316,
+              "b": 0.44705883
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.67058825,
+              "g": 0.7058824,
+              "b": 0.5294118
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7882353,
+              "g": 0.8117647,
+              "b": 0.6156863
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Moss 9",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.90588236,
+              "g": 0.9137255,
+              "b": 0.7058824
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Ink",
+      "swatches": [
+        {
+          "name": "Ink 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.06666667,
+              "g": 0.08627451,
+              "b": 0.12156863
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.15294118,
+              "g": 0.1764706,
+              "b": 0.21176471
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.2509804,
+              "g": 0.27058825,
+              "b": 0.30980393
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3529412,
+              "g": 0.37254903,
+              "b": 0.40784314
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.45882353,
+              "g": 0.48235294,
+              "b": 0.5137255
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.57254905,
+              "g": 0.5921569,
+              "b": 0.62352943
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6901961,
+              "g": 0.7058824,
+              "b": 0.7372549
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.80784315,
+              "g": 0.827451,
+              "b": 0.85490197
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Ink 9",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.93333334,
+              "g": 0.9490196,
+              "b": 0.9764706
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Clay to Teal",
+      "swatches": [
+        {
+          "name": "Clay to Teal 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5411765,
+              "g": 0.21960784,
+              "b": 0.09803922
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.65882355,
+              "g": 0.4,
+              "b": 0.30588236
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7647059,
+              "g": 0.5764706,
+              "b": 0.5019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8666667,
+              "g": 0.7607843,
+              "b": 0.7058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9607843,
+              "g": 0.94509804,
+              "b": 0.91764706
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.73333335,
+              "g": 0.8039216,
+              "b": 0.7882353
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5058824,
+              "g": 0.6627451,
+              "b": 0.65882355
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.27058825,
+              "g": 0.5254902,
+              "b": 0.53333336
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Clay to Teal 9",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.0,
+              "g": 0.38431373,
+              "b": 0.4
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Plum to Olive",
+      "swatches": [
+        {
+          "name": "Plum to Olive 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.40392157,
+              "g": 0.18039216,
+              "b": 0.3882353
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5411765,
+              "g": 0.3647059,
+              "b": 0.5176471
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6784314,
+              "g": 0.54901963,
+              "b": 0.64705884
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.81960785,
+              "g": 0.74509805,
+              "b": 0.78431374
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.95686275,
+              "g": 0.9490196,
+              "b": 0.91764706
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 6",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.78431374,
+              "g": 0.7921569,
+              "b": 0.70980394
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 7",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.6156863,
+              "g": 0.6431373,
+              "b": 0.50980395
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 8",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.45882353,
+              "g": 0.5019608,
+              "b": 0.3137255
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Plum to Olive 9",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.30980393,
+              "g": 0.36078432,
+              "b": 0.105882354
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    }
+  ]
+}

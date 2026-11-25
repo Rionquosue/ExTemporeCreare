@@ -1,0 +1,64 @@
+{
+  "libraries": [
+    {
+      "file": "shadows-glows.vcstyles",
+      "id": "shadows-glows",
+      "name": "Shadows and Glows"
+    },
+    {
+      "file": "outlines-rules.vcstyles",
+      "id": "outlines-rules",
+      "name": "Outlines and Rules"
+    },
+    {
+      "file": "hand-drawn.vcstyles",
+      "id": "hand-drawn",
+      "name": "Hand-Drawn"
+    },
+    {
+      "file": "textures.vcstyles",
+      "id": "textures",
+      "name": "Textures"
+    },
+    {
+      "file": "painted-sketched.vcstyles",
+      "id": "painted-sketched",
+      "name": "Painted and Sketched"
+    },
+    {
+      "file": "paper-cutouts.vcstyles",
+      "id": "paper-cutouts",
+      "name": "Paper Cutouts"
+    },
+    {
+      "file": "gradient-finishes.vcstyles",
+      "id": "gradient-finishes",
+      "name": "Gradient Finishes"
+    },
+    {
+      "file": "shape-effects.vcstyles",
+      "id": "shape-effects",
+      "name": "Shape Effects"
+    },
+    {
+      "file": "blends-transparency.vcstyles",
+      "id": "blends-transparency",
+      "name": "Blends and Transparency"
+    },
+    {
+      "file": "game-hud.vcstyles",
+      "id": "game-hud",
+      "name": "Game HUD"
+    },
+    {
+      "file": "status-effects.vcstyles",
+      "id": "status-effects",
+      "name": "Status Effects"
+    },
+    {
+      "file": "neon-glow.vcstyles",
+      "id": "neon-glow",
+      "name": "Neon & Glow"
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Painted and Sketched",
+  "styles": [
+    {
+      "name": "Washed Blue",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.5411765,
+                "g": 0.7254902,
+                "b": 0.7882353
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "artistic.watercolor",
+            "params": {
+              "brushDetail": 8.0,
+              "shadowIntensity": 2.0,
+              "texture": 2.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Bristle Ochre",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.76862746,
+                "g": 0.5921569,
+                "b": 0.3529412
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.4627451,
+                "g": 0.3254902,
+                "b": 0.23921569
+              }
+            },
+            "width": 1.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "artistic.dryBrush",
+            "params": {
+              "brushDetail": 7.0,
+              "brushSize": 4.0,
+              "texture": 2.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Pastel Heather",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.654902,
+                "g": 0.54901963,
+                "b": 0.64705884
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "artistic.roughPastels",
+            "params": {
+              "invert": false,
+              "lightDirection": "topLeft",
+              "relief": 5.0,
+              "scaling": 100.0,
+              "strokeDetail": 9.0,
+              "strokeLength": 8.0,
+              "texture": "canvas"
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Charcoal Shade",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.4,
+                "g": 0.4,
+                "b": 0.4
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "sketch.charcoal",
+            "params": {
+              "detail": 3.0,
+              "lightDarkBalance": 55.0,
+              "thickness": 3.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Ink Contour",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.8509804,
+                "g": 0.8862745,
+                "b": 0.8745098
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.14901961,
+                "g": 0.19607843,
+                "b": 0.23137255
+              }
+            },
+            "width": 1.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "brushStrokes.inkOutlines",
+            "params": {
+              "darkIntensity": 24.0,
+              "lightIntensity": 8.0,
+              "strokeLength": 6.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Wet Ink",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.3882353,
+                "g": 0.48235294,
+                "b": 0.52156866
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "brushStrokes.sumiE",
+            "params": {
+              "contrast": 20.0,
+              "strokePressure": 5.0,
+              "strokeWidth": 7.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Fine Pen",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.84705883,
+                "g": 0.83137256,
+                "b": 0.7764706
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "sketch.graphicPen",
+            "params": {
+              "lightDarkBalance": 55.0,
+              "strokeDirection": "rightDiagonal",
+              "strokeLength": 6.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

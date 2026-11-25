@@ -1,0 +1,104 @@
+{
+  "libraries": [
+    {
+      "file": "art-ribbons.etc",
+      "id": "art-ribbons",
+      "name": "Art Ribbons"
+    },
+    {
+      "file": "ink-and-wash.etc",
+      "id": "ink-and-wash",
+      "name": "Ink and Wash"
+    },
+    {
+      "file": "calligraphic-nibs.etc",
+      "id": "calligraphic-nibs",
+      "name": "Calligraphic Nibs"
+    },
+    {
+      "file": "pressure-sensitive.etc",
+      "id": "pressure-sensitive",
+      "name": "Pressure Sensitive"
+    },
+    {
+      "file": "bristle-brushes.etc",
+      "id": "bristle-brushes",
+      "name": "Bristle Brushes"
+    },
+    {
+      "file": "paint.etc",
+      "id": "paint",
+      "name": "Paint"
+    },
+    {
+      "file": "pattern-borders.etc",
+      "id": "pattern-borders",
+      "name": "Pattern Borders"
+    },
+    {
+      "file": "decorative.etc",
+      "id": "decorative",
+      "name": "Decorative"
+    },
+    {
+      "file": "ornamental.etc",
+      "id": "ornamental",
+      "name": "Ornamental"
+    },
+    {
+      "file": "scatter-shapes.etc",
+      "id": "scatter-shapes",
+      "name": "Scatter Shapes"
+    },
+    {
+      "file": "stipple.etc",
+      "id": "stipple",
+      "name": "Stipple"
+    },
+    {
+      "file": "game-trails.etc",
+      "id": "game-trails",
+      "name": "Game Trails"
+    },
+    {
+      "file": "energy-beams.etc",
+      "id": "energy-beams",
+      "name": "Energy Beams"
+    },
+    {
+      "file": "dry-media.etc",
+      "id": "dry-media",
+      "name": "Dry Media"
+    },
+    {
+      "file": "tech-circuit.etc",
+      "id": "tech-circuit",
+      "name": "Tech Circuit"
+    },
+    {
+      "file": "engraving.etc",
+      "id": "engraving",
+      "name": "Engraving"
+    },
+    {
+      "file": "arrows.etc",
+      "id": "arrows",
+      "name": "Arrows"
+    },
+    {
+      "file": "image-brush.etc",
+      "id": "image-brush",
+      "name": "Image Brush"
+    },
+    {
+      "file": "artistic.etc",
+      "id": "artistic",
+      "name": "Artistic Brushes"
+    },
+    {
+      "file": "vector-packs.etc",
+      "id": "vector-packs",
+      "name": "Vector Packs"
+    }
+  ]
+}

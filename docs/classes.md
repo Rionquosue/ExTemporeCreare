@@ -15,3 +15,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/atomic.rs`: `write_atomic`, `write_atomic_with`, `write_new_with`, `sync_file`, `read_only_location`.
 - `src/base64.rs`: `encode`, `decode`, `decoded_len`.
 - `src/brushart.rs`: `with_brush_art`, `placed_as_groups`.
+
+## engine/crates/engine (run-time presets)
+
+- `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.

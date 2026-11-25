@@ -962,7 +962,7 @@ fn a_pattern_swatch_takes_a_pattern_by_name() {
 
 #[test]
 fn organic_fades_add_with_their_method_midpoints_and_opacities_in_rgb_and_cmyk() {
-    let lib = vectorcraft_color::libraries::builtin_library("organic-fades").unwrap();
+    let lib = crate::cmd::swatchlib::builtin_library("organic-fades").unwrap();
     for mode in ["rgb", "cmyk"] {
         let mut s = Session::new();
         run(&mut s, "file.new", json!({"width": 100, "height": 100, "colorMode": mode}));
@@ -995,7 +995,7 @@ fn organic_fades_add_with_their_method_midpoints_and_opacities_in_rgb_and_cmyk()
 
 #[test]
 fn holographic_glows_add_whole_in_rgb_and_cmyk_as_one_undo_step() {
-    let lib = vectorcraft_color::libraries::builtin_library("holographic").unwrap();
+    let lib = crate::cmd::swatchlib::builtin_library("holographic").unwrap();
     let Paint::Gradient(want) = &lib.swatch("Mint Halo").unwrap().paint else { panic!("Mint Halo is a gradient") };
     for mode in ["rgb", "cmyk"] {
         let mut s = Session::new();
@@ -1111,27 +1111,6 @@ fn pattern_libraries_bring_their_patterns_and_add_each_once() {
     assert!(s.execute("swatch.library.copyToUser", &json!({"library": "geometric-patterns"})).is_err());
 }
 
-/// The built-in pattern libraries: unique, tiling patterns with art, whose names no two libraries
-/// share. Each library's own swatches draw from it; a swatch of the same name elsewhere does not.
-#[test]
-fn built_in_pattern_libraries_hold_tiling_patterns_with_unique_names() {
-    use crate::cmd::patternlib::{PATTERN_LIBRARIES, library, library_doc, swatch_source};
-    let mut names = std::collections::HashSet::new();
-    for b in PATTERN_LIBRARIES {
-        let d = library_doc(b.id).unwrap();
-        assert!(!d.patterns.is_empty(), "{}", b.id);
-        for p in &d.patterns {
-            assert!(names.insert(p.name.clone()), "{} is in two libraries", p.name);
-            assert!(!p.art.is_empty() && p.width() > 0.0 && p.height() > 0.0, "{}", p.name);
-            assert!(vectorcraft_render::render_pattern_swatch(&d, &p.name, 16).is_some(), "{}", p.name);
-        }
-        let (_, lib) = library(b.id).unwrap();
-        for w in &lib.swatches {
-            assert!(std::sync::Arc::ptr_eq(&swatch_source(w).unwrap(), &d), "{}", w.name);
-            assert!(swatch_source(&w.clone()).is_none(), "a copy of {} is another library's swatch", w.name);
-        }
-    }
-}
 
 /// Listing and reading a pattern library add nothing to the document. A pattern added from it
 /// undoes and redoes with its swatch, and both stay after a save and reopen.

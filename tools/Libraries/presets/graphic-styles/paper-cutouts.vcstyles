@@ -1,0 +1,367 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Paper Cutouts",
+  "styles": [
+    {
+      "name": "Coral Layers",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.41960785,
+                "b": 0.41960785
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9764706,
+                "g": 0.78039217,
+                "b": 0.30980393
+              }
+            },
+            "width": 7.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.95686275,
+                "b": 0.9019608
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 0.0,
+              "color": "#6d597a",
+              "mode": "normal",
+              "opacity": 100.0,
+              "x": 5.0,
+              "y": 5.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Mint Layers",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.5019608,
+                "g": 0.79607844,
+                "b": 0.76862746
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.16470589,
+                "g": 0.6156863,
+                "b": 0.56078434
+              }
+            },
+            "width": 7.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9137255,
+                "g": 0.9607843,
+                "b": 0.85882354
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 0.0,
+              "color": "#355070",
+              "mode": "normal",
+              "opacity": 100.0,
+              "x": 4.0,
+              "y": 6.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Midnight Layers",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.23921569,
+                "g": 0.3529412,
+                "b": 0.5019608
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.93333334,
+                "g": 0.42352942,
+                "b": 0.3019608
+              }
+            },
+            "width": 7.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.8784314,
+                "g": 0.9843137,
+                "b": 0.9882353
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 0.0,
+              "color": "#1b263b",
+              "mode": "normal",
+              "opacity": 100.0,
+              "x": 6.0,
+              "y": 4.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Sunflower Sheet",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.74509805,
+                "b": 0.043137256
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9843137,
+                "g": 0.3372549,
+                "b": 0.02745098
+              }
+            },
+            "width": 7.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.9529412,
+                "b": 0.6901961
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 0.0,
+              "color": "#6a4c93",
+              "mode": "normal",
+              "opacity": 100.0,
+              "x": 3.0,
+              "y": 6.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Rose Layers",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9490196,
+                "g": 0.5176471,
+                "b": 0.50980395
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.5176471,
+                "g": 0.64705884,
+                "b": 0.6156863
+              }
+            },
+            "width": 7.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.96862745,
+                "g": 0.92941177,
+                "b": 0.8862745
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 0.0,
+              "color": "#4a4e69",
+              "mode": "normal",
+              "opacity": 100.0,
+              "x": 6.0,
+              "y": 3.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Monochrome Stack",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9607843,
+                "g": 0.9607843,
+                "b": 0.9607843
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.26666668,
+                "g": 0.26666668,
+                "b": 0.26666668
+              }
+            },
+            "width": 7.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 0.0,
+              "color": "#222222",
+              "mode": "normal",
+              "opacity": 100.0,
+              "x": 5.0,
+              "y": 5.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

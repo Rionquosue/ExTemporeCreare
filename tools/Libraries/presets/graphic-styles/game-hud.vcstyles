@@ -1,0 +1,234 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Game HUD",
+  "styles": [
+    {
+      "name": "Health Fill",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.90588236,
+                "g": 0.29803923,
+                "b": 0.23529412
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.36078432,
+                "g": 0.101960786,
+                "b": 0.101960786
+              }
+            },
+            "width": 1.25
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Mana Glow",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.20392157,
+                "g": 0.59607846,
+                "b": 0.85882354
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 7.0,
+              "color": "#5dade2",
+              "mode": "normal",
+              "opacity": 85.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Damage Flash",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.41960785,
+                "b": 0.20784314
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.innerGlow",
+            "params": {
+              "blur": 8.0,
+              "color": "#ffe66d",
+              "mode": "screen",
+              "opacity": 80.0,
+              "source": "edge"
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Quest Outline",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.96862745,
+                "g": 0.9529412,
+                "b": 0.9098039
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.17254902,
+                "g": 0.24313726,
+                "b": 0.3137255
+              }
+            },
+            "width": 3.0,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Coin Shine",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.94509804,
+                "g": 0.76862746,
+                "b": 0.05882353
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.7176471,
+                "g": 0.58431375,
+                "b": 0.043137256
+              }
+            },
+            "width": 1.5
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.dropShadow",
+            "params": {
+              "blur": 4.0,
+              "color": "#1d1b2a",
+              "mode": "multiply",
+              "opacity": 40.0,
+              "x": 2.0,
+              "y": 3.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Boss Alert",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.101960786,
+                "g": 0.101960786,
+                "b": 0.18039216
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9137255,
+                "g": 0.27058825,
+                "b": 0.3764706
+              }
+            },
+            "width": 2.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.outerGlow",
+            "params": {
+              "blur": 6.0,
+              "color": "#e94560",
+              "mode": "normal",
+              "opacity": 75.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

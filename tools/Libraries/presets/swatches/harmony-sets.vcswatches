@@ -1,0 +1,628 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Harmony Sets",
+  "swatches": [],
+  "groups": [
+    {
+      "name": "Complementary Coral",
+      "swatches": [
+        {
+          "name": "Complementary Coral 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.38431373,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Complementary Coral 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3019608,
+              "g": 0.85490197,
+              "b": 0.9411765
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Split Complementary Coral",
+      "swatches": [
+        {
+          "name": "Split Complementary Coral 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.38431373,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Split Complementary Coral 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3019608,
+              "g": 0.9411765,
+              "b": 0.7058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Split Complementary Coral 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3019608,
+              "g": 0.53333336,
+              "b": 0.9411765
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Analogous Coral",
+      "swatches": [
+        {
+          "name": "Analogous Coral 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.38431373,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Analogous Coral 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.7058824,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Analogous Coral 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.3019608,
+              "b": 0.53333336
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Triad Coral",
+      "swatches": [
+        {
+          "name": "Triad Coral 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.38431373,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Triad Coral 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3019608,
+              "g": 0.9411765,
+              "b": 0.38431373
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Triad Coral 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.38431373,
+              "g": 0.3019608,
+              "b": 0.9411765
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Tetrad Coral",
+      "swatches": [
+        {
+          "name": "Tetrad Coral 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.38431373,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Tetrad Coral 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.85490197,
+              "g": 0.9411765,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Tetrad Coral 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3019608,
+              "g": 0.85490197,
+              "b": 0.9411765
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Tetrad Coral 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.38431373,
+              "g": 0.3019608,
+              "b": 0.9411765
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Pentagram Coral",
+      "swatches": [
+        {
+          "name": "Pentagram Coral 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.9411765,
+              "g": 0.38431373,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Coral 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.7254902,
+              "g": 0.9411765,
+              "b": 0.3019608
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Coral 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3019608,
+              "g": 0.9411765,
+              "b": 0.6431373
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Coral 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.3019608,
+              "g": 0.47058824,
+              "b": 0.9411765
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Coral 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.8980392,
+              "g": 0.3019608,
+              "b": 0.9411765
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Complementary Teal",
+      "swatches": [
+        {
+          "name": "Complementary Teal 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.61960787,
+              "b": 0.5921569
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Complementary Teal 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.17254902,
+              "b": 0.20392157
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Split Complementary Teal",
+      "swatches": [
+        {
+          "name": "Split Complementary Teal 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.61960787,
+              "b": 0.5921569
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Split Complementary Teal 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.17254902,
+              "b": 0.42745098
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Split Complementary Teal 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.36862746,
+              "b": 0.17254902
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Analogous Teal",
+      "swatches": [
+        {
+          "name": "Analogous Teal 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.61960787,
+              "b": 0.5921569
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Analogous Teal 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.42745098,
+              "b": 0.61960787
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Analogous Teal 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.61960787,
+              "b": 0.36862746
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Triad Teal",
+      "swatches": [
+        {
+          "name": "Triad Teal 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.61960787,
+              "b": 0.5921569
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Triad Teal 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.5921569,
+              "g": 0.17254902,
+              "b": 0.61960787
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Triad Teal 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.5921569,
+              "b": 0.17254902
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Tetrad Teal",
+      "swatches": [
+        {
+          "name": "Tetrad Teal 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.61960787,
+              "b": 0.5921569
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Tetrad Teal 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.20392157,
+              "b": 0.61960787
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Tetrad Teal 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.17254902,
+              "b": 0.20392157
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Tetrad Teal 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.5921569,
+              "b": 0.17254902
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    },
+    {
+      "name": "Pentagram Teal",
+      "swatches": [
+        {
+          "name": "Pentagram Teal 1",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.17254902,
+              "g": 0.61960787,
+              "b": 0.5921569
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Teal 2",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.23137255,
+              "g": 0.17254902,
+              "b": 0.61960787
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Teal 3",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.17254902,
+              "b": 0.47058824
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Teal 4",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.61960787,
+              "g": 0.4117647,
+              "b": 0.17254902
+            }
+          },
+          "global": false,
+          "spot": false
+        },
+        {
+          "name": "Pentagram Teal 5",
+          "paint": {
+            "type": "solid",
+            "color": {
+              "model": "rgb",
+              "r": 0.29411766,
+              "g": 0.61960787,
+              "b": 0.17254902
+            }
+          },
+          "global": false,
+          "spot": false
+        }
+      ]
+    }
+  ]
+}

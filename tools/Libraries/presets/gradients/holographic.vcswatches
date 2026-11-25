@@ -1,0 +1,1065 @@
+{
+  "format": "vcswatches",
+  "version": 1,
+  "name": "Holographic",
+  "swatches": [
+    {
+      "name": "Prism Veil",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.37
+            },
+            {
+              "offset": 0.13,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 1.0,
+              "midpoint": 0.64
+            },
+            {
+              "offset": 0.34,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.28
+            },
+            {
+              "offset": 0.48,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.68
+            },
+            {
+              "offset": 0.71,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 1.0,
+              "midpoint": 0.42
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Opal Ribbon",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.37
+            },
+            {
+              "offset": 0.13,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 1.0,
+              "midpoint": 0.64
+            },
+            {
+              "offset": 0.34,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 1.0,
+              "midpoint": 0.28
+            },
+            {
+              "offset": 0.48,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.68
+            },
+            {
+              "offset": 0.71,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 1.0,
+              "midpoint": 0.42
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Pearl Flash",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.37
+            },
+            {
+              "offset": 0.13,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 1.0,
+              "midpoint": 0.64
+            },
+            {
+              "offset": 0.34,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.28
+            },
+            {
+              "offset": 0.48,
+              "color": {
+                "model": "rgb",
+                "r": 0.9529412,
+                "g": 0.84313726,
+                "b": 0.61960787
+              },
+              "opacity": 1.0,
+              "midpoint": 0.68
+            },
+            {
+              "offset": 0.71,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.42
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Aurora Foil",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 1.0,
+              "midpoint": 0.37
+            },
+            {
+              "offset": 0.13,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 1.0,
+              "midpoint": 0.64
+            },
+            {
+              "offset": 0.34,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.28
+            },
+            {
+              "offset": 0.48,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 1.0,
+              "midpoint": 0.68
+            },
+            {
+              "offset": 0.71,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.42
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Iris Sheen",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 1.0,
+              "midpoint": 0.37
+            },
+            {
+              "offset": 0.13,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 1.0,
+              "midpoint": 0.64
+            },
+            {
+              "offset": 0.34,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.28
+            },
+            {
+              "offset": 0.48,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.68
+            },
+            {
+              "offset": 0.71,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 1.0,
+              "midpoint": 0.42
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Frost Spectrum",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.37
+            },
+            {
+              "offset": 0.13,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 1.0,
+              "midpoint": 0.64
+            },
+            {
+              "offset": 0.34,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.28
+            },
+            {
+              "offset": 0.48,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 1.0,
+              "midpoint": 0.68
+            },
+            {
+              "offset": 0.71,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 1.0,
+              "midpoint": 0.42
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Silver Tide",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Linear",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.37
+            },
+            {
+              "offset": 0.13,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.64
+            },
+            {
+              "offset": 0.34,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 1.0,
+              "midpoint": 0.28
+            },
+            {
+              "offset": 0.48,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 1.0,
+              "midpoint": 0.68
+            },
+            {
+              "offset": 0.71,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 1.0,
+              "midpoint": 0.42
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 1.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Rose Quartz Gleam",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 0.95,
+              "midpoint": 0.4
+            },
+            {
+              "offset": 0.12,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 1.0,
+              "midpoint": 0.58
+            },
+            {
+              "offset": 0.31,
+              "color": {
+                "model": "rgb",
+                "r": 0.9254902,
+                "g": 0.6313726,
+                "b": 0.6039216
+              },
+              "opacity": 0.72,
+              "midpoint": 0.34
+            },
+            {
+              "offset": 0.58,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 0.3,
+              "midpoint": 0.62
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Moonstone Shift",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 0.95,
+              "midpoint": 0.4
+            },
+            {
+              "offset": 0.12,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.58
+            },
+            {
+              "offset": 0.31,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 0.72,
+              "midpoint": 0.34
+            },
+            {
+              "offset": 0.58,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 0.3,
+              "midpoint": 0.62
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.79607844,
+                "g": 0.8235294,
+                "b": 0.85882354
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Violet Edge",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 0.95,
+              "midpoint": 0.4
+            },
+            {
+              "offset": 0.12,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 1.0,
+              "midpoint": 0.58
+            },
+            {
+              "offset": 0.31,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 0.72,
+              "midpoint": 0.34
+            },
+            {
+              "offset": 0.58,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 0.3,
+              "midpoint": 0.62
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.27450982,
+                "g": 0.29803923,
+                "b": 0.3882353
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Mint Halo",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 0.95,
+              "midpoint": 0.4
+            },
+            {
+              "offset": 0.12,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 1.0,
+              "midpoint": 0.58
+            },
+            {
+              "offset": 0.31,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 0.72,
+              "midpoint": 0.34
+            },
+            {
+              "offset": 0.58,
+              "color": {
+                "model": "rgb",
+                "r": 0.76862746,
+                "g": 0.85882354,
+                "b": 0.61960787
+              },
+              "opacity": 0.3,
+              "midpoint": 0.62
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Amber Corona",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 0.95,
+              "midpoint": 0.4
+            },
+            {
+              "offset": 0.12,
+              "color": {
+                "model": "rgb",
+                "r": 0.9529412,
+                "g": 0.84313726,
+                "b": 0.61960787
+              },
+              "opacity": 1.0,
+              "midpoint": 0.58
+            },
+            {
+              "offset": 0.31,
+              "color": {
+                "model": "rgb",
+                "r": 0.96862745,
+                "g": 0.7019608,
+                "b": 0.52156866
+              },
+              "opacity": 0.72,
+              "midpoint": 0.34
+            },
+            {
+              "offset": 0.58,
+              "color": {
+                "model": "rgb",
+                "r": 0.9254902,
+                "g": 0.6313726,
+                "b": 0.6039216
+              },
+              "opacity": 0.3,
+              "midpoint": 0.62
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.96862745,
+                "g": 0.7019608,
+                "b": 0.52156866
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Polar Glint",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 0.95,
+              "midpoint": 0.4
+            },
+            {
+              "offset": 0.12,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 1.0,
+              "midpoint": 0.58
+            },
+            {
+              "offset": 0.31,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 0.72,
+              "midpoint": 0.34
+            },
+            {
+              "offset": 0.58,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 0.3,
+              "midpoint": 0.62
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.5058824,
+                "g": 0.67058825,
+                "b": 0.8784314
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    },
+    {
+      "name": "Pastel Orbit",
+      "paint": {
+        "type": "gradient",
+        "gradient": {
+          "kind": "Radial",
+          "stops": [
+            {
+              "offset": 0.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.9607843,
+                "b": 0.93333334
+              },
+              "opacity": 0.95,
+              "midpoint": 0.4
+            },
+            {
+              "offset": 0.12,
+              "color": {
+                "model": "rgb",
+                "r": 0.87058824,
+                "g": 0.7176471,
+                "b": 0.8117647
+              },
+              "opacity": 1.0,
+              "midpoint": 0.58
+            },
+            {
+              "offset": 0.31,
+              "color": {
+                "model": "rgb",
+                "r": 0.57254905,
+                "g": 0.8352941,
+                "b": 0.7176471
+              },
+              "opacity": 0.72,
+              "midpoint": 0.34
+            },
+            {
+              "offset": 0.58,
+              "color": {
+                "model": "rgb",
+                "r": 0.43529412,
+                "g": 0.79607844,
+                "b": 0.85490197
+              },
+              "opacity": 0.3,
+              "midpoint": 0.62
+            },
+            {
+              "offset": 1.0,
+              "color": {
+                "model": "rgb",
+                "r": 0.72156864,
+                "g": 0.5764706,
+                "b": 0.83137256
+              },
+              "opacity": 0.0,
+              "midpoint": 0.5
+            }
+          ],
+          "method": "Perceptual"
+        },
+        "angle": 0.0
+      },
+      "global": false,
+      "spot": false
+    }
+  ],
+  "groups": []
+}

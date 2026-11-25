@@ -1,0 +1,19 @@
+{
+  "libraries": [
+    {
+      "file": "geometric-patterns.etc",
+      "id": "geometric-patterns",
+      "name": "Geometric Patterns"
+    },
+    {
+      "file": "grit-textures.etc",
+      "id": "grit-textures",
+      "name": "Grit Textures"
+    },
+    {
+      "file": "optical-effects.etc",
+      "id": "optical-effects",
+      "name": "Optical Effects"
+    }
+  ]
+}

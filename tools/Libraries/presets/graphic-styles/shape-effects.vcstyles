@@ -1,0 +1,397 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Shape Effects",
+  "styles": [
+    {
+      "name": "Rounded",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.5647059,
+                "g": 0.74509805,
+                "b": 0.42745098
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.2627451,
+                "g": 0.6666667,
+                "b": 0.54509807
+              }
+            },
+            "width": 2.0,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "stylize.roundCorners",
+            "params": {
+              "radius": 10.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Pill Badge",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9764706,
+                "g": 0.25490198,
+                "b": 0.26666668
+              }
+            }
+          }
+        ],
+        "effects": [
+          {
+            "id": "convertToShape.roundedRectangle",
+            "params": {
+              "extraH": 6.0,
+              "extraW": 12.0,
+              "radius": 40.0,
+              "relative": true
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Round Badge",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.34117648,
+                "g": 0.45882353,
+                "b": 0.5647059
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 2.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "convertToShape.ellipse",
+            "params": {
+              "extraH": 10.0,
+              "extraW": 10.0,
+              "relative": true
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Arc",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.5882353,
+                "b": 0.11764706
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9529412,
+                "g": 0.44705883,
+                "b": 0.17254902
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "warp.arc",
+            "params": {
+              "bend": 30.0,
+              "version": 1
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Flag Wave",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.15294118,
+                "g": 0.49019608,
+                "b": 0.6313726
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.11372549,
+                "g": 0.30588236,
+                "b": 0.5372549
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "warp.flag",
+            "params": {
+              "bend": 25.0,
+              "version": 1
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Bulge",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9764706,
+                "g": 0.78039217,
+                "b": 0.30980393
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.972549,
+                "g": 0.5882353,
+                "b": 0.11764706
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "warp.bulge",
+            "params": {
+              "bend": 30.0,
+              "version": 1
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Twisted",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.3019608,
+                "g": 0.5647059,
+                "b": 0.5568628
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.14901961,
+                "g": 0.27450982,
+                "b": 0.3254902
+              }
+            },
+            "width": 1.5,
+            "cap": "Round",
+            "join": "Round"
+          }
+        ],
+        "effects": [
+          {
+            "id": "distort.twist",
+            "params": {
+              "angle": 30.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Echo",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.2627451,
+                "g": 0.6666667,
+                "b": 0.54509807
+              }
+            },
+            "opacity": 0.55
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.14901961,
+                "g": 0.27450982,
+                "b": 0.3254902
+              }
+            },
+            "width": 1.0
+          }
+        ],
+        "effects": [
+          {
+            "id": "distort.transform",
+            "params": {
+              "copies": 3,
+              "moveH": 4.0,
+              "moveV": 4.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Spiral Copies",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9764706,
+                "g": 0.25490198,
+                "b": 0.26666668
+              }
+            },
+            "opacity": 0.35
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.6156863,
+                "g": 0.007843138,
+                "b": 0.03137255
+              }
+            },
+            "width": 0.75
+          }
+        ],
+        "effects": [
+          {
+            "id": "distort.transform",
+            "params": {
+              "copies": 5,
+              "rotate": 12.0,
+              "scaleH": 90.0,
+              "scaleV": 90.0
+            },
+            "visible": true
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}

@@ -424,8 +424,8 @@ fn user_libraries_and_other_documents_styles() {
 fn every_builtin_style_paints_visibly_on_a_rectangle() {
     let mut s = session();
     let mut renderer = vectorcraft_render::Renderer::new();
-    for b in vectorcraft_doc::style_libs::STYLE_LIBRARIES {
-        let (_, lib) = cmd::stylelib::library(&s, b.id).unwrap();
+    for b in crate::presets::entries(crate::presets::Kind::GraphicStyles).iter() {
+        let (_, lib) = cmd::stylelib::library(&s, &b.id).unwrap();
         for g in &lib.styles {
             run(&mut s, "file.new", json!({"width": 100, "height": 100}));
             // Art under the rectangle: a blend mode shows only against art, not the bare page.

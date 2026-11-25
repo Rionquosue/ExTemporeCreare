@@ -81,7 +81,7 @@ fn applying_a_preset_edits_the_gradient_in_place_as_one_undo_step() {
 fn an_organic_fade_applies_with_its_method_midpoints_and_opacities() {
     let (mut s, id) = session_with(json!({"color": "#336699"}));
     let mist = s.gradient_preset("Mist").unwrap();
-    assert_eq!((mist.library, mist.gradient.method), (Some("Organic Fades"), GradientMethod::Perceptual));
+    assert_eq!((mist.library.as_deref(), mist.gradient.method), (Some("Organic Fades"), GradientMethod::Perceptual));
     s.execute("gradient.presets.apply", &json!({"name": "Mist"})).unwrap();
     let g = paint(&s, id, false).gradient;
     assert_eq!((g.kind, g.method, &g.stops), (GradientKind::Linear, GradientMethod::Perceptual, &mist.gradient.stops));
@@ -97,7 +97,7 @@ fn a_holographic_foil_applies_in_place_as_one_undo_step() {
     let before = paint(&s, id, false);
     let undo = s.doc().unwrap().history.undo.len();
     let veil = s.gradient_preset("prism veil").unwrap();
-    assert_eq!((veil.library, veil.gradient.method), (Some("Holographic"), GradientMethod::Perceptual));
+    assert_eq!((veil.library.as_deref(), veil.gradient.method), (Some("Holographic"), GradientMethod::Perceptual));
     let r = s.execute("gradient.presets.apply", &json!({"name": "prism veil"})).unwrap();
     assert_eq!(r["name"].as_str(), Some("Prism Veil"));
     let g = paint(&s, id, false);
@@ -133,7 +133,7 @@ fn a_preset_applies_to_the_stroke_and_to_a_solid_paint() {
     s.execute("paint.setStroke", &json!({"color": "#000000", "focus": false})).unwrap();
     s.execute("gradient.presets.apply", &json!({"name": "Gold"})).unwrap();
     let gold = s.gradient_preset("Gold").unwrap();
-    assert_eq!((gold.library, paint(&s, id, false).gradient.stops), (Some("Metallic Gradients"), gold.gradient.stops.clone()));
+    assert_eq!((gold.library.as_deref(), paint(&s, id, false).gradient.stops), (Some("Metallic Gradients"), gold.gradient.stops.clone()));
     // With the Stroke proxy in front (or `stroke: true`) the stroke takes it; dither isn't sent.
     s.execute("paint.toggleActive", &json!({"fill": false})).unwrap();
     s.execute("gradient.presets.apply", &json!({"name": "Dawn"})).unwrap();

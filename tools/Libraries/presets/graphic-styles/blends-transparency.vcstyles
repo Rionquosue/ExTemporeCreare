@@ -1,0 +1,352 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Blends and Transparency",
+  "styles": [
+    {
+      "name": "Multiply Tint",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.74509805,
+                "b": 0.043137256
+              }
+            }
+          }
+        ]
+      },
+      "blend": "Multiply",
+      "unit_box": true
+    },
+    {
+      "name": "Darken Veil",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.29803923,
+                "g": 0.7882353,
+                "b": 0.9411765
+              }
+            }
+          }
+        ]
+      },
+      "opacity": 0.85,
+      "blend": "Darken",
+      "unit_box": true
+    },
+    {
+      "name": "Ghosted",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.44705883,
+                "g": 0.03529412,
+                "b": 0.7176471
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.22745098,
+                "g": 0.047058824,
+                "b": 0.6392157
+              }
+            },
+            "width": 1.0
+          }
+        ]
+      },
+      "opacity": 0.4,
+      "unit_box": true
+    },
+    {
+      "name": "Invert",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            }
+          }
+        ]
+      },
+      "blend": "Difference",
+      "unit_box": true
+    },
+    {
+      "name": "Two Tone",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.2627451,
+                "g": 0.38039216,
+                "b": 0.93333334
+              }
+            }
+          },
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.96862745,
+                "g": 0.14509805,
+                "b": 0.52156866
+              }
+            },
+            "opacity": 0.6,
+            "blend": "Multiply"
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Overlay Glaze",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.96862745,
+                "g": 0.14509805,
+                "b": 0.52156866
+              }
+            }
+          },
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "gradient",
+              "gradient": {
+                "kind": "Linear",
+                "stops": [
+                  {
+                    "offset": 0.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 1.0,
+                      "g": 1.0,
+                      "b": 1.0
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "offset": 1.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 0.0,
+                      "g": 0.0,
+                      "b": 0.0
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  }
+                ]
+              },
+              "angle": -90.0
+            },
+            "blend": "Overlay"
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Screen Light",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.22745098,
+                "g": 0.047058824,
+                "b": 0.6392157
+              }
+            }
+          },
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "gradient",
+              "gradient": {
+                "kind": "Radial",
+                "stops": [
+                  {
+                    "offset": 0.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 0.29803923,
+                      "g": 0.7882353,
+                      "b": 0.9411765
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "offset": 1.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 0.0,
+                      "g": 0.0,
+                      "b": 0.0
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  }
+                ]
+              },
+              "geom": {
+                "start": {
+                  "x": 0.5,
+                  "y": 0.4
+                },
+                "end": {
+                  "x": 1.1,
+                  "y": 0.4
+                },
+                "aspect": 1.0
+              },
+              "angle": 0.0
+            },
+            "blend": "Screen"
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Soft Light Wash",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.0,
+                "g": 0.5882353,
+                "b": 0.78039217
+              }
+            }
+          },
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "gradient",
+              "gradient": {
+                "kind": "Linear",
+                "stops": [
+                  {
+                    "offset": 0.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 1.0,
+                      "g": 1.0,
+                      "b": 1.0
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "offset": 1.0,
+                    "color": {
+                      "model": "rgb",
+                      "r": 0.011764706,
+                      "g": 0.015686275,
+                      "b": 0.36862746
+                    },
+                    "opacity": 1.0,
+                    "midpoint": 0.5
+                  }
+                ]
+              },
+              "angle": 0.0
+            },
+            "blend": "SoftLight"
+          }
+        ]
+      },
+      "isolate": true,
+      "unit_box": true
+    },
+    {
+      "name": "Knockout Group",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.28235295,
+                "g": 0.58431375,
+                "b": 0.9372549
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.24705882,
+                "g": 0.21568628,
+                "b": 0.7882353
+              }
+            },
+            "width": 1.0
+          }
+        ]
+      },
+      "opacity": 0.7,
+      "isolate": true,
+      "knockout": "on",
+      "unit_box": true
+    }
+  ]
+}

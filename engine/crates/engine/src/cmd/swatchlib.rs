@@ -10,7 +10,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::libraries::{BuiltinLibrary, GRADIENT_LIBRARIES, SWATCH_LIBRARIES, builtin_library};
+use crate::presets::{Entry, Kind};
 use vectorcraft_color::palette_io::{self, PaletteFormat};
 use vectorcraft_color::recolor::Palette;
 use vectorcraft_color::swatch::REGISTRATION;
@@ -676,18 +676,28 @@ pub struct LibraryInfo {
     pub category: &'static str,
 }
 
-/// The built-in libraries with their categories.
-fn builtins() -> impl Iterator<Item = (&'static str, &'static BuiltinLibrary)> {
-    SWATCH_LIBRARIES.iter().map(|b| ("builtIn", b)).chain(GRADIENT_LIBRARIES.iter().map(|b| ("gradients", b)))
+/// The built-in swatch and gradient libraries with their categories, from the presets folder
+/// ([`crate::presets`]).
+pub(crate) fn builtins() -> Vec<(&'static str, Kind, Entry)> {
+    let of = |category: &'static str, kind: Kind| crate::presets::entries(kind).iter().map(move |e| (category, kind, e.clone())).collect::<Vec<_>>();
+    let mut all = of("builtIn", Kind::Swatches);
+    all.extend(of("gradients", Kind::Gradients));
+    all
 }
 
-fn builtin_info((category, b): (&'static str, &BuiltinLibrary)) -> LibraryInfo {
-    LibraryInfo { id: b.id.into(), name: b.name.into(), category }
+fn builtin_info((category, _, e): &(&'static str, Kind, Entry)) -> LibraryInfo {
+    LibraryInfo { id: e.id.clone(), name: e.name.clone(), category }
+}
+
+/// Built-in swatch or gradient library `id`, read from the presets folder once.
+pub(crate) fn builtin_library(id: &str) -> Option<Arc<SwatchLibrary>> {
+    let (_, kind, e) = builtins().into_iter().find(|(_, _, e)| e.id == id)?;
+    crate::presets::library(kind, &e.id, |bytes, e| palette_io::read_bytes(bytes, &e.name).ok())
 }
 
 /// Every library, in menu order: built-in, gradients, patterns, User Defined, loaded.
 pub fn libraries(s: &Session) -> Vec<LibraryInfo> {
-    builtins().map(builtin_info).chain(patternlib::infos()).chain(s.swatch_libraries.infos().cloned()).collect()
+    builtins().iter().map(builtin_info).chain(patternlib::infos()).chain(s.swatch_libraries.infos().cloned()).collect()
 }
 
 /// Library `key` (an id, or a name in any case) with its info.
@@ -698,8 +708,8 @@ pub fn library(s: &Session, key: &str) -> Option<(LibraryInfo, Arc<SwatchLibrary
     if let Some(found) = concealed_library_id(s, key).and_then(|id| s.swatch_libraries.get(&id)) {
         return Some(found);
     }
-    if let Some(b) = builtins().find(|(_, b)| b.id == key) {
-        return Some((builtin_info(b), builtin_library(key)?));
+    if let Some(b) = builtins().into_iter().find(|(_, _, e)| e.id == key) {
+        return Some((builtin_info(&b), builtin_library(key)?));
     }
     if let Some(found) = patternlib::library(key) {
         return Some(found);

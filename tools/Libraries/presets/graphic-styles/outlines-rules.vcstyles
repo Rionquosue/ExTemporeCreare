@@ -1,0 +1,409 @@
+{
+  "format": "vcstyles",
+  "version": 2,
+  "name": "Outlines and Rules",
+  "styles": [
+    {
+      "name": "Double Rule",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.078431375,
+                "g": 0.12941177,
+                "b": 0.23921569
+              }
+            },
+            "width": 6.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 3.0
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Triple Rule",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.99607843,
+                "g": 0.98039216,
+                "b": 0.8784314
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.15686275,
+                "g": 0.21176471,
+                "b": 0.09411765
+              }
+            },
+            "width": 10.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.99607843,
+                "g": 0.98039216,
+                "b": 0.8784314
+              }
+            },
+            "width": 6.0
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.15686275,
+                "g": 0.21176471,
+                "b": 0.09411765
+              }
+            },
+            "width": 2.0
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Dashed Border",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9137255,
+                "g": 0.9607843,
+                "b": 0.9490196
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.14901961,
+                "g": 0.27450982,
+                "b": 0.3254902
+              }
+            },
+            "width": 2.0,
+            "cap": "Round",
+            "join": "Round",
+            "dash": {
+              "pattern": [
+                6.0,
+                4.0
+              ],
+              "offset": 0.0,
+              "align_corners": true
+            }
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Dotted Border",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.95686275,
+                "b": 0.9019608
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.90588236,
+                "g": 0.43529412,
+                "b": 0.31764707
+              }
+            },
+            "width": 3.0,
+            "cap": "Round",
+            "join": "Round",
+            "dash": {
+              "pattern": [
+                0.0,
+                6.0
+              ],
+              "offset": 0.0,
+              "align_corners": true
+            }
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Offset Keyline",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.9137255,
+                "g": 0.76862746,
+                "b": 0.41568628
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.14901961,
+                "g": 0.27450982,
+                "b": 0.3254902
+              }
+            },
+            "width": 1.5,
+            "effects": [
+              {
+                "id": "path.offsetPath",
+                "params": {
+                  "joins": "round",
+                  "offset": 4.0
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Inset Keyline",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.16470589,
+                "g": 0.6156863,
+                "b": 0.56078434
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 1.0,
+                "b": 1.0
+              }
+            },
+            "width": 1.5,
+            "effects": [
+              {
+                "id": "path.offsetPath",
+                "params": {
+                  "joins": "round",
+                  "offset": -4.0
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Outside Stroke",
+      "appearance": {
+        "items": [
+          {
+            "kind": "fill",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.95686275,
+                "g": 0.63529414,
+                "b": 0.38039216
+              }
+            }
+          },
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.14901961,
+                "g": 0.27450982,
+                "b": 0.3254902
+              }
+            },
+            "width": 4.0,
+            "align": "Outside"
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Tapered Ink",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.105882354,
+                "g": 0.105882354,
+                "b": 0.105882354
+              }
+            },
+            "width": 5.0,
+            "cap": "Round",
+            "join": "Round",
+            "profile": {
+              "points": [
+                [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.5,
+                  1.0,
+                  1.0
+                ],
+                [
+                  1.0,
+                  0.0,
+                  0.0
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Pointer",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 0.90588236,
+                "g": 0.43529412,
+                "b": 0.31764707
+              }
+            },
+            "width": 2.0,
+            "cap": "Round",
+            "join": "Round",
+            "end_arrow": "Triangle"
+          }
+        ]
+      },
+      "unit_box": true
+    },
+    {
+      "name": "Highlighter",
+      "appearance": {
+        "items": [
+          {
+            "kind": "stroke",
+            "paint": {
+              "type": "solid",
+              "color": {
+                "model": "rgb",
+                "r": 1.0,
+                "g": 0.8392157,
+                "b": 0.039215688
+              }
+            },
+            "width": 10.0,
+            "cap": "Round",
+            "join": "Round",
+            "opacity": 0.6,
+            "blend": "Multiply"
+          }
+        ]
+      },
+      "unit_box": true
+    }
+  ]
+}
