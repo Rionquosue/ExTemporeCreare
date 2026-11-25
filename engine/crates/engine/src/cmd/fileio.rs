@@ -2,7 +2,7 @@
 //! save, export and serialize by path or bytes (base64), the format table, `command.batch` and
 //! `action.batch` (the Actions panel menu's Batch…).
 //!
-//! - `load`: `document.open` (native, legacy, SVG/SVGZ, PDF/.ai/.ait, DXF, HP-GL, raster images).
+//! - `load`: `document.open` (native `.etc`, SVG/SVGZ, PDF/.ai/.ait, Affinity, CorelDRAW, raster images).
 //! - `encode`: one encoder per writable format, with typed options parsed from the params.
 //! - `svg`: the SVG Options (styling, fonts, images, object ids, artboards…).
 //! - `export`: `document.export` / `serialize` / `exportSelection` / `exportForOffice`.
@@ -12,11 +12,8 @@
 //!   per-format options (`file.formatOptions`); [`save_with`] is the one save path of every frontend.
 //! - `pdf`: PDF settings and presets for every PDF export, `document.exportPdf`.
 //! - `pdfimport`: the PDF pages, box and password `document.open` and Place read, `document.pdfInfo`.
-//! - `eps`: EPS export options (flattened transparency, previews, the embedded document), `document.exportEps`.
 //! - `cdr`: `.cdr` drawings of versions 1 to 27 and `.cdt` templates, and `.cmx` files with
 //!   32-bit coordinates, open and place.
-//! - `importer`: files that importer plug-ins open (`document.open {importer}`, and extensions no
-//!   built-in format reads).
 //! - `mesh3d`: 3D assets as OBJ, glTF, USDA and USDZ mesh files (`assets.export3D`).
 //!
 //! [`FORMATS`] is the single list of formats (append-only); open dialogs use [`open_filters`],

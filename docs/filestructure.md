@@ -60,7 +60,7 @@ EXTEMPORECREARE
 |       |-- doc/
 |       |-- effects/
 |       |-- engine/
-|       |-- format/
+|       |-- etcfile/
 |       |-- geom/
 |       |-- pathops/
 |       |-- pdf/

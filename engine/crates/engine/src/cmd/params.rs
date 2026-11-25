@@ -662,15 +662,7 @@ pub const UNCHECKED: &[&str] = &[
     "assets.settings.set",
     "attributes.info",
     "attributes.set",
-    "css.export",
-    "css.generate",
-    "css.selection",
-    "document.dxfInfo",
-    "document.exportDxf",
-    "document.exportEps",
     "document.exportForScreens",
-    "document.exportForWeb",
-    "document.exportForWeb.preview",
     "document.exportPdf",
     "document.find",
     "document.inspect",
@@ -732,10 +724,7 @@ pub const UNCHECKED: &[&str] = &[
     "object.rasterize",
     "object.repeat.options",
     "object.setBounds",
-    "object.setOverprint",
     "object.setProps",
-    "object.slice.divide",
-    "object.slice.options",
     "object.transformAgain",
     "paint.complement",
     "paint.editGradient",
@@ -754,7 +743,6 @@ pub const UNCHECKED: &[&str] = &[
     "pdf.preset.save",
     "perspective.grid.define",
     "perspective.presets.save",
-    "print.tiling",
     "recolor.apply",
     "select.editSaved",
     "shape.flare",
@@ -776,9 +764,6 @@ pub const UNCHECKED: &[&str] = &[
     "transparency.setOpacityMask",
     "transparency.unlinkOpacityMask",
     "type.pathOptions",
-    "webExport.optimizeToFileSize",
-    "webExport.presets.save",
-    "webExport.settings",
 ];
 
 /// The object options of a PDF export, key by key: the Save PDF settings as a preset stores them,
@@ -950,8 +935,7 @@ fn check_screen_rows(id: &str, within: &str, p: &serde_json::Map<String, Value>)
 /// The options of an export or save command `id`. `document.export`, `document.exportSelection`
 /// and `document.serialize` take a key that some format reads (one object can carry several
 /// formats' options; `document.formats` lists them). `document.exportPdf`, `document.pdfSettings`
-/// and `pdf.preset.save` take a key that PDF reads, `document.exportEps` one that EPS reads and
-/// `document.exportDxf` one that DXF reads. `document.save`, `file.saveAs`, `file.saveCopy` and
+/// and `pdf.preset.save` take a key that PDF reads. `document.save`, `file.saveAs`, `file.saveCopy` and
 /// `file.saveAsTemplate` take, beside the path and in `options`, a key that some save format
 /// reads. `document.exportForScreens` takes the keys it reads, and checks its format rows and
 /// settings ([`check_screen_rows`]), as `document.exportPresets.save` does in its `settings` and

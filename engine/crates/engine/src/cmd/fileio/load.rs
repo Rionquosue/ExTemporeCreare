@@ -28,6 +28,8 @@ pub struct Loaded {
     /// A PDF, or a `.ai` or `.ait` that holds a PDF, read through the editor's own copy of its art
     /// that it carries (its layers), not from its PDF part alone.
     pub editing_data: bool,
+    /// The project id of an `.etc` file.
+    pub project_id: Option<String>,
 }
 
 impl Loaded {
@@ -162,7 +164,7 @@ fn restore_or_import(
     if let Some((intact, bytes)) = editing {
         let native = if intact { bytes() } else { None };
         match native.and_then(|b| native_file(&b).ok()) {
-            Some((doc, warnings)) => return Ok((doc, warnings, true)),
+            Some((doc, warnings, _)) => return Ok((doc, warnings, true)),
             None => fallback = Some(if intact { EDITING_DAMAGED } else { EDITING_STALE }),
         }
     }
@@ -175,11 +177,11 @@ fn restore_or_import(
 
 /// A native file's document and details, the colour profiles it carries installed where missing
 /// (with a warning for each that can't be used).
-pub(crate) fn native_file(bytes: &[u8]) -> Result<(Document, Vec<String>)> {
+pub(crate) fn native_file(bytes: &[u8]) -> Result<(Document, Vec<String>, String)> {
     let f = etcfile::load_file(bytes).map_err(err)?;
     let mut warnings = super::native::install_profiles(f.profiles);
     warnings.extend(f.notes);
-    Ok((f.doc, warnings))
+    Ok((f.doc, warnings, f.info.project_id))
 }
 
 /// Read a file of any readable format (`name`: its file name or path, for the extension and title;
@@ -374,9 +376,11 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
     let converted = false;
     let mut preview_only = false;
     let mut editing_data = false;
+    let mut project_id = None;
     let (mut doc, mut warnings, restored) = match format.id {
         "etc" => {
-            let (d, warnings) = native_file(bytes)?;
+            let (d, warnings, id) = native_file(bytes)?;
+            project_id = Some(id);
             (d, warnings, false)
         }
         "svg" | "svgz" => {
@@ -555,7 +559,7 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
         doc.title = title;
     }
     warnings.extend(doc.images.values().filter_map(|b| size_note(&b.bytes)));
-    Ok(Loaded { doc, format, warnings, restored, converted, preview_only, editing_data })
+    Ok(Loaded { doc, format, warnings, restored, converted, preview_only, editing_data, project_id })
 }
 
 /// Import SVG text, reading the files its images link to (relative links from `folder`, the SVG's
@@ -808,7 +812,7 @@ fn linked_pages(name: &str, bytes: &[u8], path: Option<&str>, opts: &LoadOptions
     let (mut doc, warnings) = super::pdfimport::linked_pages(name, bytes, path, opts)?;
     doc.title = file_name(name);
     let format = detect(name, bytes).ok_or_else(|| err(format!("can't open `{}`: not a PDF", file_name(name))))?;
-    Ok(Loaded { doc, format, warnings, restored: false, converted: false, preview_only: false, editing_data: false })
+    Ok(Loaded { doc, format, warnings, restored: false, converted: false, preview_only: false, editing_data: false, project_id: None })
 }
 
 /// The second half of [`open_bytes_with`]: open a file [`read_for_open`] read as the new active
@@ -851,7 +855,7 @@ fn open_loaded(
     as_template: bool,
     policy_changed: bool,
 ) -> Result<Value> {
-    let Loaded { mut doc, format, warnings, restored, converted, .. } =
+    let Loaded { mut doc, format, warnings, restored, converted, project_id, .. } =
         loaded.with_grid_prefs(&s.prefs).with_unit_prefs(&s.prefs);
     // EPS now has an ordinary Save path. Its preview, partial-program and damaged-editing
     // fallbacks must ask before overwriting the richer source they could not fully read. Every
@@ -872,8 +876,6 @@ fn open_loaded(
         doc.template = false;
         doc.title = s.next_untitled();
         doc.metadata.title = None;
-        // A new project: it gets a project id of its own when it is added.
-        doc.extra.remove(etcfile::PROJECT_ID_KEY);
     }
     // A .ai (or .ait) another app wrote carries no open Layers rows we read: all of them start
     // closed, its top-level layers as its groups (#1475). Ours carry their own.
@@ -896,6 +898,7 @@ fn open_loaded(
     }
     if saves_back {
         st.format = format.id;
+        st.project_id = project_id;
         // An SVG that reopened as the full document saves as one again: Save keeps Preserve
         // Editing, as it would after a save of this session (#3867).
         if restored && matches!(format.id, "svg" | "svgz") {

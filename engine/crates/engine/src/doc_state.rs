@@ -88,6 +88,9 @@ pub struct DocState {
     /// artboards their `artboard`, `artboards` and `range` named by number then
     /// ([`cmd::fileio::remembered_save_options`]).
     pub save_artboards: Vec<u32>,
+    /// The `.etc` project id (`project.json` `projectId`): read from the file the document was
+    /// opened from, else given by its first native save, which every later save writes again.
+    pub project_id: Option<String>,
     /// Opened from an older native file (former name or format version): the title says
     /// "[Converted]" and Save asks for a new name instead of overwriting it.
     pub converted: bool,
@@ -341,6 +344,7 @@ impl DocState {
             format: "etc",
             save_options: Default::default(),
             save_artboards: vec![],
+            project_id: None,
             converted: false,
             view,
             active_artboard: None,

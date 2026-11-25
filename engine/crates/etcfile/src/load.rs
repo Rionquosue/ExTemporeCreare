@@ -152,7 +152,9 @@ pub fn load_file_capped(bytes: &[u8], max: u64) -> Result<EtcFile, EtcError> {
         profiles.insert(p.name, icc);
     }
     tidy(&mut doc, &mut notes)?;
-    let project_id = doc.extra.get(PROJECT_ID_KEY).and_then(|v| v.as_str()).map_or(project.project_id, str::to_owned);
+    // An id that came in through `extra` is not part of the document.
+    doc.extra.remove(PROJECT_ID_KEY);
+    let project_id = if project.project_id.is_empty() { crate::save::new_project_id() } else { project.project_id };
     Ok(EtcFile { doc, notes, info: FileInfo { format_version: id.format_version, project_id }, profiles })
 }
 

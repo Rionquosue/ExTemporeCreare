@@ -66,9 +66,9 @@ impl SaveOptions {
 }
 
 /// The document as written: without editing-mode working copies, guides as the saved list, path
-/// geometry rounded, and its images taken out. Its project id (`extra`, [`PROJECT_ID_KEY`]) stays
-/// in it, so a document reads back exactly as it was; `projectId` repeats it, or is a new id for a
-/// document without one.
+/// geometry rounded, and its images taken out. A project id the caller put in `extra`
+/// ([`PROJECT_ID_KEY`]) is taken out too and written as `projectId`; without one, the project gets
+/// a new id.
 struct Body {
     d: Document,
     blobs: BTreeMap<String, ImageBlob>,
@@ -88,7 +88,7 @@ fn body(doc: &Document, o: &SaveOptions) -> Body {
         d.round_geometry(decimals.min(MAX_PRECISION));
     }
     let blobs = std::mem::take(&mut d.images);
-    let project_id = d.extra.get(PROJECT_ID_KEY).and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_else(new_project_id);
+    let project_id = d.extra.remove(PROJECT_ID_KEY).and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_else(new_project_id);
     Body { d, blobs, linked, project_id }
 }
 
@@ -97,15 +97,9 @@ pub fn new_project_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
-/// The project id `doc` keeps, giving it a new one first when it has none. Call it on the live
-/// document before saving, so every save of it writes the same id.
-pub fn ensure_project_id(doc: &mut Document) -> String {
-    if let Some(id) = doc.extra.get(PROJECT_ID_KEY).and_then(|v| v.as_str()) {
-        return id.to_owned();
-    }
-    let id = new_project_id();
-    doc.extra.insert(PROJECT_ID_KEY.into(), id.clone().into());
-    id
+/// `doc` with `id` set as the project id its save writes (see [`PROJECT_ID_KEY`]).
+pub fn with_project_id(doc: &mut Document, id: &str) {
+    doc.extra.insert(PROJECT_ID_KEY.into(), id.into());
 }
 
 /// Every JSON string in `json` that is in `wanted` (the image keys the document uses).
@@ -265,7 +259,7 @@ pub fn save_to(doc: &Document, o: &SaveOptions, w: impl Write) -> Result<(), Etc
 // - `Body`: the document as written, with its images, linked-only image keys and project id.
 // - `body`: prepare a `Body` from a document and options.
 // - `new_project_id`: a random UUID for `projectId`.
-// - `ensure_project_id`: the document's project id, adding one when missing.
+// - `with_project_id`: set the project id a save writes.
 // - `used_strings`: the image keys the document JSON references.
 // - `extension`: the file extension for a MIME type.
 // - `is_packed`: whether a MIME type is compressed already.

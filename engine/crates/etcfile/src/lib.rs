@@ -24,7 +24,7 @@ pub use atomic::{read_only_location, sync_file, write_atomic, write_atomic_with,
 pub use brushart::{placed_as_groups, with_brush_art};
 pub use error::EtcError;
 pub use load::{EtcFile, FileInfo, MAX_ASSET, MAX_JSON, MAX_UNPACKED, load, load_file, load_file_capped, merged_image, project_json, sniff, thumbnail, validate};
-pub use save::{PRETTY_MAX_BYTES, PRETTY_MAX_OBJECTS, SaveOptions, ensure_project_id, new_project_id, save, save_file, save_to, save_with, sha256_hex};
+pub use save::{PRETTY_MAX_BYTES, PRETTY_MAX_OBJECTS, SaveOptions, new_project_id, save, save_file, save_to, save_with, sha256_hex, with_project_id};
 pub use stack::stack_xml;
 
 /// The native file extension.
@@ -44,8 +44,8 @@ pub const THUMBNAIL: &str = "Thumbnails/thumbnail.png";
 pub const THUMBNAIL_MAX: u32 = 256;
 /// The most decimal places [`SaveOptions::precision`] rounds path geometry to.
 pub const MAX_PRECISION: u8 = 9;
-/// The document `extra` key that keeps the project id between loads and saves (`projectId`
-/// repeats it at the top of `project.json`).
+/// The document `extra` key through which a caller gives a save its project id; the save writes it
+/// as `projectId` and not in the document, and reading never puts it back in.
 pub const PROJECT_ID_KEY: &str = "etcProjectId";
 
 /// Whether `ext` (without the dot, any case) is the native extension.
@@ -75,9 +75,11 @@ mod tests {
     fn round_trips_a_document_with_identity_and_layout() {
         let mut doc = Document::new(400.0, 300.0);
         doc.title = "Round trip".into();
-        let id = ensure_project_id(&mut doc);
+        let id = new_project_id();
+        let mut saved = doc.clone();
+        with_project_id(&mut saved, &id);
         let o = SaveOptions { pretty: true, merged_image: Some(png()), thumbnail: Some(png()), ..SaveOptions::default() };
-        let bytes = save_with(&doc, &o).unwrap();
+        let bytes = save_with(&saved, &o).unwrap();
         assert!(sniff(&bytes));
         let zip = ZipArchive::new(&bytes).unwrap();
         let names: Vec<&str> = zip.entries().iter().map(|e| e.name.as_str()).collect();
@@ -87,12 +89,12 @@ mod tests {
         assert_eq!(json["projectId"].as_str(), Some(id.as_str()));
         assert_eq!(json["canvas"]["mode"], "finite");
         assert_eq!((json["canvas"]["width"].as_u64(), json["canvas"]["height"].as_u64()), (Some(400), Some(300)));
-        assert_eq!(json["document"][PROJECT_ID_KEY].as_str(), Some(id.as_str()), "the document keeps its id");
+        assert!(json["document"].get(PROJECT_ID_KEY).is_none(), "the id is written once, at the top");
         assert_eq!(thumbnail(&bytes), Some(png()));
         let f = load_file(&bytes).unwrap();
         assert_eq!(f.doc.title, "Round trip");
         assert_eq!(f.info.project_id, id);
-        assert_eq!(f.doc.layers.len(), doc.layers.len());
+        assert_eq!(f.doc, doc, "the document reads back as it was");
         // Saving what was read writes the same document again.
         assert_eq!(project_json(&save(&f.doc, true)), project_json(&save(&doc, true)));
     }
@@ -137,5 +139,5 @@ mod tests {
 // - `PROJECT_JSON`, `STACK_XML`, `MERGED_IMAGE`, `THUMBNAIL`: archive entry names.
 // - `THUMBNAIL_MAX`: the thumbnail's longest side in pixels.
 // - `MAX_PRECISION`: the most decimal places geometry is rounded to.
-// - `PROJECT_ID_KEY`: the `Document::extra` key holding the project id.
+// - `PROJECT_ID_KEY`: the `Document::extra` key through which a save is given its project id.
 // - `is_native_ext`, `is_native_name`: whether an extension or file name is `.etc`.

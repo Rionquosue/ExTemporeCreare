@@ -1,0 +1,21 @@
+# Variables
+
+Stored keys, paths, constants and identifiers.
+
+## `.etc` files (engine/crates/etcfile)
+
+- `EXTENSION` = `etc`: the native file extension.
+- `MIME` = `application/x-ex-tempore-creare`: the `mimetype` entry, first in the archive and stored.
+- `FORMAT` = `ex-tempore-creare`: `project.json` `format`.
+- `FORMAT_VERSION` = `0.4.0`: `project.json` `formatVersion` written, and the newest read.
+- `PROJECT_JSON` = `project.json`, `STACK_XML` = `stack.xml`, `MERGED_IMAGE` = `mergedimage.png`, `THUMBNAIL` = `Thumbnails/thumbnail.png`: archive entries.
+- `data/raster/image-NNNN.<ext>`: embedded images; `data/vector/image-NNNN.<ext>`: embedded non-image documents (PDF, SVG); `profiles/profile-NNN.icc`: embedded ICC profiles.
+- `THUMBNAIL_MAX` = 256: the thumbnail's longest side in pixels.
+- `MERGED_MAX` = 8192 (engine `cmd/fileio/native.rs`): the longest side of `mergedimage.png` in pixels.
+- `MAX_PRECISION` = 9: the most decimal places a save rounds path geometry to.
+- `PROJECT_ID_KEY` = `etcProjectId`: the document `extra` key holding the project id; `project.json` `projectId` repeats it.
+- `MAX_JSON` = 1 GiB, `MAX_ASSET` = 1 GiB, `MAX_UNPACKED` = 4 GiB: unpacked size limits when reading.
+- `MAX_ENTRIES` = 100000: most entries an archive may list.
+- `PRETTY_MAX_OBJECTS` = 2000, `PRETTY_MAX_BYTES` = 1 MiB: limits for an indented `project.json`.
+- Native save options (`document.save`): `precision`, `separateArtboards`, `range`, `includeLinked`, `embedProfiles`.
+- Engine format id of `.etc`: `etc` (`SAVE_FORMATS`, `TEMPLATE_FORMATS`).
