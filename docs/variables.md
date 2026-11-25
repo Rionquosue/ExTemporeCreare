@@ -59,8 +59,8 @@ Stored keys, paths, constants and identifiers.
 
 ## Dial tools
 
-- Tool names (dial names and settings keys): `Brush`, `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move` (`Crop`, `Export` to come).
-- Engine tools used: Brush `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only).
+- Tool names (dial names and settings keys): `Brush`, `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move`, `Crop` (`Export` to come).
+- Engine tools used: Brush `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only); Crop `cropImage` (one image selected) or `hand` (canvas mode, no input).
 - Tool settings file: SharedPreferences `tool-settings` (`ToolSettingsStore.FILE`), one JSON string per tool name.
 - Brush settings JSON: `{"mode": "PAINTBRUSH"|"BLOB", "size": pt 0.1–1000 (5), "hardness": % 0–100 (100), "brushLibrary", "brushName"}`.
 - Pen settings JSON: `{"size": pt 0.1–1000 (1), "hardness": % (100)}`.
@@ -70,3 +70,4 @@ Stored keys, paths, constants and identifiers.
 - Engine tool options set: Blob Brush and Eraser `size`; Fill Area `gapDetection`, `gapLength`; Polygon `sides`; Star `points`.
 - Hardness: feather radius = size / 2 × (1 − hardness / 100) pt, applied as effect `stylize.feather` to the objects a Brush stroke or a new Pen path added.
 - Undo group labels: `Brush`, `Pen`, `Move`.
+- Crop: canvas box grip reach `CropTool.REACH_PX` = 24 screen px; minimum box `CanvasCropBox.MIN` = 1 pt; canvas apply `artboard.setProps {index, x, y, width, height, moveArt: false, scaleArt: false}`; image apply `object.cropImage {rect}` from the Crop Image tool's `rect` option; cancel sets `rect` to null (image) or restores the artboard's bounds (canvas).

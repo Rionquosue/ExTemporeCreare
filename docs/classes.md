@@ -60,4 +60,5 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `Fill/FillTool.kt`: `FillTool` (engine `fillArea`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
 - `Selection/SelectionTool.kt`: `SelectionTool` (engine `selection`).
 - `Shapes/ShapesTool.kt`: `ShapesTool` (engine `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`); `Shapes/ShapesToolSettings.kt`: `ShapeKind`, `ShapesToolSettings`.
+- `Crop/CropTool.kt`: `CropTool` (engine `cropImage` for one selected image; else a canvas box applied with `artboard.setProps`): `mode`, `canvasBox`, `apply`, `cancel`; `Crop/CropMode.kt`: `CropMode` (`IMAGE`, `CANVAS`, `UNAVAILABLE`); `Crop/CanvasCropBox.kt`: `CanvasCropBox` (`Grip`, `gripAt`, `drag`, `contains`).
 - `Move/MoveTool.kt`: `MoveTool` (`object.move` per drag step in one undo group; engine `selection` chosen for its frame).

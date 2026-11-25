@@ -111,6 +111,10 @@ EXTEMPORECREARE
     |-- Brush/
     |   |-- BrushTool.kt
     |   |-- BrushToolSettings.kt
+    |-- Crop/
+    |   |-- CanvasCropBox.kt
+    |   |-- CropMode.kt
+    |   |-- CropTool.kt
     |-- Eraser/
     |   |-- EraserTool.kt
     |   |-- EraserToolSettings.kt
