@@ -4,12 +4,13 @@ import org.json.JSONArray
 
 /**
  * What a tool's call left for the UI: the engine tool's requests (`{"type", …}`), the objects a
- * gesture added (on release), and an error message to show, if any.
+ * gesture added and whether it changed the document (on release), and an error message to show, if any.
  */
 data class ToolResult(
     val requests: JSONArray = JSONArray(),
     val created: JSONArray = JSONArray(),
     val error: String? = null,
+    val changed: Boolean = false,
 ) {
     companion object {
         /** Nothing to show. */
@@ -25,13 +26,13 @@ data class ToolResult(
         fun fromPointer(text: String): ToolResult {
             val answer = EngineAnswer(text)
             val ok = answer.okObject ?: return failed(answer.error ?: "pointer call failed")
-            return ToolResult(ok.optJSONArray("requests") ?: JSONArray(), ok.optJSONArray("created") ?: JSONArray())
+            return ToolResult(ok.optJSONArray("requests") ?: JSONArray(), ok.optJSONArray("created") ?: JSONArray(), changed = ok.optBoolean("changed"))
         }
     }
 }
 
 // GLOSSARY
-// - ToolResult: requests, created objects and an error from a tool call.
+// - ToolResult: requests, created objects, whether the document changed, and an error from a tool call.
 // - NONE: nothing to show.
 // - failed(message): a failure.
 // - failedOrNone(message): a failure when message is not null.

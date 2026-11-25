@@ -51,24 +51,31 @@ pub fn execute(handle: i64, command: &str, params: &str) -> String {
 
 /// Feed a pointer event (JSON of the engine's `PointerEvent`, document coordinates) to the active
 /// tool with the view state `view` (JSON) → `{"requests": [the tool's requests to the UI],
-/// "created": [ids]}`. On a release the tool's edit is applied before answering (a tool may compute
-/// it on another thread), and `created` lists the outermost objects added to the document since the
-/// press, which the app's tools finish (stroke weight, feather); empty on other events.
+/// "created": [ids], "changed": bool}`. On a release the tool's edit is applied before answering (a
+/// tool may compute it on another thread), `created` lists the outermost objects added to the
+/// document since the press, which the app's tools finish (stroke weight, feather), and `changed`
+/// tells whether the gesture changed the document at all; empty and false on other events.
 pub fn pointer(handle: i64, event: &str, view: &str) -> String {
     guarded(handle, |b| {
         let ev: PointerEvent = serde_json::from_str(event).map_err(|e| format!("event: {e}"))?;
         if ev.kind == PointerKind::Down {
             b.gesture_ids = node_ids(b);
+            b.gesture_doc = b.session.doc().ok().map(|st| st.doc.clone());
         }
         let mut rs = b.session.pointer(&ev, view_info(view)).map_err(engine_error)?;
         let mut created = Vec::new();
+        let mut changed = false;
         if ev.kind == PointerKind::Up {
             rs.extend(b.session.finish_tool_edit().map_err(engine_error)?);
             if let Some(ids) = b.gesture_ids.take() {
                 created = created_ids(b, &ids);
             }
+            // An edit replaces the document the press kept a reference to.
+            if let (Some(before), Ok(st)) = (b.gesture_doc.take(), b.session.doc()) {
+                changed = !std::sync::Arc::ptr_eq(&before, &st.doc);
+            }
         }
-        Ok(json!({ "requests": ui_requests(&rs), "created": created }))
+        Ok(json!({ "requests": ui_requests(&rs), "created": created, "changed": changed }))
     })
 }
 
@@ -249,10 +256,21 @@ mod tests {
             created.extend(out["created"].as_array().unwrap().iter().cloned());
         }
         assert_eq!(created.len(), 1, "the drawn rectangle is reported once");
+        ok(&select_tool(h, "fillArea", "{}"));
+        let tap = |x: f64, y: f64| {
+            let mut changed = Vec::new();
+            for kind in ["down", "up"] {
+                let ev = json!({"kind": kind, "pos": {"x": x, "y": y}}).to_string();
+                changed.push(ok(&pointer(h, &ev, "{}"))["changed"].clone());
+            }
+            changed
+        };
+        assert_eq!(tap(5.0, 45.0), [json!(false), json!(false)], "a fill tap that encloses nothing changes nothing");
+        assert_eq!(tap(20.0, 20.0), [json!(false), json!(true)], "a fill tap inside the square fills it");
         let st = ok(&state(h));
         assert_eq!(st["canvas"], "finite");
         assert_eq!(st["artboards"][0]["width"], 100.0);
-        assert_eq!(ok(&tool_options(h))["tool"], "rectangle");
+        assert_eq!(ok(&tool_options(h))["tool"], "fillArea");
         assert!(ok(&overlays(h, "{}")).is_array());
         let px = render(h, 0.0, 0.0, 100, 50, 1.0).expect("pixels");
         assert_eq!(px.len(), 100 * 50 * 4);
@@ -269,7 +287,7 @@ mod tests {
 // - `guarded`: run a call on a session with panics caught.
 // - `engine_error`: an engine error's message.
 // - `execute`: run an engine command with JSON params.
-// - `pointer`: feed a pointer event to the active tool; on release, reports the objects the gesture added.
+// - `pointer`: feed a pointer event to the active tool; on release, reports the objects the gesture added and whether it changed the document.
 // - `node_ids`: the ids of every object of the active document.
 // - `created_ids`: the outermost objects added since a set of ids was taken.
 // - `tool_options`: the active tool's options.

@@ -25,9 +25,9 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## engine/crates/bridge (interface layer, `libetcbridge.so`)
 
-- `src/sessions.rs`: `Bridge` (one engine session, its pending save and the objects at the last press, `gesture_ids`); `create`, `destroy`, `with`: open sessions by handle.
+- `src/sessions.rs`: `Bridge` (one engine session, its pending save, and the objects and document at the last press: `gesture_ids`, `gesture_doc`); `create`, `destroy`, `with`: open sessions by handle.
 - `src/boards.rs`: reference boards as JSON: `new_board`, `read`, `write`, `links`, `relink_image`, `find`.
-- `src/calls.rs`: `execute`, `pointer` (reports the objects a gesture added), `select_tool`, `tool_options`, `set_tool_option`, `state`, `overlays`, `render`, `set_presets_root`: what the UI asks of the engine, answered as `{"ok"}` / `{"error"}` JSON.
+- `src/calls.rs`: `execute`, `pointer` (reports the objects a gesture added and whether it changed the document), `select_tool`, `tool_options`, `set_tool_option`, `state`, `overlays`, `render`, `set_presets_root`: what the UI asks of the engine, answered as `{"ok"}` / `{"error"}` JSON.
 - `src/convert.rs`: `view_info` (view state JSON → engine `ViewInfo`), `ui_request`, `ui_requests` (tool requests → JSON), `overlay_json`, `overlays_json` (tool overlays → JSON).
 - `src/files.rs`: `PendingSave`; `open` (a copied file with its URI as path), `save` (write into temporary files, keep pending), `save_finish` (with the final URI a rename gave), `validate`.
 - `src/jni_exports.rs`: the JNI functions of `EngineBridge`.
@@ -47,7 +47,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `DragBox.kt`: `DragBox`, a rectangle a drag edits (`Grip`: `INSIDE`, `BOTTOM_RIGHT`; `gripAt`, `drag`, `snap`, `resizeAboutCentre`, `contains`, `copy`, `sameAs`; `of`, `reach`). Crop's canvas box and Export's slices.
 - `EngineAnswer.kt`: `EngineAnswer`, one bridge answer parsed: `isOk`, `okObject`, `error`.
 - `ToolPointer.kt`: `ToolPointer` (`Kind`: `DOWN`, `DRAG`, `UP`, `MOVE`), a pointer event in document points: `toJson`.
-- `ToolResult.kt`: `ToolResult` (`requests`, `created`, `error`): `NONE`, `failed`, `failedOrNone`, `fromPointer`.
+- `ToolResult.kt`: `ToolResult` (`requests`, `created`, `error`, `changed`): `NONE`, `failed`, `failedOrNone`, `fromPointer`.
 - `ToolSettings.kt`: `ToolSettings` (`toJson`); `NoToolSettings`.
 - `ToolSettingsStore.kt`: `ToolSettingsStore(context)`: `load`, `save` per tool name.
 - `ToolUndoGroup.kt`: `ToolUndoGroup`: `begin`, `end`, `isOpen` around `edit.undoGroup.begin` / `end`.
@@ -59,7 +59,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `Brush/BrushTool.kt`: `BrushTool` (engine `paintbrush` / `blobBrush`); `Brush/BrushToolSettings.kt`: `BrushMode` (`PAINTBRUSH`, `BLOB`), `BrushToolSettings`.
 - `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
 - `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
-- `Fill/FillTool.kt`: `FillTool` (engine `fillArea`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
+- `Fill/FillTool.kt`: `FillTool` (engine `fillArea`; infinite-canvas failsafe `fillScreen`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
 - `Selection/SelectionTool.kt`: `SelectionTool` (engine `selection`).
 - `Shapes/ShapesTool.kt`: `ShapesTool` (engine `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`); `Shapes/ShapesToolSettings.kt`: `ShapeKind`, `ShapesToolSettings`.
 - `Crop/CropTool.kt`: `CropTool` (engine `cropImage` for one selected image; else a canvas box applied with `artboard.setProps`): `mode`, `canvasBox`, `apply`, `cancel`; `canvasIndex`; `Crop/CropMode.kt`: `CropMode` (`IMAGE`, `CANVAS`, `UNAVAILABLE`).

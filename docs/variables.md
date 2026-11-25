@@ -33,9 +33,9 @@ Stored keys, paths, constants and identifiers.
 - Bridge class: `com.extemporecreare.app.components.engine.EngineBridge`.
 - Answers: `{"ok": <result>}` or `{"error": {"kind": "engine"|"noSession"|"panic", "message"}}`.
 - Pointer event JSON: `{"kind": "down"|"drag"|"up"|"move"|"doubleclick"|"tripleclick", "pos": {"x", "y"}, "pressure"?, "mods"?: {"shift", "alt", "cmd", "ctrl", "space"}}`.
-- View JSON: `zoom`, `outline`, `smartGuides`, `guides`, `snapToGrid`, `pixelPreview`, `showBbox`, `snapToPixel`, `snapToPoint`, `snapToGlyph`, `artboard`.
+- View JSON: `viewport` (`{"x", "y", "width", "height"}`, the screen in document points; read by the app's Fill tool), `zoom`, `outline`, `smartGuides`, `guides`, `snapToGrid`, `pixelPreview`, `showBbox`, `snapToPixel`, `snapToPoint`, `snapToGlyph`, `artboard`.
 - Tool request JSON: `{"type": "dialog"|"panel"|"switchTool"|"status"|"place"|"heldPress", …}`.
-- Pointer answer JSON: `{"requests": [tool requests], "created": [ids]}`; `created` is filled on `up` with the outermost objects added since the `down`.
+- Pointer answer JSON: `{"requests": [tool requests], "created": [ids], "changed": bool}`; on `up`, `created` lists the outermost objects added since the `down` and `changed` whether the document changed.
 - Tool options answer JSON: `{"tool": engine tool id, "options": {…}}`.
 - State JSON: `{"tool", "document", "canvas": "finite"|"infinite", "artboards": [{"index", "x", "y", "width", "height"}], "selection": [ids], "images": [ids], "editing"}` (points; finite = the document has artboards).
 - Overlay JSON: `{"type": "marquee"|"path"|"line"|"anchor"|"curvePoint"|"handle"|"label"|"measure"|"distance"|"highlight"|"swatch"|"gridLine", …}`; `path.d` is SVG path data, points are `[x, y]`, colours `[r, g, b]` or `[r, g, b, a]`.
@@ -66,6 +66,7 @@ Stored keys, paths, constants and identifiers.
 - Pen settings JSON: `{"size": pt 0.1–1000 (1), "hardness": % (100)}`.
 - Eraser settings JSON: `{"size": pt 0.1–1000 (10)}`.
 - Fill settings JSON: `{"tolerance": pt ≥ 0 (0)}` → engine `gapDetection` (tolerance > 0) and `gapLength`.
+- Fill failsafe (infinite canvas, tap changed nothing): `shape.rectangle` over `viewport`, `paint.setStroke {none}`, `select.set`, `object.arrange.sendToBack`, in undo group `Fill`.
 - Shapes settings JSON: `{"kind": "RECTANGLE"|"ELLIPSE"|"POLYGON"|"STAR"|"LINE", "sides": 3–1000 (6), "points": 3–1000 (5)}`.
 - Engine tool options set: Blob Brush and Eraser `size`; Fill Area `gapDetection`, `gapLength`; Polygon `sides`; Star `points`.
 - Hardness: feather radius = size / 2 × (1 − hardness / 100) pt, applied as effect `stylize.feather` to the objects a Brush stroke or a new Pen path added.

@@ -31,8 +31,9 @@ class EngineBridge : AutoCloseable {
 
     /**
      * Feed a pointer event to the active tool → the JSON answer, whose `ok` is `{"requests": [the
-     * tool's requests to the UI], "created": [ids]}`; on a release (`up`) the tool's edit is applied
-     * first and `created` lists the outermost objects the gesture added since its press. [eventJson] is `{"kind": "down"|"drag"|"up"|"move", "pos": {"x", "y"},
+     * tool's requests to the UI], "created": [ids], "changed"}`; on a release (`up`) the tool's edit is
+     * applied first, `created` lists the outermost objects the gesture added since its press and
+     * `changed` tells whether it changed the document. [eventJson] is `{"kind": "down"|"drag"|"up"|"move", "pos": {"x", "y"},
      * "pressure"?, "mods"?}` in document points; [viewJson] is the view state (`zoom`, `outline`,
      * `smartGuides`, `snapToGrid`…; missing fields keep the engine's defaults).
      */
