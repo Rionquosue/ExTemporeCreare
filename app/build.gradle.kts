@@ -74,6 +74,8 @@ val buildEngine by tasks.registering(Exec::class) {
     description = "Builds the engine bridge (libetcbridge.so) for every ABI with cargo-ndk."
     workingDir = rootProject.file("engine")
     val out = layout.buildDirectory.dir("engine/jniLibs").get().asFile
+    // Cargo's build files stay under app/build, out of the repository's tracked folders.
+    environment("CARGO_TARGET_DIR", layout.buildDirectory.dir("engine/target").get().asFile.absolutePath)
     commandLine(
         "cargo", "ndk",
         "-t", "arm64-v8a",
