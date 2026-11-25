@@ -193,7 +193,7 @@ pub const BUILTIN: &[BuiltinBrushLibrary] = &[
 ];
 
 /// Built-in library `id`, made once.
-fn builtin_library(id: &str) -> Option<Arc<BrushLibrary>> {
+pub(crate) fn builtin_library(id: &str) -> Option<Arc<BrushLibrary>> {
     static MADE: LazyLock<Vec<Arc<BrushLibrary>>> = LazyLock::new(|| BUILTIN.iter().map(|b| Arc::new((b.make)())).collect());
     BUILTIN.iter().position(|b| b.id == id).and_then(|i| MADE.get(i).cloned())
 }

@@ -393,3 +393,5 @@ pub use sanity::TOO_DEEP;
 pub(crate) use sanity::{deselect_hidden, is_guide_path};
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod presets_export_tmp;

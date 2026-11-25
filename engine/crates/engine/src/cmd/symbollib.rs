@@ -175,7 +175,7 @@ pub const BUILTIN: &[BuiltinSymbolLibrary] = &[
 ];
 
 /// Built-in library `id`, made once.
-fn builtin_library(id: &str) -> Option<Arc<SymbolLibrary>> {
+pub(crate) fn builtin_library(id: &str) -> Option<Arc<SymbolLibrary>> {
     static MADE: LazyLock<Vec<Arc<SymbolLibrary>>> = LazyLock::new(|| BUILTIN.iter().map(|b| Arc::new((b.make)())).collect());
     BUILTIN.iter().position(|b| b.id == id).and_then(|i| MADE.get(i).cloned())
 }
