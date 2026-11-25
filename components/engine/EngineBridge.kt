@@ -69,8 +69,11 @@ class EngineBridge : AutoCloseable {
     fun saveToTemp(mode: String, paramsJson: String, tempDir: String): String =
         nativeSave(live(), mode, paramsJson, tempDir)
 
-    /** End the pending save: [ok] when every file reached its URI → the JSON answer. */
-    fun saveFinish(ok: Boolean): String = nativeSaveFinish(live(), ok)
+    /**
+     * End the pending save: [ok] when every file reached its URI → the JSON answer. [finalUri], when
+     * not empty, is the URI the document's file ended up at (a replace by rename can change it).
+     */
+    fun saveFinish(ok: Boolean, finalUri: String = ""): String = nativeSaveFinish(live(), ok, finalUri)
 
     /** Close the engine session. Calling it again does nothing. */
     override fun close() {
@@ -103,7 +106,7 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeSelectTool(handle: Long, id: String, view: String): String
         @JvmStatic private external fun nativeOpen(handle: Long, temp: String, name: String, uri: String): String
         @JvmStatic private external fun nativeSave(handle: Long, mode: String, params: String, tempDir: String): String
-        @JvmStatic private external fun nativeSaveFinish(handle: Long, ok: Boolean): String
+        @JvmStatic private external fun nativeSaveFinish(handle: Long, ok: Boolean, finalUri: String): String
         @JvmStatic private external fun nativeValidate(path: String): String
         @JvmStatic private external fun nativeRender(
             handle: Long,
@@ -128,7 +131,7 @@ class EngineBridge : AutoCloseable {
 // - render(x, y, width, height, scale, out): draw part of the active document into a direct buffer.
 // - openCopied(tempPath, name, uri): open a file copied to a temporary file, with its URI as path.
 // - saveToTemp(mode, paramsJson, tempDir): write a save into temporary files and keep it pending.
-// - saveFinish(ok): complete or drop the pending save.
+// - saveFinish(ok, finalUri): complete or drop the pending save; finalUri is where the file ended up.
 // - validate(path): whether a file is a valid .etc project.
 // - close(): close the engine session.
 // - renderBuffer(width, height): a direct buffer sized for render().

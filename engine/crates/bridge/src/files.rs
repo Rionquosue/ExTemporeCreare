@@ -74,12 +74,18 @@ pub fn save(handle: i64, mode: &str, params: &str, temp_dir: &str) -> String {
 }
 
 /// End the pending save: `ok` when every file reached its URI (the document is then saved there),
-/// else it is dropped and the document is left as it was.
-pub fn save_finish(handle: i64, ok: bool) -> String {
+/// else it is dropped and the document is left as it was. `final_uri`, when not empty, is the URI
+/// the document's file ended up at (a replace by rename can give the file a new URI); a save that
+/// makes the file the document's own records it as the document's path.
+pub fn save_finish(handle: i64, ok: bool, final_uri: &str) -> String {
     guarded(handle, |b| {
         let Some(PendingSave { job, uid }) = b.pending.take() else { return Err("no save is pending".into()) };
+        let retargets = job.plan().retargets();
         if ok {
             job.complete(&mut b.session, uid);
+            if retargets && !final_uri.is_empty() && let Some(st) = b.session.document_mut(uid) {
+                st.path = Some(final_uri.to_string());
+            }
         }
         Ok(json!({ "saved": ok }))
     })
@@ -120,9 +126,14 @@ mod tests {
         // Not saved there until Kotlin says the copy reached the URI.
         let path = |h| sessions::with(h, |b| b.session.doc().ok().and_then(|st| st.path.clone())).flatten();
         assert_eq!(path(h), None);
-        assert_eq!(parse(&save_finish(h, true))["ok"]["saved"], true);
+        assert_eq!(parse(&save_finish(h, true, ""))["ok"]["saved"], true);
         assert_eq!(path(h).as_deref(), Some(uri));
-        assert_eq!(parse(&save_finish(h, true))["error"]["message"], "no save is pending");
+        assert_eq!(parse(&save_finish(h, true, ""))["error"]["message"], "no save is pending");
+        // A replace by rename that gave the file a new URI: the document follows it.
+        let renamed = "content://com.example.documents/document/43";
+        parse(&save(h, "save", "{}", &dir.to_string_lossy()));
+        assert_eq!(parse(&save_finish(h, true, renamed))["ok"]["saved"], true);
+        assert_eq!(path(h).as_deref(), Some(renamed));
         // Open the copy again with the URI as its path.
         let h2 = sessions::create();
         let opened = parse(&open(h2, &temp, "Poster.etc", uri));

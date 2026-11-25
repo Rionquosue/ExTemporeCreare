@@ -601,7 +601,7 @@ An alpha implementation of `.etc` is acceptable when it passes all of the follow
 - [ ] Include correct `mimetype`, valid `project.json`, `stack.xml` projection, merged preview, and thumbnail.
 - [ ] Handle missing assets, unknown filter IDs and unsupported schema versions with explicit diagnostics; do not overwrite the source on failure.
 - [ ] Validate archive paths and resource sizes before extraction and reject unsafe paths or decompression bombs.
-- [ ] Use an atomic save strategy (write to a temporary file, validate, then replace) so interrupted saves do not corrupt the existing project.
+- [ ] Use an atomic save strategy (write to a temporary file, validate, then replace) so interrupted saves do not corrupt the existing project. On Android content URIs the replace is a rename over the original where the storage provider allows creating and renaming documents (a granted folder); elsewhere the validated file is copied into the URI and flushed, which is not atomic.
 - [ ] Test save/load/save round trips for raster content, effects, masks, blends, folder nesting, opacity/fill and workspace metadata.
 - [ ] Treat `.ora` export as a separate conforming artifact and verify it against an independent ORA reader/validator when implemented.
 

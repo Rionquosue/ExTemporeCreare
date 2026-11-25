@@ -115,8 +115,10 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     _class: JClass,
     handle: jlong,
     ok: jboolean,
+    final_uri: JString,
 ) -> jstring {
-    let out = files::save_finish(handle, ok != 0);
+    let final_uri = text(&mut env, &final_uri);
+    let out = files::save_finish(handle, ok != 0, &final_uri);
     jtext(&mut env, &out)
 }
 
