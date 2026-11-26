@@ -53,12 +53,12 @@ pub fn new_document(handle: i64, settings: &str) -> String {
 pub fn view(handle: i64) -> String {
     guarded(handle, |b: &mut Bridge| {
         let st = b.session.doc().map_err(|e| e.to_string())?;
-        Ok(st.view.as_ref().map_or(Value::Null, |v| json!({ "x": v.center.x, "y": v.center.y, "zoom": v.zoom })))
+        Ok(st.view.as_ref().map_or(Value::Null, |v| json!({ "x": v.center.x, "y": v.center.y, "zoom": v.zoom, "rotation": v.rotation, "flipped": v.flipped })))
     })
 }
 
-/// Keep `camera` (`{"x", "y", "zoom"}`) as the active document's camera, saved with it (not an
-/// undo step) → true.
+/// Keep `camera` (`{"x", "y", "zoom", "rotation"? (degrees, clockwise), "flipped"? (View Flip)}`)
+/// as the active document's camera, saved with it (not an undo step) → true.
 pub fn set_view(handle: i64, camera: &str) -> String {
     guarded(handle, |b: &mut Bridge| {
         let v: Value = serde_json::from_str(camera).map_err(|e| format!("camera: {e}"))?;
@@ -67,8 +67,10 @@ pub fn set_view(handle: i64, camera: &str) -> String {
             (Some(x), Some(y), Some(z)) => (x, y, z),
             _ => return Err("camera is {x, y, zoom}, zoom above 0".into()),
         };
+        let rotation = n("rotation").unwrap_or(0.0);
+        let flipped = v.get("flipped").and_then(Value::as_bool).unwrap_or(false);
         let st = b.session.doc_mut().map_err(|e| e.to_string())?;
-        st.view = Some(SavedView { name: "Artwork".into(), center: Point::new(x, y), zoom, rotation: 0.0 });
+        st.view = Some(SavedView { name: "Artwork".into(), center: Point::new(x, y), zoom, rotation, flipped });
         Ok(Value::Bool(true))
     })
 }
@@ -102,7 +104,7 @@ mod tests {
         for kind in ["down", "up"] {
             ok(&calls::pointer(h, &json!({"kind": kind, "pos": {"x": 900, "y": 900}}).to_string(), "{}"));
         }
-        ok(&set_view(h, r#"{"x": -450, "y": -260, "zoom": 2.5}"#));
+        ok(&set_view(h, r#"{"x": -450, "y": -260, "zoom": 2.5, "rotation": 30, "flipped": true}"#));
         // Save through temporary files and open again: still infinite, camera kept.
         let dir = std::env::temp_dir().join(format!("etc-bridge-infinite-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -115,7 +117,7 @@ mod tests {
         let h2 = sessions::create();
         ok(&files::open(h2, &target.to_string_lossy(), "sketch.etc", &target.to_string_lossy()));
         assert_eq!(ok(&calls::state(h2))["canvas"], "infinite");
-        assert_eq!(ok(&view(h2)), json!({"x": -450.0, "y": -260.0, "zoom": 2.5}));
+        assert_eq!(ok(&view(h2)), json!({"x": -450.0, "y": -260.0, "zoom": 2.5, "rotation": 30.0, "flipped": true}));
         sessions::destroy(h);
         sessions::destroy(h2);
         let _ = std::fs::remove_dir_all(&dir);

@@ -30,7 +30,7 @@ import kotlin.math.sin
  * The artwork canvas: the document rendered by the engine at the camera's zoom (on a worker thread;
  * while a render is pending the last one is drawn moved to the camera), with the active tool's
  * overlays, the Brush's live stroke, the Crop tool's canvas box and the Export tool's slices on
- * top. A stylus or one finger draws with the active tool; two fingers pan and zoom the view.
+ * top. A stylus or one finger draws with the active tool; two fingers pan, pinch-zoom and twist-rotate the view.
  */
 @SuppressLint("ViewConstructor")
 class EditorCanvasView(context: Context, private val state: EditorState) : View(context) {
@@ -53,7 +53,7 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
 
     /** What the current touch does: draw (pointer id) or navigate (two fingers' last centre and span). */
     private var drawing: Int? = null
-    private var navigating: Triple<Float, Float, Float>? = null
+    private var navigating: Fingers? = null
 
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val overlays = OverlayPainter()
@@ -83,15 +83,18 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         val (w, h, cam, rev) = Quad(width, height, state.camera, state.revision)
         worker.execute {
             val started = System.nanoTime()
+            // The view's document area (its bounding box when the view is rotated) at the camera's zoom.
             val v = cam.viewport(w, h)
-            val buffer = EngineBridge.renderBuffer(w, h)
-            val ok = state.engine.render(v[0], v[1], w, h, cam.zoom, buffer)
-            val bmp = if (ok) Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { buffer.rewind(); it.copyPixelsFromBuffer(buffer) } else null
+            val rw = kotlin.math.ceil(v[2] * cam.zoom).toInt().coerceAtLeast(1)
+            val rh = kotlin.math.ceil(v[3] * cam.zoom).toInt().coerceAtLeast(1)
+            val buffer = EngineBridge.renderBuffer(rw, rh)
+            val ok = state.engine.render(v[0], v[1], rw, rh, cam.zoom, buffer)
+            val bmp = if (ok) Bitmap.createBitmap(rw, rh, Bitmap.Config.ARGB_8888).also { buffer.rewind(); it.copyPixelsFromBuffer(buffer) } else null
             val ms = (System.nanoTime() - started) / 1_000_000
             main.post {
                 rendering = false
                 state.renderMs = ms
-                DebugMode.log("render", "${w}×$h at zoom ${cam.zoom} in $ms ms (revision $rev)")
+                DebugMode.log("render", "${bmp?.width}×${bmp?.height} at zoom ${cam.zoom}, rotation ${cam.rotation} in $ms ms (revision $rev)")
                 if (bmp != null) {
                     rendered = bmp
                     renderedCamera = cam
@@ -110,17 +113,24 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         val rc = renderedCamera
         if (bmp != null && rc != null) {
             canvas.save()
-            val m = cam.matrix(width, height)
-            val back = android.graphics.Matrix()
-            rc.matrix(width, height).invert(back)
-            back.postConcat(m)
-            canvas.concat(back)
+            // Bitmap pixels → document points (the render's area at its zoom) → screen.
+            val v = rc.viewport(width, height)
+            val m = android.graphics.Matrix()
+            m.postScale((1 / rc.zoom).toFloat(), (1 / rc.zoom).toFloat())
+            m.postTranslate(v[0].toFloat(), v[1].toFloat())
+            m.postConcat(cam.matrix(width, height))
+            canvas.concat(m)
             canvas.drawBitmap(bmp, 0f, 0f, bitmapPaint)
             canvas.restore()
         }
-        drawLiveStroke(canvas, cam)
-        (state.activeTool as? CropTool)?.canvasBox?.let { b -> overlays.box(canvas, cam.toScreen(b.left, b.top, b.width, b.height, width, height), true) }
-        (state.activeTool as? ExportTool)?.let { drawSlices(canvas, cam, it) }
+        // Boxes are drawn upright, then turned with the view.
+        canvas.save()
+        canvas.rotate(cam.screenTurn, width / 2f, height / 2f)
+        val upright = cam.upright()
+        drawLiveStroke(canvas, upright)
+        (state.activeTool as? CropTool)?.canvasBox?.let { b -> overlays.box(canvas, upright.toScreen(b.left, b.top, b.width, b.height, width, height), true) }
+        (state.activeTool as? ExportTool)?.let { drawSlices(canvas, upright, it, cam) }
+        canvas.restore()
         overlays.draw(canvas, state.engine.overlays(state.viewJson()), cam.matrix(width, height))
     }
 
@@ -154,9 +164,14 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         canvas.drawBitmap(target, null, cam.toScreen(live.x, live.y, live.width, live.height, width, height), bitmapPaint)
     }
 
-    /** The Export tool's slices, the automatic content slice, and the box being drawn or edited, over its dotted grid when shown. */
-    private fun drawSlices(canvas: Canvas, cam: Camera, tool: ExportTool) {
-        if (tool.slices.grid.visible) drawGrid(canvas, cam, tool.slices.grid.spacingPx)
+    /** The Export tool's slices, the automatic content slice, and the box being drawn or edited (with the upright [cam]), over its dotted grid when shown (with [viewCamera]). */
+    private fun drawSlices(canvas: Canvas, cam: Camera, tool: ExportTool, viewCamera: Camera) {
+        if (tool.slices.grid.visible) {
+            canvas.save()
+            canvas.rotate(-viewCamera.screenTurn, width / 2f, height / 2f)
+            drawGrid(canvas, viewCamera, tool.slices.grid.spacingPx)
+            canvas.restore()
+        }
         for (s in tool.slices.slices) {
             if (!s.visible) continue
             overlays.box(canvas, cam.toScreen(s.x, s.y, s.width, s.height, width, height), s.id == tool.selectedId)
@@ -206,10 +221,11 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
             MotionEvent.ACTION_MOVE -> {
                 val nav = navigating
                 if (nav != null && e.pointerCount >= 2) {
+                    // Two fingers move the view: pan, pinch zoom, twist rotate.
                     val now = centreAndSpan(e)
-                    var cam = state.camera.panned(now.first - nav.first, now.second - nav.second)
-                    if (nav.third > 0f) cam = cam.zoomedAbout((now.third / nav.third).toDouble(), now.first, now.second, width, height)
-                    state.camera = cam
+                    val factor = if (nav.span > 0f) (now.span / nav.span).toDouble() else 1.0
+                    val turn = Camera.normalized(now.angle - nav.angle)
+                    state.camera = state.camera.navigated(nav.x, nav.y, now.x, now.y, factor, turn, width, height)
                     navigating = now
                 } else {
                     drawing?.let { id -> e.findPointerIndex(id).takeIf { it >= 0 }?.let { i -> sendHistory(e, i) } }
@@ -226,10 +242,13 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         return true
     }
 
-    /** The two fingers' centre and the distance between them. */
-    private fun centreAndSpan(e: MotionEvent): Triple<Float, Float, Float> {
+    /** Two fingers: their centre, the distance between them and the direction from the first to the second (degrees). */
+    private data class Fingers(val x: Float, val y: Float, val span: Float, val angle: Double)
+
+    /** The first two fingers' [Fingers]. */
+    private fun centreAndSpan(e: MotionEvent): Fingers {
         val (x0, y0, x1, y1) = listOf(e.getX(0), e.getY(0), e.getX(1), e.getY(1))
-        return Triple((x0 + x1) / 2, (y0 + y1) / 2, hypot(x1 - x0, y1 - y0))
+        return Fingers((x0 + x1) / 2, (y0 + y1) / 2, hypot(x1 - x0, y1 - y0), Math.toDegrees(kotlin.math.atan2((y1 - y0).toDouble(), (x1 - x0).toDouble())))
     }
 
     /** A drag's in-between samples, then its latest one. */
@@ -252,9 +271,10 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
             // Android: tilt from upright (radians) and orientation (radians, 0 pointing up, clockwise).
             val tilt = Math.toDegrees(e.getAxisValue(MotionEvent.AXIS_TILT, i).toDouble())
             val o = e.getAxisValue(MotionEvent.AXIS_ORIENTATION, i).toDouble()
-            val mirror = if (state.camera.flipped) -1 else 1
-            tiltX = (tilt * sin(o) * mirror).toFloat()
-            tiltY = (-tilt * cos(o)).toFloat()
+            // The tilt's direction on screen, turned into the document by the view's flip and rotation.
+            val (dx, dy) = state.camera.toDocDirection(tilt * sin(o), -tilt * cos(o))
+            tiltX = dx.toFloat()
+            tiltY = dy.toFloat()
         }
         if (state.debugOn) {
             val reading = PenReading.of(e, i, x, y, tiltX, tiltY)
@@ -310,6 +330,6 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
 // - drawGrid(canvas, cam, spacing): the export grid's dots. GRID_DOT, MIN_DOT_GAP: their paint and closest gap, 10 px.
 // - onTouchEvent: draw with one finger or a stylus; navigate with two fingers.
 // - onHoverEvent(e): debug mode's hovering pen readings.
-// - centreAndSpan(e), sendHistory(e, i), send(kind, e, i), sendAt(...): touch to tool events.
+// - Fingers: two fingers' centre, span and angle. centreAndSpan(e), sendHistory(e, i), send(kind, e, i), sendAt(...): touch to tool events.
 // - Quad: a render's size, camera and revision.
 // - SURROUND: the workspace colour. REPLACE: a copy-as-is paint.

@@ -264,9 +264,9 @@ class EditorState(private val context: Context) {
         val a = EngineAnswer(engine.state()).okObject?.optJSONArray("artboards")?.optJSONObject(0)
             ?: EngineAnswer(engine.execute("export.slice.list", "{}")).okObject?.optJSONObject("contentBounds")
         camera = if (a == null) {
-            Camera(0.0, 0.0, 1.0, camera.flipped)
+            Camera(0.0, 0.0, 1.0, camera.flipped, camera.rotation)
         } else {
-            Camera.fit(a.optDouble("x"), a.optDouble("y"), a.optDouble("width"), a.optDouble("height"), viewW, viewH).copy(flipped = camera.flipped)
+            Camera.fit(a.optDouble("x"), a.optDouble("y"), a.optDouble("width"), a.optDouble("height"), viewW, viewH, camera.rotation).copy(flipped = camera.flipped)
         }
     }
 
@@ -281,15 +281,20 @@ class EditorState(private val context: Context) {
         camera = camera.copy(zoom = 1.0)
     }
 
-    /** Keep the camera with the document, so a save writes it (§12). */
+    /** Keep the camera (centre, zoom, rotation, View Flip) with the document, so a save writes it (§12). */
     private fun keepCamera() {
-        engine.setView(JSONObject().put("x", camera.cx).put("y", camera.cy).put("zoom", camera.zoom).toString())
+        engine.setView(JSONObject().put("x", camera.cx).put("y", camera.cy).put("zoom", camera.zoom).put("rotation", camera.rotation).put("flipped", camera.flipped).toString())
     }
 
-    /** The camera the document keeps, else fit the artwork. */
+    /** The camera the document keeps (with its rotation and View Flip), else an upright, unflipped view fitting the artwork. */
     private fun restoreCamera() {
         val v = runCatching { JSONObject(engine.view()).optJSONObject("ok") }.getOrNull()
-        if (v != null && viewW > 0) camera = Camera(v.optDouble("x"), v.optDouble("y"), v.optDouble("zoom", 1.0), camera.flipped) else fitArtwork()
+        if (v != null && viewW > 0) {
+            camera = Camera(v.optDouble("x"), v.optDouble("y"), v.optDouble("zoom", 1.0), v.optBoolean("flipped", false), v.optDouble("rotation", 0.0))
+        } else {
+            camera = Camera()
+            fitArtwork()
+        }
     }
 
     /** The view state the tools take: the zoom and the view's frame in document points. */

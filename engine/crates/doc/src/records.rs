@@ -67,7 +67,8 @@ pub struct SymbolEdit {
     pub back_layer: Option<NodeId>,
 }
 
-/// A saved view (View → New View…): zoom, centre and rotation, listed at the bottom of the View menu.
+/// A saved view (View → New View…): zoom, centre, rotation and whether it is mirrored (View Flip),
+/// listed at the bottom of the View menu.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SavedView {
     pub name: String,
@@ -75,6 +76,8 @@ pub struct SavedView {
     pub zoom: f64,
     #[serde(default)]
     pub rotation: f64,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub flipped: bool,
 }
 
 impl SavedView {

@@ -315,7 +315,7 @@ fn templates_suggest_a_name_in_the_templates_folder_and_open_untitled() {
 fn the_saved_view_round_trips_without_dirtying() {
     let d = dir("view");
     let mut s = session();
-    let view = SavedView { name: String::new(), center: Point::new(40.0, 25.0), zoom: 3.0, rotation: 15.0 };
+    let view = SavedView { name: String::new(), center: Point::new(40.0, 25.0), zoom: 3.0, rotation: 15.0, flipped: true };
     s.doc_mut().unwrap().view = Some(view.clone());
     assert!(!s.doc().unwrap().is_dirty(), "the view isn't an edit");
     let native = path(&d, "v.etc");

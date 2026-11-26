@@ -201,7 +201,7 @@ fn new_view(s: &mut Session, p: &Value) -> Result<Value> {
     if st.doc.views.iter().any(|v| v.name == name) {
         return Err(bad(C, format!("a view named `{name}` exists")));
     }
-    let view = SavedView { name: name.clone(), center: Point::new(x, y), zoom, rotation };
+    let view = SavedView { name: name.clone(), center: Point::new(x, y), zoom, rotation, flipped: false };
     let index = s.edit("New View", |d, _| {
         d.views.push(view);
         Ok(d.views.len() - 1)

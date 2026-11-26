@@ -116,7 +116,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `splash/SplashScreen.kt`: `SplashScreen`, `SplashActions`; `splash/SettingsDialog.kt`: `SettingsDialog` (New Document defaults, clear recents, reset panel layout).
 - `editor/EditorScreen.kt`: `EditorScreen` (the workspace layout), `EditorRequests` (pickers).
 - `editor/ToolSettingsHost.kt`: `ToolSettingsHost`: the active tool's settings window.
-- `canvas/Camera.kt`: `Camera` (centre, zoom, View Flip): `toDoc`, `viewport`, `matrix`, `toScreen`, `panned`, `zoomedAbout`, `fit`.
+- `canvas/Camera.kt`: `Camera` (centre, zoom, View Flip, rotation): `toDoc`, `toDocDirection`, `viewport`, `matrix`, `upright`, `screenTurn`, `toScreen`, `panned`, `zoomedAbout`, `navigated`, `fit`, `turn`, `normalized`.
 - `canvas/EditorCanvasView.kt`: `EditorCanvasView`: renders the document on a worker thread, draws the Brush's live stroke, Crop box, Export slices and tool overlays; stylus or one finger draws, two fingers pan and zoom; `follow`, `refresh`.
 - `canvas/OverlayPainter.kt`: `OverlayPainter`: tool overlays and canvas boxes.
 - `topbar/TopBar.kt`: `TopBar` (Menu, Save, Flip, Undo, Redo, Export, brand), `MenuEntry`, `BAR_HEIGHT`.
