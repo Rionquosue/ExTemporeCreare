@@ -56,7 +56,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## tools (dial tools)
 
-- `Brush/BrushTool.kt`: `BrushTool` (engine `paintbrush` / `blobBrush`); `Brush/BrushToolSettings.kt`: `BrushMode` (`PAINTBRUSH`, `BLOB`), `BrushToolSettings`.
+- `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerMode` (`PAINTBRUSH`, `BLOB`), `MarkerToolSettings`.
 - `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
 - `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
 - `Fill/FillTool.kt`: `FillTool` (engine `fillArea`; infinite-canvas failsafe `fillScreen`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
@@ -70,7 +70,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
-- `tools/Brush/BrushToolSettingsPanel.kt`: `BrushToolSettingsPanel` (mode, size, hardness, library brush dropdown).
+- `tools/Marker/MarkerToolSettingsPanel.kt`: `MarkerToolSettingsPanel` (mode, size, hardness, library brush dropdown).
 - `tools/Pen/PenToolSettingsPanel.kt`: `PenToolSettingsPanel` (size, hardness).
 - `tools/Eraser/EraserToolSettingsPanel.kt`: `EraserToolSettingsPanel` (size).
 - `tools/Fill/FillToolSettingsPanel.kt`: `FillToolSettingsPanel` (tolerance).

@@ -1,4 +1,4 @@
-package com.extemporecreare.app.tools.brush
+package com.extemporecreare.app.tools.marker
 
 import com.extemporecreare.app.components.engine.EngineBridge
 import com.extemporecreare.app.components.tools.EngineAnswer
@@ -11,11 +11,11 @@ import com.extemporecreare.app.components.tools.ToolSettingsStore
 import org.json.JSONObject
 
 /**
- * The Brush tool, built on the engine's Paintbrush and Blob Brush tools ([BrushMode]). Each stroke
+ * The Marker tool, built on the engine's Paintbrush and Blob Brush tools ([MarkerMode]). Each stroke
  * is one undo step: with the Paintbrush it takes the brush's size as its stroke weight, and in both
  * modes a hardness below 100 % feathers it ([StrokeFinish]).
  */
-class BrushTool(store: ToolSettingsStore) : EngineTool<BrushToolSettings>(NAME, store, BrushToolSettings::fromJson) {
+class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME, store, MarkerToolSettings::fromJson) {
 
     /** The stroke in progress, as one undo step. */
     private val gesture = StrokeGesture(NAME)
@@ -23,12 +23,12 @@ class BrushTool(store: ToolSettingsStore) : EngineTool<BrushToolSettings>(NAME, 
     override fun engineToolId(): String = settings.mode.engineToolId
 
     override fun pushSettings(engine: EngineBridge): String? =
-        if (settings.mode == BrushMode.BLOB) setOption(engine, "size", settings.size) else null
+        if (settings.mode == MarkerMode.BLOB) setOption(engine, "size", settings.size) else null
 
     override fun pointer(engine: EngineBridge, event: ToolPointer, viewJson: String): ToolResult {
         val s = settings
         return gesture.pointer(engine, event, viewJson, beforeDraw = { useLibraryBrush(engine, s) }) { created ->
-            val weight = if (s.mode == BrushMode.PAINTBRUSH) s.size else null
+            val weight = if (s.mode == MarkerMode.PAINTBRUSH) s.size else null
             StrokeFinish.apply(engine, created, weight, StrokeFinish.featherRadius(s.size, s.hardness))
         }
     }
@@ -43,8 +43,8 @@ class BrushTool(store: ToolSettingsStore) : EngineTool<BrushToolSettings>(NAME, 
      * skips a brush it has) and make it the brush the Paintbrush paints with; with none chosen, a
      * plain stroke → an error message, or `null`.
      */
-    private fun useLibraryBrush(engine: EngineBridge, s: BrushToolSettings): String? {
-        if (s.mode != BrushMode.PAINTBRUSH) return null
+    private fun useLibraryBrush(engine: EngineBridge, s: MarkerToolSettings): String? {
+        if (s.mode != MarkerMode.PAINTBRUSH) return null
         val name = s.brushName
         val library = s.brushLibrary
         if (name != null && library != null) {
@@ -57,16 +57,16 @@ class BrushTool(store: ToolSettingsStore) : EngineTool<BrushToolSettings>(NAME, 
 
     companion object {
         /** The tool's dial name and settings key. */
-        const val NAME = "Brush"
+        const val NAME = "Marker"
     }
 }
 
 // GLOSSARY
-// - BrushTool: the Brush tool (engine Paintbrush or Blob Brush), one undo step per stroke.
+// - MarkerTool: the Marker tool (engine Paintbrush or Blob Brush), one undo step per stroke.
 // - gesture: the stroke in progress.
 // - engineToolId(): the engine tool of the current mode.
 // - pushSettings(engine): the Blob Brush's tip size.
 // - pointer(engine, event, viewJson): draw, then set the stroke weight and feather on release.
 // - deactivate(engine): close a stroke left open.
 // - useLibraryBrush(engine, s): copy the chosen library brush in and make it current.
-// - NAME: "Brush".
+// - NAME: "Marker".

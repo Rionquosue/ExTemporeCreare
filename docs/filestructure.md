@@ -113,8 +113,6 @@ EXTEMPORECREARE
 |   |   |-- EtcColors.kt
 |   |-- tools/
 |       |-- ToolSettingsControls.kt
-|       |-- Brush/
-|       |   |-- BrushToolSettingsPanel.kt
 |       |-- Crop/
 |       |   |-- CropToolSettingsPanel.kt
 |       |-- Eraser/
@@ -123,15 +121,14 @@ EXTEMPORECREARE
 |       |   |-- ExportToolSettingsPanel.kt
 |       |-- Fill/
 |       |   |-- FillToolSettingsPanel.kt
+|       |-- Marker/
+|       |   |-- MarkerToolSettingsPanel.kt
 |       |-- Pen/
 |       |   |-- PenToolSettingsPanel.kt
 |       |-- Shapes/
 |           |-- ShapesToolSettingsPanel.kt
 |-- tools/
     |-- readme.md
-    |-- Brush/
-    |   |-- BrushTool.kt
-    |   |-- BrushToolSettings.kt
     |-- Crop/
     |   |-- CropMode.kt
     |   |-- CropTool.kt
@@ -148,6 +145,9 @@ EXTEMPORECREARE
     |-- Fill/
     |   |-- FillTool.kt
     |   |-- FillToolSettings.kt
+    |-- Marker/
+    |   |-- MarkerTool.kt
+    |   |-- MarkerToolSettings.kt
     |-- Move/
     |   |-- MoveTool.kt
     |-- Pen/

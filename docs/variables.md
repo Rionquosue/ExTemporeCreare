@@ -59,18 +59,18 @@ Stored keys, paths, constants and identifiers.
 
 ## Dial tools
 
-- Tool names (dial names and settings keys): `Brush`, `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move`, `Crop`, `Export`.
-- Engine tools used: Brush `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only); Crop `cropImage` (one image selected) or `hand` (canvas mode, no input); Export `hand` (no input).
+- Tool names (dial names and settings keys): `Marker` (was `Brush`), `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move`, `Crop`, `Export`.
+- Engine tools used: Marker `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only); Crop `cropImage` (one image selected) or `hand` (canvas mode, no input); Export `hand` (no input).
 - Tool settings file: SharedPreferences `tool-settings` (`ToolSettingsStore.FILE`), one JSON string per tool name.
-- Brush settings JSON: `{"mode": "PAINTBRUSH"|"BLOB", "size": pt 0.1–1000 (5), "hardness": % 0–100 (100), "brushLibrary", "brushName"}`.
+- Marker settings JSON: `{"mode": "PAINTBRUSH"|"BLOB", "size": pt 0.1–1000 (5), "hardness": % 0–100 (100), "brushLibrary", "brushName"}`.
 - Pen settings JSON: `{"size": pt 0.1–1000 (1), "hardness": % (100)}`.
 - Eraser settings JSON: `{"size": pt 0.1–1000 (10)}`.
 - Fill settings JSON: `{"tolerance": pt ≥ 0 (0)}` → engine `gapDetection` (tolerance > 0) and `gapLength`.
 - Fill failsafe (infinite canvas, tap changed nothing): `shape.rectangle` over `viewport`, `paint.setStroke {none}`, `select.set`, `object.arrange.sendToBack`, in undo group `Fill`.
 - Shapes settings JSON: `{"kind": "RECTANGLE"|"ELLIPSE"|"POLYGON"|"STAR"|"LINE", "sides": 3–1000 (6), "points": 3–1000 (5)}`.
 - Engine tool options set: Blob Brush and Eraser `size`; Fill Area `gapDetection`, `gapLength`; Polygon `sides`; Star `points`.
-- Hardness: feather radius = size / 2 × (1 − hardness / 100) pt, applied as effect `stylize.feather` to the objects a Brush stroke or a new Pen path added.
-- Undo group labels: `Brush`, `Pen`, `Move`.
+- Hardness: feather radius = size / 2 × (1 − hardness / 100) pt, applied as effect `stylize.feather` to the objects a Marker stroke or a new Pen path added.
+- Undo group labels: `Marker`, `Pen`, `Move`.
 - Crop: canvas box grip reach `CropTool.REACH_PX` = 24 screen px; minimum box `CanvasCropBox.MIN` = 1 pt; canvas apply `artboard.setProps {index, x, y, width, height, moveArt: false, scaleArt: false}`; image apply `object.cropImage {rect}` from the Crop Image tool's `rect` option; cancel sets `rect` to null (image) or restores the artboard's bounds (canvas).
 - Export data: `Document::extra["export"]` (`EXPORT_KEY` in engine `cmd/exportslices.rs` and in etcfile), mirrored to `project.json` `export`: `{"grid": {"visible", "snapEnabled", "spacingPx" (32)}, "slices": [{"id": "slice-NNN", "name": "Slice <n>", "rectPx": {"x", "y", "width", "height"}, "aspectRatio": {"x", "y"}, "format": "png"|"jpg"|"webp", "scale" (1), "exportProfileRef" ("builtin:sRGB"), "visible"}]}`; document pixels = points.
 - Export commands: `export.slice.list` (→ slices, grid, `contentBounds`), `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; undo labels `New Export Slice`, `Edit Export Slice`, `Delete Export Slice`, `Duplicate Export Slice`, `Export Grid`.
@@ -81,6 +81,6 @@ Stored keys, paths, constants and identifiers.
 ## Tool settings windows
 
 - UI package: `com.extemporecreare.app.ui` (folder `interface/`).
-- Slider ranges: Brush, Pen and Eraser size 0.1–1000 pt (cubic track); hardness 0–100 %; Fill tolerance 0–72 pt (`MAX_TOLERANCE`, squared track); Shapes sides and points 3–100 (`MAX_COUNT`).
+- Slider ranges: Marker, Pen and Eraser size 0.1–1000 pt (cubic track); hardness 0–100 %; Fill tolerance 0–72 pt (`MAX_TOLERANCE`, squared track); Shapes sides and points 3–100 (`MAX_COUNT`).
 - Settings window width 240–340 dp, corner radius 16 dp; choices and buttons radius 8 dp.
 - Selection and Move have no settings window (`uistandards.md` §6.2).
