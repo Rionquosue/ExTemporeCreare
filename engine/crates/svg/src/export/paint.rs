@@ -817,7 +817,7 @@ impl Writer<'_> {
                     let space = if *linear { " color-interpolation-filters=\"linearRGB\"" } else { "" };
                     format!("<feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"{}\"{space}/>", sd(*radius))
                 }
-                RasterFx::Pixel(_) | RasterFx::Rasterize(_) => continue,
+                RasterFx::Pixel(_) | RasterFx::Rasterize(_) | RasterFx::Style(_) => continue,
             };
             // Filters composite normally: a shadow's or glow's other blend mode is recorded for import.
             let mode = match f {

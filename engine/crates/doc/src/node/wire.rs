@@ -60,6 +60,7 @@ impl Serialize for Node {
             is_default(&e.warp_piece),
             is_default(&e.clip_pieces),
             e.image_quad.is_none(),
+            e.fill_opacity.is_none(),
         ];
         let mut st = s.serialize_struct("Node", skips.iter().filter(|s| !**s).count())?;
         let mut skip = skips.into_iter();
@@ -108,6 +109,7 @@ impl Serialize for Node {
         field!("warp_piece", &e.warp_piece);
         field!("clip_pieces", &e.clip_pieces);
         field!("image_quad", &e.image_quad);
+        field!("fill_opacity", &e.fill_opacity);
         st.end()
     }
 }
@@ -261,6 +263,8 @@ pub(super) struct NodeWire {
     clip_pieces: bool,
     #[serde(default, deserialize_with = "image_corners")]
     image_quad: Option<Box<[vectorcraft_geom::Point; 4]>>,
+    #[serde(default)]
+    fill_opacity: Option<f32>,
 }
 
 /// A distorted image's corners as a file holds them: a list of exactly four points, else none (the
@@ -337,6 +341,7 @@ impl From<NodeWire> for Node {
             warp_piece: w.warp_piece,
             clip_pieces: w.clip_pieces,
             image_quad,
+            fill_opacity: w.fill_opacity.filter(|f| f.is_finite()).map(|f| f.clamp(0.0, 1.0)).filter(|f| *f < 1.0),
         };
         Node {
             id: w.id,

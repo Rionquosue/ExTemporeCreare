@@ -11,6 +11,7 @@ use vectorcraft_geom::{Affine, Point, Rect, Vec2};
 
 use crate::merged_params;
 use crate::pixel::{self, PixelFx, PixelSpace};
+use crate::style::{LayerStyle, STYLE_EFFECTS};
 use crate::util::{flag, num, text};
 
 /// Effect › Rasterize's id.
@@ -60,6 +61,8 @@ pub enum RasterFx {
     Pixel(PixelFx),
     /// Effect › Rasterize: the object drawn as an image of square pixels.
     Rasterize(Rasterize),
+    /// A Photoshop-style layer style painted over the object from its silhouette ([`LayerStyle`]).
+    Style(LayerStyle),
 }
 
 impl RasterFx {
@@ -84,6 +87,7 @@ impl RasterFx {
             RasterFx::GaussianBlur { radius, .. } => 1.5 * radius,
             RasterFx::Pixel(p) => p.outset(bounds),
             RasterFx::Rasterize(r) => r.outset(),
+            RasterFx::Style(st) => st.outset(),
         }
     }
     /// This effect with a Rasterize that takes the document's resolution at `ppi` ([`Rasterize::at_document_ppi`]).
@@ -423,6 +427,7 @@ pub fn raster_effects(effects: &[Effect]) -> Vec<RasterFx> {
                 "stylize.feather" => RasterFx::Feather { radius: num(&p, "radius", 5.0).clamp(0.0, 1000.0) },
                 "blur.gaussian" => RasterFx::GaussianBlur { radius: num(&p, "radius", 5.0).clamp(0.0, 1000.0), linear: flag(&p, "linear", false) },
                 RASTERIZE => RasterFx::Rasterize(Rasterize::parse(&p)),
+                id if STYLE_EFFECTS.contains(&id) => RasterFx::Style(LayerStyle::parse(id, &p)?),
                 id => RasterFx::Pixel(pixel::parse(id, &p)?),
             })
         })

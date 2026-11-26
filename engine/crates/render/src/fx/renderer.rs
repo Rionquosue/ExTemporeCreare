@@ -233,6 +233,36 @@ impl Renderer {
         ctx.set_transform(Affine::IDENTITY);
     }
 
+    /// Paint the layer `styles` of `content` ([`effects::LayerStyle`]): its silhouette, what
+    /// `paint` draws at full Fill, rendered over the part of the view it and the styles reach, each
+    /// style's pixels made from that and drawn with its blend mode.
+    fn draw_styles(&mut self, ctx: &mut RenderContext, f: &Frame, content: &Content, styles: &[&effects::LayerStyle], paint: &mut dyn FnMut(&mut Self, &mut RenderContext, &Frame)) {
+        let out = styles.iter().map(|st| st.outset()).fold(0.0, f64::max) + 2.0 * f.px;
+        let Some((r, sub)) = crate::group::area(ctx, f, Some(content.reach.inflate(out, out))) else { return };
+        let mut off = sub.offscreen_context(r.w, r.h);
+        let was = std::mem::replace(&mut self.full_fill, true);
+        paint(self, &mut off, &sub);
+        self.full_fill = was;
+        let pm = self.finish(&mut off, self.raster);
+        let alpha: Vec<u8> = pm.data().iter().map(|p| p.a).collect();
+        let (w, h) = (r.w as usize, r.h as usize);
+        let ink = f.ink;
+        let rgb = |c: &vectorcraft_doc::color::Color| {
+            let p = pcolor(ink, c).to_rgba8();
+            [p.r, p.g, p.b]
+        };
+        for st in styles {
+            for (mode, pixels) in st.paint(&alpha, w, h, 1.0 / f.px, &rgb) {
+                let mut image = vello_cpu::Pixmap::new(r.w, r.h);
+                for (d, s) in image.data_mut().iter_mut().zip(pixels.chunks_exact(4)) {
+                    (d.r, d.g, d.b, d.a) = (s[0], s[1], s[2], s[3]);
+                }
+                let layer = Shadow { image: Arc::new(image), at: Affine::translate((f64::from(r.x), f64::from(r.y))), mode, moved: false, cropped: None };
+                self.draw_shadow(ctx, &layer, Affine::IDENTITY);
+            }
+        }
+    }
+
     /// Drop shadow / outer glow `fx` of what `paint` draws (bounded by `reach`) through a vello
     /// filter layer, when there is no raster for it ([`Self::shadow_raster`]). vello's shadow filter
     /// blurs the soft alpha, so an Outer Glow drawn here lacks the raster's solid silhouette.
@@ -263,7 +293,10 @@ impl Renderer {
             c.push_layer(None, comp.map(|m| blend_mode(m.0)), comp.map(|m| m.1), None, Some(filter));
             let ink = darkness.map_or(fr.ink, |d| fr.ink.darkened(d));
             let source = Frame { ink, ..*fr };
+            // The silhouette ignores the layer's Fill.
+            let was = std::mem::replace(&mut r.full_fill, true);
             paint(r, c, &shifted(&source, dx, dy));
+            r.full_fill = was;
             c.pop_layer();
         });
     }
@@ -944,7 +977,10 @@ impl Renderer {
                             None => r.draw_shadow_filter(c, fr, fx, reach, paint),
                         }
                     }
+                    // The silhouette ignores the layer's Fill.
+                    let was = std::mem::replace(&mut r.full_fill, true);
                     paint(r, c, fr);
+                    r.full_fill = was;
                 };
                 let view = (screen, around, over);
                 content.cache.and_then(|slot| self.shadow_raster(f, content.node, slot + i, fx, stacked, owner.as_ref(), view, &mut art))
@@ -955,11 +991,32 @@ impl Renderer {
             };
             made.push((fx, shadow));
         }
+        // A container at Fill below 100 % knocks its shadows and glows out under its content (as
+        // Photoshop's "Layer Knocks Out Drop Shadow"): they are drawn in a layer of their own and
+        // the content's silhouette, at full Fill, is cut out of them.
+        let knocks_out = !made.is_empty()
+            && !self.full_fill
+            && !f.opts.outline
+            && content.node.is_container()
+            && content.node.extras().fill_opacity.is_some_and(|o| o < 1.0);
+        if knocks_out {
+            ctx.set_transform(Affine::IDENTITY);
+            ctx.push_layer(None, None, None, None, None);
+        }
         for (fx, s) in made.iter().rev() {
             match s {
                 Some(s) => self.draw_shadow(ctx, s, Affine::IDENTITY),
                 None => self.draw_shadow_filter(ctx, f, fx, reach, paint),
             }
+        }
+        if knocks_out {
+            ctx.set_transform(Affine::IDENTITY);
+            ctx.push_layer(None, Some(peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::DestOut)), None, None, None);
+            let was = std::mem::replace(&mut self.full_fill, true);
+            paint(self, ctx, f);
+            self.full_fill = was;
+            ctx.pop_layer();
+            ctx.pop_layer();
         }
         // The content itself (blurred / feathered / filtered), on its pixels: a filter layer's blur
         // works on a coarser grid tied to the canvas, so the blurred art shifted by up to a pixel
@@ -969,6 +1026,12 @@ impl Renderer {
             self.pixel_content(ctx, f, content, rfx, paint);
         } else {
             paint(self, ctx, f);
+        }
+        // Above the content: the layer styles (Stroke, overlays, Bevel & Emboss), from its
+        // silhouette at full Fill.
+        let styles: Vec<&effects::LayerStyle> = rfx.iter().filter_map(|fx| if let RasterFx::Style(st) = fx { Some(st) } else { None }).collect();
+        if !styles.is_empty() && !f.opts.outline {
+            self.draw_styles(ctx, f, content, &styles, paint);
         }
         // Above the content: inner glows, clipped to its outline. An image's glow follows its
         // visible pixels, not its frame (#5308).
@@ -995,8 +1058,10 @@ impl Renderer {
                         c.fill_rect(&g.bounding_box().inflate(pad, pad));
                         c.push_layer(None, Some(peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::DestOut)), None, None, None);
                     }
-                    // The glow is cast by the pixels' alpha alone (the filter takes no color from them).
+                    // The glow is cast by the pixels' alpha alone (the filter takes no color from them), at full Fill.
+                    let was = std::mem::replace(&mut r.full_fill, true);
                     paint(r, c, fr);
+                    r.full_fill = was;
                     if !*center {
                         c.pop_layer();
                     }

@@ -75,10 +75,10 @@ val BLEND_MODES = listOf(
  * to apply, or null where the engine has no matching operation, shown unavailable).
  */
 val LAYER_STYLES: List<Pair<String, Pair<String, JSONObject>?>> = listOf(
-    "Stroke" to ("appearance.addStroke" to JSONObject()),
-    "Bevel & Emboss" to null,
-    "Color Overlay" to null,
-    "Gradient Overlay" to null,
+    "Stroke" to ("effect.apply" to JSONObject().put("effect", "style.stroke")),
+    "Bevel & Emboss" to ("effect.apply" to JSONObject().put("effect", "style.bevelEmboss")),
+    "Color Overlay" to ("effect.apply" to JSONObject().put("effect", "style.colorOverlay")),
+    "Gradient Overlay" to ("effect.apply" to JSONObject().put("effect", "style.gradientOverlay")),
     "Drop Shadow" to ("effect.apply" to JSONObject().put("effect", "stylize.dropShadow")),
     "Outer Glow" to ("effect.apply" to JSONObject().put("effect", "stylize.outerGlow")),
 )
@@ -88,8 +88,10 @@ class LayerCardActions(
     val select: (Long) -> Unit,
     val setVisible: (Long, Boolean) -> Unit,
     val setOpacity: (Long, Int) -> Unit,
+    val setFill: (Long, Int) -> Unit,
     val setBlend: (Long, String) -> Unit,
     val addStyle: (Long, String, JSONObject) -> Unit,
+    val mask: MaskActions,
 )
 
 /** Where a dragged card would go: beside or inside the card [id]. */
@@ -107,13 +109,13 @@ class CardDrag(
 /**
  * One row of the stack as a card (`uistandards.md` §7.1): the modifier menu, the name, its type
  * chip, visibility and the drag grip; below, the type icon, blend mode, Opacity (typed percentage
- * and a larger slider from its arrow, kept in step), Fill and the mask control. A folder has a
- * chevron that shows its rows, indented. The current layer's card is gold-bordered; a drop line
- * shows where a dragged card would go. Fill has no engine property separate from Opacity and mask
- * operations are still open (§13.3), so both are shown disabled.
+ * and a larger slider from its arrow, kept in step), Fill (as Photoshop's: the content's opacity,
+ * apart from the layer styles) and the mask button ([MaskButton]); a layer's mask shows below as its
+ * sublayer ([MaskRow]). A folder has a chevron that shows its rows,
+ * indented. The current layer's card is gold-bordered; a drop line shows where a dragged card would go.
  */
 @Composable
-fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: CardDrag, folders: SnapshotStateMap<Long, Boolean>) {
+fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: CardDrag, folders: SnapshotStateMap<Long, Boolean>, masks: MaskContext) {
     val id = row.optLong("id")
     val kind = row.optString("kind")
     val folder = kind == "folder"
@@ -178,16 +180,15 @@ fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: Card
             }
             BlendPicker(row.optString("blend", "Normal")) { actions.setBlend(id, it) }
             PercentControl("Opacity", row.optDouble("opacity", 100.0).toInt(), Modifier.weight(1f)) { actions.setOpacity(id, it) }
-            PercentControl("Fill", 100, Modifier.weight(1f), enabled = false) {}
-            Box(Modifier.size(30.dp).border(1.dp, EtcColors.LineSoft, RoundedCornerShape(8.dp)).semantics { contentDescription = "Mask (not available yet)" }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Contrast, null, tint = EtcColors.Soft, modifier = Modifier.size(16.dp))
-            }
+            PercentControl("Fill", row.optDouble("fill", 100.0).toInt(), Modifier.weight(1f)) { actions.setFill(id, it) }
+            MaskButton(row, masks, actions.mask)
         }
+        MaskRow(row, masks, actions.mask)
         if (hint?.place == "below") DropLine()
     }
     if (folder && open) {
         val children = row.optJSONArray("children")
-        for (i in 0 until (children?.length() ?: 0)) children?.optJSONObject(i)?.let { LayerCard(it, depth + 1, actions, drag, folders) }
+        for (i in 0 until (children?.length() ?: 0)) children?.optJSONObject(i)?.let { LayerCard(it, depth + 1, actions, drag, folders, masks) }
     }
 }
 
@@ -307,7 +308,7 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
 // GLOSSARY
 // - BLEND_MODES: the cards' blend modes (engine name, label).
 // - LAYER_STYLES: the modifier menu's styles (label, engine command and params, or null when unavailable).
-// - LayerCardActions: what a card asks of the document (select, visibility, opacity, blend, add a style).
+// - LayerCardActions: what a card asks of the document (select, visibility, opacity, Fill, blend, add a style, mask).
 // - DropHint: where a dragged card would go. CardDrag: the grip drag shared by the cards.
 // - LayerCard(row, depth, actions, drag, folders): one row as a card, a folder's rows below it unless collapsed in folders.
 // - DropLine(): the drop indicator.

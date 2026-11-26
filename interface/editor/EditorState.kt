@@ -370,6 +370,18 @@ class EditorState(private val context: Context) {
         return error == null
     }
 
+    /**
+     * Start or stop painting layer [id]'s mask (`transparency.editOpacityMask`): while painting,
+     * the tools draw into the mask, where white shows the layer, black hides it and greys partly
+     * show it; another layer's mask being painted is left first.
+     */
+    fun paintMask(id: Long) {
+        val stack = EngineAnswer(engine.layers()).okObject
+        val editing = stack?.takeIf { !it.isNull("editingMask") }?.optLong("editingMask")
+        if (editing != null) run("transparency.stopEditingOpacityMask", JSONObject())
+        if (editing != id) run("transparency.editOpacityMask", JSONObject().put("id", id))
+    }
+
     /** Save to [uri] (the document's own, or a new one from Save As). */
     fun save(uri: Uri) {
         keepCamera()
@@ -470,6 +482,7 @@ class EditorState(private val context: Context) {
 // - start(): presets, recovery setup, an interrupted session recovered. recoverInterrupted(): open its copies. saveRecovery(): write a copy.
 // - board, boardRevision, boardSelected: the reference board, what changed in it, its selected image.
 // - references: images stored inside the .etc. boardEmbed(id): embed a board image. boardPicture(id): a board image's picture.
+// - paintMask(id): start or stop painting a layer's mask.
 // - backgroundBoard(): keep or save the board going to the background. boardChanged(), boardDone(error): the board panel reads it again.
 // - stepTool(by): step the dial. newDocument(settings): a new finite or infinite document. home(): back to the splash.
 // - forget(uri), clearRecents(): change the recent files.

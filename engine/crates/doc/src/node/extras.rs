@@ -92,6 +92,10 @@ pub struct NodeExtras {
     /// (top left, top right, bottom right, bottom left in pixel space) stand on the page when they
     /// do not make a parallelogram, which its transform alone could place ([`crate::image_quad`]).
     pub image_quad: Option<Box<[Point; 4]>>,
+    /// Layer Fill (as in Photoshop's Layers panel): the opacity of the layer's own content, 0–1,
+    /// apart from its layer styles (appearance strokes and effects), which keep their own opacity.
+    /// `None`: 100 %.
+    pub fill_opacity: Option<f32>,
 }
 
 /// No extras: what [`Node::extras`] gives for a node without any.
@@ -124,6 +128,7 @@ pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
     warp_piece: false,
     clip_pieces: false,
     image_quad: None,
+    fill_opacity: None,
 };
 
 /// A node's [`NodeExtras`], if it has any ([`Node::extras`]). Extras that are all unset equal

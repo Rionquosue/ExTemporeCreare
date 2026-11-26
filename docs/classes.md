@@ -25,11 +25,14 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## engine/crates/effects (additions)
 
+- `src/style.rs`: Photoshop-style layer styles from the silhouette: `LayerStyle` (`Stroke`, `ColorOverlay`, `GradientOverlay`, `BevelEmboss`; `parse`, `outset`, `paint`), `StrokePosition`, `BevelStyle`, `distance` (Euclidean distance transform), `STYLE_EFFECTS`; `RasterFx::Style` carries one.
 - `src/pixel/pencil.rs`: `stylize.pencilGrain` (`PixelFx::PencilGrain`): the paper's tooth, fixed to the canvas, evaluated at the view's resolution: `grain_at`, `pencil_grain`.
 
 ## engine/crates/engine (run-time presets, export slices)
 
 - `src/cmd/exportslices.rs`: export slices and grid as document data (`Document::extra["export"]`): `export.slice.list`, `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; `EXPORT_KEY`, `SLICE_FORMATS`, `DEFAULT_GRID_SPACING`.
+- `src/cmd/layerfill.rs`: `layer.setFill` (Photoshop's Fill: content opacity apart from the styles, `NodeExtras::fill_opacity`).
+- `src/cmd/layermask.rs`: Photoshop-style layer masks on the node's opacity mask: `layer.mask.add` (reveal, hide, selection), `layer.mask.fromSelection`, `layer.mask.invert`, `layer.mask.setEnabled`, `layer.mask.delete`, `layer.mask.info`; painting through `transparency.editOpacityMask`.
 - `src/cmd/referenceassets.rs`: reference images stored inside the document (board Embed): `reference.embed`, `reference.asset`, `reference.list`; `sniff_mime`; `REFERENCE_ASSETS_KEY`, `REFERENCE_ASSET_PREFIX`, `MAX_REFERENCE_BYTES`.
 - `src/cmd/rasterpaint.rs`: raster painting into splotches (image objects keyed `paint-block-…`, the view's frame plus a buffer, at the zoom's resolution): `begin` (pen down: splotch reused, locked or new), `Stroke` (`frame`, `add`, `layer_pixels`, `finish`), `Decoded` (pixels kept between strokes), `points_of`, `block_of`, `paint.stroke` (a whole stroke); `BLOCK_KEY_PREFIX`, `MAX_SIDE`, `MAX_PIXELS`, `RESOLUTIONS`, `BUFFER_SHARE`, `ZOOM_TOLERANCE`.
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
@@ -126,7 +129,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `dial/DialGrip.kt`: `DialGrip` (hold and drag to move the dial), `DialStepper` (step the dial by one tool).
 - `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
-- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity with slider popover, Fill and mask shown disabled, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`.
+- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity and Fill with slider popovers, mask button and mask sublayer, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`; `panels/MaskRow.kt`: `MaskButton`, `MaskRow`, `MaskActions`, `MaskContext` (a layer's mask as its sublayer and its quick operations).
 - `common/ConfirmDialog.kt`: `Confirmation`, `ConfirmDialog`: ask before a destructive action.
 - `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`, `BoardActions` (add, New, Open, Save, Relink, Embed, select, changed, picture); image menu Delete, Embed, Flip (Horizontal, Vertical), Crop.
 - `board/BoardCanvas.kt`: `BoardCanvas`: the reference board's view through its own camera (two fingers: pan, zoom, rotate the view; one finger: move an image or pan; tap selects and shows corner handles: resize on a corner, rotate just outside; hold opens the image menu; crop mode; missing images as placeholders).

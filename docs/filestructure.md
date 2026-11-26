@@ -157,6 +157,7 @@ EXTEMPORECREARE
 |   |   |-- FloatingPanel.kt
 |   |   |-- LayerCard.kt
 |   |   |-- LayersPanel.kt
+|   |   |-- MaskRow.kt
 |   |   |-- ReferenceBoardPanel.kt
 |   |   |-- TextureLibraryPanel.kt
 |   |-- theme/

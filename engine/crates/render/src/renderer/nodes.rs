@@ -466,7 +466,22 @@ impl Renderer {
     }
 
     /// What `n` draws inside its transparency group (`knockout`: its children knock each other out).
+    /// A container's Fill below 100 % (`NodeExtras::fill_opacity`) fades its children as one
+    /// group, apart from its styles, unless a style is reading its silhouette ([`Self::full_fill`]).
     fn draw_content(&mut self, ctx: &mut RenderContext, f: &Frame, n: &Node, knockout: bool) {
+        if n.is_container()
+            && !f.opts.outline
+            && !self.full_fill
+            && let Some(fill) = n.extras().fill_opacity.filter(|o| *o < 1.0)
+        {
+            let comp = Composite { opacity: fill.max(0.0), ..Default::default() };
+            return self.group(ctx, f, comp, &mut |r, c, fr| r.draw_content_now(c, fr, n, knockout));
+        }
+        self.draw_content_now(ctx, f, n, knockout)
+    }
+
+    /// [`Self::draw_content`] past the container's Fill.
+    fn draw_content_now(&mut self, ctx: &mut RenderContext, f: &Frame, n: &Node, knockout: bool) {
         match &n.kind {
             NodeKind::Group { children, clip: false } if f.opts.trace_views && !f.opts.outline && Self::trace_view(f, n) != TraceView::Result => {
                 self.draw_trace_view(ctx, f, children, (Self::trace_view(f, n), n.trace_split()), knockout)

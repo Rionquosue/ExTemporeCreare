@@ -247,6 +247,9 @@ pub struct Renderer {
     isolation: Option<(u64, usize, NodeId, Vec<NodeId>)>,
     /// Drawing inside the isolated container or a dimmed object: nothing further dims.
     isolation_settled: bool,
+    /// Drawing the silhouette a layer style reads (a shadow's, a glow's): containers draw their
+    /// content at full Fill (`NodeExtras::fill_opacity`), as Photoshop's styles ignore Fill.
+    full_fill: bool,
     /// The art the last frame drew with Overprint Preview or Separations Preview: the next frame
     /// draws it again for the objects that have not changed ([`proof::prepare`]).
     proof_art: Option<proof::Prepared>,

@@ -52,6 +52,8 @@ import com.extemporecreare.app.ui.panels.LayersActions
 import com.extemporecreare.app.ui.panels.LayersPanel
 import com.extemporecreare.app.ui.panels.LayersViewState
 import com.extemporecreare.app.ui.panels.BoardActions
+import com.extemporecreare.app.ui.panels.MaskActions
+import com.extemporecreare.app.ui.panels.MaskContext
 import com.extemporecreare.app.ui.panels.ReferenceBoardPanel
 import com.extemporecreare.app.ui.panels.TextureLibraryPanel
 import com.extemporecreare.app.ui.theme.EtcColors
@@ -143,8 +145,10 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
                                     ExportToolSettingsPanel(export, state.engine, revision) { state.show(it); state.touched() }
                                 }
                             } else {
-                                val rows = remember(revision) { JSONObject(state.engine.layers()).optJSONObject("ok")?.optJSONArray("rows") ?: JSONArray() }
-                                LayersPanel(rows, layout.layersOpen, layout::toggleLayers, layersActions(state), layersView, headerModifier = header)
+                                val stack = remember(revision) { JSONObject(state.engine.layers()).optJSONObject("ok") ?: JSONObject() }
+                                val rows = stack.optJSONArray("rows") ?: JSONArray()
+                                val masks = MaskContext(stack.optInt("selected"), if (stack.isNull("editingMask")) null else stack.optLong("editingMask"))
+                                LayersPanel(rows, masks, layout.layersOpen, layout::toggleLayers, layersActions(state), layersView, headerModifier = header)
                             }
                         }
                     }
@@ -219,6 +223,19 @@ private fun layersActions(state: EditorState): LayersActions {
             select = { id -> state.run("layer.setCurrent", JSONObject().put("id", id)) },
             setVisible = { id, on -> state.run("layer.setProps", JSONObject().put("id", id).put("visible", on)) },
             setOpacity = { id, v -> state.run("transparency.set", JSONObject().put("ids", ids(id)).put("opacity", v)) },
+            setFill = { id, v -> state.run("layer.setFill", JSONObject().put("ids", ids(id)).put("fill", v)) },
+            mask = MaskActions(
+                add = { id, mode -> state.run("layer.mask.add", JSONObject().put("id", id).put("mode", mode)) },
+                fromSelection = { id -> state.run("layer.mask.fromSelection", JSONObject().put("id", id)) },
+                paint = { id -> state.paintMask(id) },
+                invert = { id -> state.run("layer.mask.invert", JSONObject().put("id", id)) },
+                setEnabled = { id, on -> state.run("layer.mask.setEnabled", JSONObject().put("id", id).put("enabled", on)) },
+                delete = { id -> state.run("layer.mask.delete", JSONObject().put("id", id)) },
+                reset = { id, mode ->
+                    state.run("layer.mask.delete", JSONObject().put("id", id))
+                    state.run("layer.mask.add", JSONObject().put("id", id).put("mode", mode))
+                },
+            ),
             setBlend = { id, mode -> state.run("transparency.set", JSONObject().put("ids", ids(id)).put("blend", mode)) },
             addStyle = { id, command, params ->
                 params.remove("_label")

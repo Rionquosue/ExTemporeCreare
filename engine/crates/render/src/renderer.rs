@@ -99,6 +99,7 @@ impl Renderer {
             raster: vello_cpu::RasterizerSettings::default(),
             isolation: None,
             isolation_settled: false,
+            full_fill: false,
             proof_art: None,
             hairline: 1.0,
         }

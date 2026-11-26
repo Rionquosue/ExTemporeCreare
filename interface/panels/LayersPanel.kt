@@ -61,6 +61,7 @@ class LayersActions(
 @Composable
 fun LayersPanel(
     rows: JSONArray,
+    masks: MaskContext,
     expanded: Boolean,
     onToggle: () -> Unit,
     actions: LayersActions,
@@ -99,7 +100,7 @@ fun LayersPanel(
             Modifier.heightIn(max = 520.dp).verticalScroll(view.scroll).padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            for (i in 0 until rows.length()) rows.optJSONObject(i)?.let { LayerCard(it, 0, actions.card, drag, view.folders) }
+            for (i in 0 until rows.length()) rows.optJSONObject(i)?.let { LayerCard(it, 0, actions.card, drag, view.folders, masks) }
         }
         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             FooterButton(Icons.Outlined.Delete, "Delete", actions.deleteCurrent)

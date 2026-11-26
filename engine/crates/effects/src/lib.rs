@@ -50,6 +50,7 @@ mod revolve;
 mod solids;
 pub mod stroke;
 mod stylize;
+pub mod style;
 pub mod svg_filter;
 pub mod trap;
 mod util;
@@ -80,6 +81,7 @@ pub use lighting_presets::{LIGHTING_PRESETS, LightingPreset, lighting_preset_par
 pub use live::{expand_live, expand_live_deep, expanded_live_group, outline_object, text_outliner};
 pub use marks::{CROP_MARKS, crop_marks_art, has_crop_marks};
 pub use pixel::{PIXEL_EFFECTS, PixelFx, PixelSpace};
+pub use style::{BevelStyle, LayerStyle, STYLE_EFFECTS, StrokePosition};
 pub use placement::pinned_gradient_item;
 pub use raster::{
     RASTERIZE, RasterFx, Rasterize, color_param, follow_items, item_effects_in, outset, raster_effects, rasterize_stage, stage_maps, staged_effects,
