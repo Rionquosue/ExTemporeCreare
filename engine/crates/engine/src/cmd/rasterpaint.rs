@@ -308,7 +308,7 @@ mod tests {
         let id = first["id"].as_u64().unwrap();
         assert_eq!(pixel(&s, id, Point::new(120.0, 100.0)), [255, 0, 0, 255], "painted solid");
         let width = first["width"].as_u64().unwrap();
-        assert!((90..=100).contains(&width), "40 pt + the 10 pt dab, at 2 px a point: {width}");
+        assert!((100..=104).contains(&width), "40 pt + the 10 pt dab and a pixel each side, at 2 px a point: {width}");
         // A stroke from inside the block running past its edge grows it, keeping the first paint.
         let second = s.execute("paint.stroke", &json!({"points": [[130, 100], [130, 200]], "size": 10, "color": "#0000ff", "resolution": 8})).unwrap();
         assert_eq!((second["created"].as_bool(), second["id"].as_u64()), (Some(false), Some(id)));
