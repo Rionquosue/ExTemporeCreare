@@ -10,7 +10,7 @@ use jni::JNIEnv;
 use jni::objects::{JByteBuffer, JClass, JString};
 use jni::sys::{jboolean, jdouble, jint, jlong, jstring};
 
-use crate::{boards, calls, files, paint, sessions};
+use crate::{boards, calls, colors, files, paint, panels, sessions};
 
 /// A Java string as Rust text (empty when it can't be read).
 fn text(env: &mut JNIEnv, s: &JString) -> String {
@@ -341,6 +341,30 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     jtext(&mut env, &out)
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeLayers(mut env: JNIEnv, _class: JClass, handle: jlong) -> jstring {
+    let out = panels::layers(handle);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativePaintDefaults(mut env: JNIEnv, _class: JClass, handle: jlong) -> jstring {
+    let out = colors::paint_defaults(handle);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeSetPaintDefaults(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    values: JString,
+) -> jstring {
+    let values = text(&mut env, &values);
+    let out = colors::set_paint_defaults(handle, &values);
+    jtext(&mut env, &out)
+}
+
 // GLOSSARY
 // - `text`: a Java string as Rust text.
 // - `jtext`: Rust text as a Java string.
@@ -356,6 +380,8 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativeOverlays`: what the active tool draws over the canvas → JSON answer.
 // - `..._nativeRender`: render a region of the active document into a direct byte buffer.
 // - `..._nativePaintBegin`, `..._nativePaintAdd`, `..._nativePaintEnd`, `..._nativePaintCancel`: `paint::begin`, `add`, `end`, `cancel` → JSON answer.
+// - `..._nativeLayers`: `panels::layers` → JSON answer.
+// - `..._nativePaintDefaults`, `..._nativeSetPaintDefaults`: `colors::paint_defaults`, `set_paint_defaults` → JSON answer.
 // - `..._nativePaintPixels`: the live Brush stroke's layer over a splotch region into a direct byte buffer.
 // - `..._nativeOpen`: open a copied file with its URI as the path → JSON answer.
 // - `..._nativeSave`: write a save into temporary files and keep it pending → JSON answer with the files.

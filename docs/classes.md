@@ -42,10 +42,12 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/files.rs`: `PendingSave`; `open` (a copied file with its URI as path), `save` (write into temporary files, keep pending), `save_finish` (with the final URI a rename gave), `validate`.
 - `src/jni_exports.rs`: the JNI functions of `EngineBridge`.
 - `src/paint.rs`: the Brush tool's live strokes: `begin`, `add`, `pixels`, `end`, `cancel`.
+- `src/panels.rs`: `layers`: the Layers panel's rows (folder, raster, vector, guide), topmost first.
+- `src/colors.rs`: `paint_defaults`, `set_paint_defaults`: the primary (stroke) and alternate (fill) colours, without touching the selection.
 
 ## components/engine
 
-- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
+- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `layers`, `paintDefaults`, `setPaintDefaults`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
 - `EngineFiles.kt`: `EngineFiles(context, engine)`: `open(uri)` and `save(uri, mode, options)` through content URIs, temporary files in `cacheDir/engine-files`, a check of each `.etc`, then the replace: renamed over the original where the provider allows (`replaceByRename`), else copied into the URI (`copyInto`).
 - `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`.
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.

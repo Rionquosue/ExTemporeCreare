@@ -5,10 +5,12 @@
 
 pub mod boards;
 pub mod calls;
+pub mod colors;
 mod convert;
 pub mod files;
 mod jni_exports;
 pub mod paint;
+pub mod panels;
 mod sessions;
 
 pub use sessions::{create, destroy};
@@ -16,9 +18,11 @@ pub use sessions::{create, destroy};
 // GLOSSARY
 // - `boards`: reference boards (`.etcr`) and their linked images, as JSON.
 // - `calls`: the operations the UI asks of the engine, answered as JSON.
+// - `colors`: the paint defaults the tools paint with (primary: stroke, alternate: fill).
 // - `convert`: JSON conversions of view state and tool requests.
 // - `files`: opening and saving through temporary files for content URIs.
 // - `jni_exports`: the JNI functions of `EngineBridge`.
 // - `paint`: the Brush tool's live raster strokes into splotches.
+// - `panels`: the Layers panel's rows.
 // - `sessions`: open engine sessions by handle.
 // - `create`, `destroy`: open and close a session (re-exported from `sessions`).

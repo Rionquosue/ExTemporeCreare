@@ -95,3 +95,5 @@ Stored keys, paths, constants and identifiers.
 - `paint.stroke` params: `points` ([x, y, pressure?]), `view` ({x, y, width, height}), `zoom`, `locked` (splotch id), `size`, `hardness`, `spacing`, `flow`, `opacity`, `pressureSize`, `color` (`#rrggbb`; default stroke, else fill, else black) → `{id, created, width, height}`.
 - Live Brush stroke bridge answers: `paintBegin` → `{x, y, width, height, pixelsWide, pixelsHigh, splotch}`; `paintAdd` → `{painted: [x, y, w, h] | null}`; `paintPixels` fills premultiplied RGBA; `paintEnd` → `{id, created, width, height}`.
 - View JSON `viewport` is also read by the Brush tool (the splotch's frame).
+- Layers rows JSON: `{"rows": [{"id", "name", "kind": "folder"|"raster"|"vector"|"guide", "visible", "locked", "opacity" 0–100, "blend" (engine name: Normal, Multiply, Screen, Overlay, SoftLight, HardLight, ColorDodge, ColorBurn, Darken, Lighten, Difference, Exclusion, Hue, Saturation, Color, Luminosity), "current", "children"?}]}`, topmost first.
+- Colours: primary = the stroke default, alternate = the fill default; `paintDefaults` / `setPaintDefaults` JSON `{"stroke": "#rrggbb"|null, "fill": "#rrggbb"|null}`.

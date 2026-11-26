@@ -75,6 +75,19 @@ class EngineBridge : AutoCloseable {
     }
 
     /**
+     * The Layers panel's rows, topmost first → `{"ok": {"rows": [{"id", "name", "kind":
+     * "folder"|"raster"|"vector"|"guide", "visible", "locked", "opacity" (0–100), "blend", "current",
+     * "children"?}]}}`.
+     */
+    fun layers(): String = nativeLayers(live())
+
+    /** The paint defaults the tools paint with → `{"ok": {"stroke": "#rrggbb"|null, "fill": "#rrggbb"|null}}` (primary: stroke, alternate: fill). */
+    fun paintDefaults(): String = nativePaintDefaults(live())
+
+    /** Set the paint defaults in [valuesJson] (`{"stroke"?, "fill"?}`, `"#rrggbb"` or null) without touching the selection → the defaults. */
+    fun setPaintDefaults(valuesJson: String): String = nativeSetPaintDefaults(live(), valuesJson)
+
+    /**
      * The Brush tool's pen went down: get a live raster stroke and its splotch ready. [paramsJson] is
      * as `paint.stroke` takes it without `points` (`view`, `zoom`, `locked`?, `size`, `hardness`,
      * `spacing`, `flow`, `opacity`, `pressureSize`, `color`?) → `{"ok": {"x", "y", "width", "height",
@@ -176,6 +189,9 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeSetToolOption(handle: Long, key: String, value: String): String
         @JvmStatic private external fun nativeState(handle: Long): String
         @JvmStatic private external fun nativeOverlays(handle: Long, view: String): String
+        @JvmStatic private external fun nativeLayers(handle: Long): String
+        @JvmStatic private external fun nativePaintDefaults(handle: Long): String
+        @JvmStatic private external fun nativeSetPaintDefaults(handle: Long, values: String): String
         @JvmStatic private external fun nativePaintBegin(handle: Long, params: String): String
         @JvmStatic private external fun nativePaintAdd(handle: Long, points: String): String
         @JvmStatic private external fun nativePaintPixels(handle: Long, x: Int, y: Int, width: Int, height: Int, out: ByteBuffer): Boolean
@@ -216,6 +232,8 @@ class EngineBridge : AutoCloseable {
 // - state(): canvas mode, artboards, selection and selected images → JSON answer.
 // - overlays(viewJson): what the active tool draws over the canvas → JSON answer.
 // - render(x, y, width, height, scale, out): draw part of the active document into a direct buffer.
+// - layers(): the Layers panel's rows → JSON answer.
+// - paintDefaults(), setPaintDefaults(valuesJson): the primary (stroke) and alternate (fill) colours → JSON answer.
 // - paintBegin, paintAdd, paintPixels, paintEnd, paintCancel: the Brush tool's live raster stroke into a splotch.
 // - openCopied(tempPath, name, uri): open a file copied to a temporary file, with its URI as path.
 // - saveToTemp(mode, paramsJson, tempDir): write a save into temporary files and keep it pending.
@@ -225,4 +243,4 @@ class EngineBridge : AutoCloseable {
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
 // - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths.
-// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
+// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeLayers, nativePaintDefaults, nativeSetPaintDefaults, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
