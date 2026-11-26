@@ -30,6 +30,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## engine/crates/engine (run-time presets, export slices)
 
 - `src/cmd/exportslices.rs`: export slices and grid as document data (`Document::extra["export"]`): `export.slice.list`, `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; `EXPORT_KEY`, `SLICE_FORMATS`, `DEFAULT_GRID_SPACING`.
+- `src/cmd/rasterpaint.rs`: `paint.stroke`: raster painting into paint blocks (image objects keyed `paint-block-…`) that keep their resolution and grow; `Brush`, `block_of`, `block_under`, `dab_cover`, `dabs`; `BLOCK_KEY_PREFIX`, `MAX_SIDE`, `MAX_PIXELS`, `RESOLUTIONS`.
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
 
 ## engine/crates/bridge (interface layer, `libetcbridge.so`)
@@ -67,6 +68,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## tools (dial tools)
 
+- `Brush/BrushTool.kt`: `BrushTool` (raster painting with `paint.stroke`; engine `hand` chosen, no input): `stroke` (for the canvas preview); `Brush/BrushToolSettings.kt`: `BrushToolSettings`.
 - `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerTip` (`ROUND`, `OVAL`, `CHISEL`), `TipOrientation` (`FIXED`, `TILT`, `ROTATION`), `MarkerToolSettings`. `MarkerTool.TIP_BRUSH` is the document Calligraphic brush that draws the Paintbrush's oval and chisel tips.
 - `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
 - `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
@@ -82,6 +84,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
+- `tools/Brush/BrushToolSettingsPanel.kt`: `BrushToolSettingsPanel` (size, hardness, spacing, flow, opacity, pressure sizing).
 - `tools/Marker/MarkerToolSettingsPanel.kt`: `MarkerToolSettingsPanel` (mode, size, hardness, tip shape, angle, thickness and what turns it, library brush dropdown).
 - `tools/Pencil/PencilToolSettingsPanel.kt`: `PencilToolSettingsPanel` (mode, size, hardness, tip, cone sharpness, grain size and strength).
 - `tools/Pen/PenToolSettingsPanel.kt`: `PenToolSettingsPanel` (size, hardness).

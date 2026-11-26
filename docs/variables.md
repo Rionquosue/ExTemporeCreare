@@ -59,8 +59,8 @@ Stored keys, paths, constants and identifiers.
 
 ## Dial tools
 
-- Tool names (dial names and settings keys): `Marker` (was `Brush`), `Pencil`, `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move`, `Crop`, `Export`.
-- Engine tools used: Marker and Pencil `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only); Crop `cropImage` (one image selected) or `hand` (canvas mode, no input); Export `hand` (no input).
+- Tool names (dial names and settings keys): `Brush` (raster), `Marker` (the earlier vector Brush), `Pencil`, `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move`, `Crop`, `Export`.
+- Engine tools used: Marker and Pencil `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only); Crop `cropImage` (one image selected) or `hand` (canvas mode, no input); Export `hand` (no input); Brush `hand` (no input; paints with `paint.stroke`).
 - Tool settings file: SharedPreferences `tool-settings` (`ToolSettingsStore.FILE`), one JSON string per tool name.
 - Marker settings JSON: `{"mode": "PAINTBRUSH"|"BLOB", "size": pt 0.1–1000 (5), "hardness": % 0–100 (100), "brushLibrary", "brushName", "tip": "ROUND"|"OVAL"|"CHISEL", "tipAngle": ° −180–180 (45), "tipThickness": % 1–100 (30), "orientation": "FIXED"|"TILT"|"ROTATION"}`.
 - Marker tip brush: document Calligraphic brush `Marker Tip` (`MarkerTool.TIP_BRUSH`): size 1 (the stroke weight sizes it), `shape` `ellipse`|`rectangle`, angle mode `fixed`|`bearing`|`rotation` with variation 180.
@@ -87,6 +87,9 @@ Stored keys, paths, constants and identifiers.
 ## Tool settings windows
 
 - UI package: `com.extemporecreare.app.ui` (folder `interface/`).
-- Slider ranges: Marker, Pencil, Pen and Eraser size 0.1–1000 pt (cubic track); Pencil cone sharpness 1–80°, grain size 0.05–50 pt (cubic), grain strength 0–100 %; hardness 0–100 %; Fill tolerance 0–72 pt (`MAX_TOLERANCE`, squared track); Shapes sides and points 3–100 (`MAX_COUNT`).
+- Slider ranges: Brush size 0.1–5000 pt (cubic), spacing 1–1000 % (squared), flow and opacity 1–100 %; Marker, Pencil, Pen and Eraser size 0.1–1000 pt (cubic track); Pencil cone sharpness 1–80°, grain size 0.05–50 pt (cubic), grain strength 0–100 %; hardness 0–100 %; Fill tolerance 0–72 pt (`MAX_TOLERANCE`, squared track); Shapes sides and points 3–100 (`MAX_COUNT`).
 - Settings window width 240–340 dp, corner radius 16 dp; choices and buttons radius 8 dp.
 - Selection and Move have no settings window (`uistandards.md` §6.2).
+- Brush settings JSON: `{"size": pt 0.1–5000 (20), "hardness": % (80), "spacing": % 1–1000 (25), "flow": % 1–100 (100), "opacity": % 1–100 (100), "pressureSize": bool (true)}`.
+- Paint blocks: image objects whose image key starts `paint-block-` (`BLOCK_KEY_PREFIX`), named `Paint`; resolution at creation = the view's zoom in pixels per point, clamped 0.25–64 (`RESOLUTIONS`, `BrushTool.MIN_RESOLUTION`/`MAX_RESOLUTION`); growth limits `MAX_SIDE` 16 384 px, `MAX_PIXELS` 64 Mi; stored as PNG; undo label `Brush`.
+- `paint.stroke` params: `points` ([x, y, pressure?]), `size`, `hardness`, `spacing`, `flow`, `opacity`, `pressureSize`, `color` (`#rrggbb`; default stroke, else fill, else black), `resolution`, `block` → `{id, created, width, height}`.

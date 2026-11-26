@@ -115,6 +115,8 @@ EXTEMPORECREARE
 |   |   |-- EtcColors.kt
 |   |-- tools/
 |       |-- ToolSettingsControls.kt
+|       |-- Brush/
+|       |   |-- BrushToolSettingsPanel.kt
 |       |-- Crop/
 |       |   |-- CropToolSettingsPanel.kt
 |       |-- Eraser/
@@ -133,6 +135,9 @@ EXTEMPORECREARE
 |           |-- ShapesToolSettingsPanel.kt
 |-- tools/
     |-- readme.md
+    |-- Brush/
+    |   |-- BrushTool.kt
+    |   |-- BrushToolSettings.kt
     |-- Crop/
     |   |-- CropMode.kt
     |   |-- CropTool.kt
