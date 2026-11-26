@@ -113,8 +113,11 @@ class EditorState(private val context: Context) {
     /** A question to confirm before a destructive action, or null. */
     var confirm by mutableStateOf<Confirmation?>(null)
 
-    /** A message to show (an error or a result), or null. */
+    /** A brief message to show (a result), or null; it goes after a few seconds. */
     var message by mutableStateOf<String?>(null)
+
+    /** An error to show until it is dismissed (`uistandards.md` §11), or null. */
+    var error by mutableStateOf<String?>(null)
 
     /** Debug mode: whether it is on (followed by the editor), the last pointer reading and the last render's time. */
     var debugOn by mutableStateOf(false)
@@ -152,12 +155,12 @@ class EditorState(private val context: Context) {
         val restored = EngineAnswer(engine.execute("file.recovery.restore", "{}"))
         val ok = restored.okObject
         if (ok == null) {
-            message = "Couldn't recover the interrupted session: ${restored.error}"
+            error = "Couldn't recover the interrupted session: ${restored.error}"
             return
         }
         val failed = ok.optJSONArray("failed")?.length() ?: 0
         if ((ok.optJSONArray("restored")?.length() ?: 0) == 0) {
-            message = "Couldn't recover the interrupted session"
+            error = "Couldn't recover the interrupted session"
             return
         }
         documentUri = null
@@ -174,7 +177,7 @@ class EditorState(private val context: Context) {
 
     /** Going to the background: the reference board's unsaved state is kept, and saved to its file when it has one (`filestandard.md` §7.3). */
     fun backgroundBoard() {
-        board.saveIfChanged()?.let { message = "Couldn't save the reference board: $it" }
+        board.saveIfChanged()?.let { this.error = "Couldn't save the reference board: $it" }
         boardChanged()
     }
 
@@ -185,7 +188,7 @@ class EditorState(private val context: Context) {
 
     /** A reference board file call's result: [error] is shown; the panel reads the board again. */
     fun boardDone(error: String?) {
-        if (error != null) message = error
+        if (error != null) this.error = error
         if (boardSelected != null && board.images().none { it.optString("id") == boardSelected }) boardSelected = null
         boardChanged()
     }
@@ -418,18 +421,18 @@ class EditorState(private val context: Context) {
     /** Show [r]'s error, if any. */
     fun show(r: ToolResult) = show(r.error)
 
-    /** Show [error], if not null. */
+    /** Show [error] until it is dismissed, if not null. */
     fun show(error: String?) {
-        if (error != null) message = error
+        if (error != null) this.error = error
     }
 }
 
 // GLOSSARY
-// - EditorState: the editor's engine session, tools, active tool, camera, revision, colours, document URI and message.
+// - EditorState: the editor's engine session, tools, active tool, camera, revision, colours, document URI, message and error.
 // - engine: the engine session. store: the tools' saved settings.
 // - tools: the dial's tools in order. activeIndex, activeTool: the active one.
 // - camera: the artwork camera. revision: goes up when the document may have changed.
-// - primary, alternate: the stroke and fill defaults. message: what to show. settingsOpen: the tool settings window.
+// - primary, alternate: the stroke and fill defaults. message: a brief result. error: an error shown until dismissed. settingsOpen: the tool settings window.
 // - documentUri: the open document's URI. viewW, viewH: the canvas size.
 // - debugOn, penReading, renderMs: debug mode's state for the readout.
 // - Screen, screen: the splash or the editor. recents, recentsRevision: the recent files. layout: the panels' layout.

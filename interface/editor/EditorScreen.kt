@@ -4,7 +4,12 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -177,18 +183,29 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
                 DebugOverlay(state.penReading, state.activeTool.name, state.camera.zoom, state.renderMs, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
             }
             state.confirm?.let { c -> ConfirmDialog(c) { state.confirm = null } }
-            state.message?.let { text ->
-                LaunchedEffect(text) {
-                    delay(3500)
-                    if (state.message == text) state.message = null
+            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                state.error?.let { text ->
+                    Row(
+                        Modifier.widthIn(max = 520.dp).background(EtcColors.Panel2, RoundedCornerShape(10.dp)).border(1.dp, EtcColors.Gold2, RoundedCornerShape(10.dp))
+                            .padding(start = 14.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(text, color = EtcColors.Text, fontSize = 13.sp, modifier = Modifier.weight(1f, fill = false))
+                        Icon(Icons.Outlined.Close, "Dismiss", tint = EtcColors.Muted, modifier = Modifier.padding(start = 8.dp).size(36.dp).clickable { state.error = null }.padding(8.dp))
+                    }
                 }
-                Text(
-                    text,
-                    color = EtcColors.Text,
-                    fontSize = 13.sp,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
-                        .background(EtcColors.Panel2, RoundedCornerShape(10.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
-                )
+                state.message?.let { text ->
+                    LaunchedEffect(text) {
+                        delay(3500)
+                        if (state.message == text) state.message = null
+                    }
+                    Text(
+                        text,
+                        color = EtcColors.Text,
+                        fontSize = 13.sp,
+                        modifier = Modifier.background(EtcColors.Panel2, RoundedCornerShape(10.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
     }
