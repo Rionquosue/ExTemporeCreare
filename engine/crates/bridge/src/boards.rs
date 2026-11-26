@@ -99,6 +99,21 @@ pub fn find(board: &str, board_dir: &str, folders: &str) -> String {
     })
 }
 
+/// Write the reference image stored under `asset_key` in the `.etc` file at `etc_path` to
+/// `out_path` (for a board image embedded in an artwork file that isn't open) → `{"ok": {"mime"}}`.
+pub fn etc_asset(etc_path: &str, asset_key: &str, out_path: &str) -> String {
+    guarded(|| {
+        if !asset_key.starts_with(vectorcraft_engine::cmd::referenceassets::REFERENCE_ASSET_PREFIX) {
+            return Err(format!("`{asset_key}` isn't a stored reference"));
+        }
+        let bytes = std::fs::read(etc_path).map_err(|e| format!("{etc_path}: {e}"))?;
+        let doc = etcfile::load(&bytes).map_err(|e| e.to_string())?;
+        let blob = doc.images.get(asset_key).ok_or_else(|| format!("the file has no stored reference `{asset_key}`"))?;
+        std::fs::write(out_path, blob.bytes.as_slice()).map_err(|e| format!("{out_path}: {e}"))?;
+        Ok(json!({ "mime": blob.mime }))
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -148,3 +163,4 @@ mod tests {
 // - `links`: the link status of every image of a board.
 // - `relink_image`: link an image to another file.
 // - `find`: files in folders that are a board's missing images.
+// - `etc_asset`: write a reference image stored in a closed `.etc` file to a path.

@@ -55,16 +55,20 @@ class ReferenceBoard(private val context: Context) {
     /** Whether image [id]'s file is missing. */
     fun isMissing(id: String): Boolean = id !in found
 
-    /** The board's camera: centre and zoom. */
-    fun camera(): Triple<Double, Double, Double> {
+    /** The board's camera: centre, zoom and rotation. */
+    fun camera(): BoardCamera {
         val v = board.optJSONObject("viewport")
         val c = v?.optJSONArray("center")
-        return Triple(c?.optDouble(0) ?: 0.0, c?.optDouble(1) ?: 0.0, v?.optDouble("zoom", 1.0) ?: 1.0)
+        return BoardCamera(c?.optDouble(0) ?: 0.0, c?.optDouble(1) ?: 0.0, v?.optDouble("zoom", 1.0) ?: 1.0, v?.optDouble("rotationDegrees", 0.0) ?: 0.0)
     }
 
     /** Set the board's camera (saved with the board, apart from the artwork's). */
-    fun setCamera(x: Double, y: Double, zoom: Double) {
-        board.put("viewport", JSONObject().put("center", JSONArray().put(x).put(y)).put("zoom", zoom.coerceIn(0.01, 64.0)))
+    fun setCamera(camera: BoardCamera) {
+        board.put(
+            "viewport",
+            JSONObject().put("center", JSONArray().put(camera.x).put(camera.y)).put("zoom", camera.zoom.coerceIn(BoardCamera.MIN_ZOOM, BoardCamera.MAX_ZOOM))
+                .put("rotationDegrees", BoardCamera.normalized(camera.rotation)),
+        )
         modified = true
     }
 
@@ -146,7 +150,8 @@ class ReferenceBoard(private val context: Context) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(file)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return "can't read the image"
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return "that file isn't an image the board can show"
-        val (cx, cy, zoom) = camera()
+        val cam = camera()
+        val (cx, cy, zoom) = Triple(cam.x, cam.y, cam.zoom)
         val scale = PLACED_SIZE / zoom / maxOf(bounds.outWidth, bounds.outHeight)
         val w = bounds.outWidth * scale
         val h = bounds.outHeight * scale
@@ -155,26 +160,70 @@ class ReferenceBoard(private val context: Context) {
             .put("width", bounds.outWidth).put("height", bounds.outHeight)
         sha256(file)?.let { source.put("sha256", it) }
         val image = JSONObject().put("id", id).put("source", source).put("visible", true)
-            .put("transform", JSONObject().put("x", cx - w / 2).put("y", cy - h / 2).put("width", w).put("height", h).put("rotationDegrees", 0.0).put("pivot", JSONArray().put(0.5).put(0.5)))
+            .put("transform", ImagePlace(cx - w / 2, cy - h / 2, w, h, -cam.rotation, 0.5, 0.5, false, false).toJson())
         board.optJSONArray("images")?.put(image) ?: board.put("images", JSONArray().put(image))
         found[id] = file
         modified = true
         return null
     }
 
-    /** Move image [id] by ([dx], [dy]) board units. */
-    fun move(id: String, dx: Double, dy: Double) {
-        val t = image(id)?.optJSONObject("transform") ?: return
-        t.put("x", t.optDouble("x") + dx).put("y", t.optDouble("y") + dy)
+    /** Image [id]'s placement, or null. */
+    fun placeOf(id: String): ImagePlace? = image(id)?.optJSONObject("transform")?.let { ImagePlace.of(it) }
+
+    /** Image [id]'s crop (the whole source without one). */
+    fun cropOf(id: String): BoardCrop = BoardCrop.of(image(id)?.optJSONObject("crop"))
+
+    /** Set image [id]'s placement. */
+    fun place(id: String, place: ImagePlace) {
+        val i = image(id) ?: return
+        i.put("transform", place.toJson())
         modified = true
     }
 
-    /** Scale image [id] by [factor] about its centre. */
+    /** Move image [id] by ([dx], [dy]) board units. */
+    fun move(id: String, dx: Double, dy: Double) {
+        val p = placeOf(id) ?: return
+        place(id, p.copy(x = p.x + dx, y = p.y + dy))
+    }
+
+    /** Scale image [id] by [factor] about its pivot, its aspect kept. */
     fun scale(id: String, factor: Double) {
-        val t = image(id)?.optJSONObject("transform") ?: return
-        val (w, h) = t.optDouble("width") to t.optDouble("height")
-        val (nw, nh) = (w * factor).coerceAtLeast(1.0) to (h * factor).coerceAtLeast(1.0)
-        t.put("x", t.optDouble("x") - (nw - w) / 2).put("y", t.optDouble("y") - (nh - h) / 2).put("width", nw).put("height", nh)
+        val p = placeOf(id) ?: return
+        place(id, p.scaledAboutPivot(factor))
+    }
+
+    /** Turn image [id] to [degrees] about its pivot. */
+    fun rotate(id: String, degrees: Double) {
+        val p = placeOf(id) ?: return
+        place(id, p.copy(rotation = BoardCamera.normalized(degrees)))
+    }
+
+    /** Mirror image [id] left-right ([horizontal]) or top-bottom. */
+    fun flip(id: String, horizontal: Boolean) {
+        val p = placeOf(id) ?: return
+        place(id, if (horizontal) p.copy(flipX = !p.flipX) else p.copy(flipY = !p.flipY))
+    }
+
+    /**
+     * Crop image [id] to [crop] (source fractions, non-destructive): the part still shown keeps its
+     * place, scale and rotation on the board.
+     */
+    fun setCrop(id: String, crop: BoardCrop) {
+        val i = image(id) ?: return
+        val p = placeOf(id) ?: return
+        val old = cropOf(id)
+        val c = BoardCrop(
+            crop.x.coerceIn(0.0, 1.0 - BoardCrop.MIN_FRACTION), crop.y.coerceIn(0.0, 1.0 - BoardCrop.MIN_FRACTION), 0.0, 0.0,
+        ).let { it.copy(w = crop.w.coerceIn(BoardCrop.MIN_FRACTION, 1.0 - it.x), h = crop.h.coerceIn(BoardCrop.MIN_FRACTION, 1.0 - it.y)) }
+        // The whole source in the image's local frame, then the new crop's part of it. A flip mirrors the source in the frame.
+        val fullW = p.w / old.w
+        val fullH = p.h / old.h
+        val sx = if (p.flipX) 1.0 - old.x - old.w else old.x
+        val sy = if (p.flipY) 1.0 - old.y - old.h else old.y
+        val nx = if (p.flipX) 1.0 - c.x - c.w else c.x
+        val ny = if (p.flipY) 1.0 - c.y - c.h else c.y
+        place(id, p.reframed((nx - sx) * fullW, (ny - sy) * fullH, c.w * fullW, c.h * fullH))
+        if (c.isWhole) i.remove("crop") else i.put("crop", c.toJson())
         modified = true
     }
 
@@ -201,6 +250,28 @@ class ReferenceBoard(private val context: Context) {
         board = updated
         found[id] = file
         pictures.remove(id)
+        modified = true
+        return null
+    }
+
+    /** Image [id]'s stored-image key when it is embedded in an `.etc` (`etc-embedded`), else null. */
+    fun assetKeyOf(id: String): String? = image(id)?.optJSONObject("source")?.takeIf { it.optString("kind") == EMBEDDED_KIND }?.optString("assetKey")?.takeIf { it.isNotEmpty() }
+
+    /**
+     * Embed image [id] in the open artwork document saved at [document] (`filestandard.md` §7.2):
+     * its bytes are stored there ([references]) and its source names that `.etc` and the stored
+     * image's key; placement and crop are kept → an error message, or null.
+     */
+    fun embed(id: String, document: Uri?, references: EmbeddedReferences): String? {
+        val etc = document ?: return "Save the artwork document first: the board finds the embedded image through it"
+        if (assetKeyOf(id) != null) return "This image is already embedded"
+        val file = found[id] ?: return "The image's file is missing: relink it first"
+        val source = image(id)?.optJSONObject("source") ?: return "No such image"
+        val stored = references.store(file, source.optString("originalFilename")).getOrElse { return it.message ?: "can't embed the image" }
+        runCatching { context.contentResolver.takePersistableUriPermission(etc, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        source.put("kind", EMBEDDED_KIND).put("uri", etc.toString()).put("assetKey", stored.getString("assetKey")).put("sha256", stored.getString("sha256"))
+        source.remove("relativePath")
+        found[id] = etc
         modified = true
         return null
     }
@@ -238,6 +309,18 @@ class ReferenceBoard(private val context: Context) {
     }.getOrNull()
 
     companion object {
+        /** The source kind of an image stored inside an `.etc` file. */
+        const val EMBEDDED_KIND = "etc-embedded"
+
+        /** The picture in [file], scaled down to at most [MAX_SIDE] pixels a side, or null. */
+        fun decode(file: java.io.File): Bitmap? = runCatching {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, bounds)
+            var sample = 1
+            while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_SIDE) sample *= 2
+            BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+        }.getOrNull()
+
         /** The recovery state's preferences, and its keys: the current board, and a board's camera by id. */
         const val PREFS = "reference-board"
         const val CURRENT = "current"
@@ -264,10 +347,12 @@ class ReferenceBoard(private val context: Context) {
 // - ReferenceBoard: the open .etcr board: its JSON, file, found images and decoded pictures.
 // - board, uri, fileName, modified: the board JSON, its file and the file's name, unsaved changes.
 // - found, pictures: images found (id → URI) and decoded pictures.
-// - images(), isMissing(id), camera(), setCamera(x, y, zoom): read it.
+// - images(), isMissing(id), camera(), setCamera(camera): read it; the camera has centre, zoom and rotation.
 // - prefs, PREFS, CURRENT, CAMERA: app-local recovery state and its keys.
 // - newBoard(), open(file), save(file), saveIfChanged(): the board's file.
 // - checkpoint(), restore(), recoverCamera(): recovery of unsaved board state and camera.
-// - addImage(file), move(id, dx, dy), scale(id, factor), toFront(id), remove(id), relink(id, file): edit it.
-// - fileOf(id): an image's file when found. decode(context, file): a scaled-down picture. image(id): an image's JSON. readLinks(links): which were found.
+// - addImage(file), placeOf(id), cropOf(id), place(id, place), move(id, dx, dy), scale(id, factor), rotate(id, degrees),
+//   flip(id, horizontal), setCrop(id, crop), toFront(id), remove(id), relink(id, file): read and edit images.
+// - assetKeyOf(id), embed(id, document, references), EMBEDDED_KIND: images stored inside an .etc.
+// - fileOf(id): an image's file when found (for an embedded one, its .etc). decode(context, file), decode(file): a scaled-down picture. image(id): an image's JSON. readLinks(links): which were found.
 // - nameOf(file), newBoardJson(), sha256(file): helpers. MAX_SIDE: 1024 px. PLACED_SIZE: 280 px.

@@ -144,7 +144,8 @@ Alpha modifier targets include **Stroke, Bevel/Emboss, Color Overlay, Gradient O
 
 ### 4.5 Reference-board links and textures
 
-- Reference boards **MUST** be serialized in separate `.etcr` files as specified in §7. Artwork `.etc` files **MUST NOT** embed reference images, reference-board arrangements or board viewport state.
+- Reference boards **MUST** be serialized in separate `.etcr` files as specified in §7. Artwork `.etc` files **MUST NOT** embed reference-board arrangements or board viewport state, nor reference images except those the user explicitly embeds (§7.2, **Embed**).
+- An embedded reference image is stored as a document image asset under a `reference-asset-` key and recorded in `project.json` `referenceAssets` (`{"<key>": {"sha256", "originalFilename", "mime"}}`). No artwork object uses it: it **MUST NOT** render in the canvas, thumbnail, merged preview or exports.
 - An `.etc` project **MAY** contain `referenceBoards` descriptors with a board ID and a relative path or URI to a separate `.etcr` file. The link is not a dependency for rendering artwork.
 - Reference images **MUST NOT** become canvas layers unless explicitly inserted by the user as artwork; doing so creates a separate artwork resource rather than retaining an implicit link to the reference board.
 - Unavailable or moved `.etcr` files **MUST** be reported as missing and remain relinkable without damaging the `.etc` document.
@@ -338,7 +339,8 @@ References.etcr
 - Resolve portable **relative paths** relative to the `.etcr` document where possible. A device-specific absolute URI **MAY** be saved as a fallback. External paths may point outside the `.etcr` ZIP, but archive entry paths must still satisfy §3; external files are **read-only by default**.
 - On mobile platforms with scoped file access, the app **MUST** use the operating system's permitted document/file-access mechanism. Device-specific grants, security tokens or credentials **MUST NOT** be embedded in a shareable `.etcr`; keep them in protected app-local state, associated with the source ID.
 - An image pasted from clipboard, produced in-app or obtained from a temporary source **MUST** first be retained as a separate accessible image file (for example in an app-managed reference-assets directory) and linked. Do not silently embed it in the artwork or reference board.
-- **Embedding/packing reference images is not part of the alpha contract.** A future, explicitly user-requested portable package operation **MAY** copy assets, but must not silently replace existing linked sources.
+- **Embed:** the user **MAY** explicitly store a reference image inside the artwork `.etc` document the board is used with. The image's bytes are kept in the `.etc` (§4.5) and its source becomes `kind: "etc-embedded"`: `uri` and/or `relativePath` locate the `.etc` file and `assetKey` names the stored image in it; `originalFilename` and `sha256` are kept. The `.etcr` still holds no image bytes. Embedding is never automatic.
+- Other packing of reference images is not part of the alpha contract. A future, explicitly user-requested portable package operation **MAY** copy assets, but must not silently replace existing linked sources.
 - If a link is broken, permission is revoked or a file moved, **MUST** retain its original image entry, transformations and source metadata, show a missing-image placeholder and support a **Relink** operation. Neither the board nor the artwork may fail destructively.
 - Linked image updates on disk **SHOULD** be detectable using available file metadata or hash checks; reloading the source **MUST NOT** reset the object's crop, position, size or rotation.
 
@@ -351,8 +353,9 @@ The reference workspace uses an **unbounded 2D coordinate system**; it is not co
 | Position/reposition | **MUST** retain each reference image's x/y position in board coordinates. |
 | Resize | **MUST** retain width/height or equivalent scale, with optional locked aspect ratio. |
 | Rotate | **MUST** retain an explicit rotation angle and pivot/anchor. |
+| Flip | **MUST** retain horizontal and vertical mirroring (`flipX`, `flipY`, default `false`); flipping never modifies the source. |
 | Crop | **MUST** retain a **non-destructive** crop rectangle in source-image coordinates; cropping never modifies the linked original. |
-| Pan and zoom | **MUST** allow navigation across the infinite board and preserve the last camera centre/pan and zoom. |
+| Pan, zoom and rotate | **MUST** allow navigation across the infinite board and preserve the last camera centre/pan, zoom and view rotation (`viewport.rotationDegrees`, clockwise, default 0). |
 | Ordering | **MUST** preserve front-to-back reference object order and visibility. |
 | Reopen | **MUST** restore all transformations, crop, camera and source links exactly within floating-point tolerance. |
 
@@ -365,7 +368,7 @@ The reference workspace uses an **unbounded 2D coordinate system**; it is not co
 
 #### Camera-state persistence and save triggers
 
-- The `.etcr` board camera **MUST** be persisted as the latest observed `viewport.center` (`x`, `y` in board coordinates) and `viewport.zoom`, including when the only change since the previous save is a pan or zoom. **MUST NOT** reset the view to the board origin or fit-to-content on normal reopen.
+- The `.etcr` board camera **MUST** be persisted as the latest observed `viewport.center` (`x`, `y` in board coordinates), `viewport.zoom` and `viewport.rotationDegrees`, including when the only change since the previous save is a pan, zoom or rotation. **MUST NOT** reset the view to the board origin or fit-to-content on normal reopen.
 - **Explicit Save:** When the user chooses **Save** (or a Save shortcut) while the reference board is open, the application **MUST** capture the camera state at the time of the save request and write it to that board's `.etcr` `board.json` alongside its other current board state.
 - **App/tab lifecycle:** When the application or reference-board tab is backgrounded, loses visibility, is suspended, is closed, or the user switches away from it, the application **MUST** attempt to persist the latest camera and unsaved board state automatically. This includes browser tab switches and mobile app backgrounding where the platform exposes a lifecycle signal. The user **MUST NOT** have to press Save to retain the last navigated camera position.
 - **Recovery under forced termination:** Since mobile operating systems and browsers can terminate processes without a final event or adequate time for a file write, the application **MUST** also checkpoint camera changes promptly into protected app-local recovery state (for example, after a short debounce), keyed to the board ID. On reopening, if that state is newer than the saved `.etcr`, the application **MUST** offer or automatically perform a non-destructive recovery of the newer camera state. Do not claim guaranteed final writes after forced termination.
@@ -383,7 +386,7 @@ Illustrative structure, not a finalized JSON Schema:
   "boardId": "7dff0ebf-e0d4-405e-9bfa-a9ae090b33c8",
   "title": "Character References",
   "coordinateSystem": { "unit": "board-unit", "origin": [0, 0] },
-  "viewport": { "center": [250.0, -125.0], "zoom": 0.85 },
+  "viewport": { "center": [250.0, -125.0], "zoom": 0.85, "rotationDegrees": 0.0 },
   "images": [
     {
       "id": "reference-001",
@@ -396,9 +399,22 @@ Illustrative structure, not a finalized JSON Schema:
         "x": 150.0, "y": -80.0,
         "width": 600.0, "height": 420.0,
         "rotationDegrees": -12.0,
-        "pivot": [0.5, 0.5]
+        "pivot": [0.5, 0.5],
+        "flipX": true
       },
       "crop": { "x": 0.1, "y": 0.0, "width": 0.8, "height": 1.0 },
+      "visible": true
+    },
+    {
+      "id": "reference-002",
+      "source": {
+        "kind": "etc-embedded",
+        "relativePath": "Character.etc",
+        "assetKey": "reference-asset-3f2a9c41d07be815",
+        "originalFilename": "hands.jpg",
+        "sha256": "3f2a9c41d07be815…"
+      },
+      "transform": { "x": 900.0, "y": -80.0, "width": 300.0, "height": 400.0 },
       "visible": true
     }
   ]

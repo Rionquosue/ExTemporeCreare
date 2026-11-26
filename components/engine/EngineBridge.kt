@@ -190,6 +190,9 @@ class EngineBridge : AutoCloseable {
             nativeBoardFindMissing(boardJson, boardDir, foldersJson)
 
         /** Set the folder the built-in preset libraries are read from (once, at start). */
+        /** Write the reference image stored under [assetKey] in the `.etc` at [etcPath] to [outPath] → `{"ok": {"mime"}}`. */
+        fun boardEtcAsset(etcPath: String, assetKey: String, outPath: String): String = nativeBoardEtcAsset(etcPath, assetKey, outPath)
+
         fun setPresetsRoot(path: String) = nativeSetPresetsRoot(path)
 
         @JvmStatic private external fun nativeCreate(): Long
@@ -223,6 +226,7 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeBoardLinks(board: String, boardDir: String): String
         @JvmStatic private external fun nativeBoardRelink(board: String, id: String, file: String, boardDir: String): String
         @JvmStatic private external fun nativeBoardFindMissing(board: String, boardDir: String, folders: String): String
+        @JvmStatic private external fun nativeBoardEtcAsset(etcPath: String, assetKey: String, outPath: String): String
         @JvmStatic private external fun nativeRender(
             handle: Long,
             x: Double,
@@ -261,4 +265,5 @@ class EngineBridge : AutoCloseable {
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
 // - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths.
+// - boardEtcAsset: a reference image stored inside a closed .etc file, written to a path.
 // - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeNewDocument, nativeView, nativeSetView, nativeLayers, nativePaintDefaults, nativeSetPaintDefaults, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.

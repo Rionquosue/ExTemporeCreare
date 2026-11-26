@@ -253,6 +253,19 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     jtext(&mut env, &out)
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardEtcAsset(
+    mut env: JNIEnv,
+    _class: JClass,
+    etc_path: JString,
+    asset_key: JString,
+    out_path: JString,
+) -> jstring {
+    let (etc_path, asset_key, out_path) = (text(&mut env, &etc_path), text(&mut env, &asset_key), text(&mut env, &out_path));
+    let out = boards::etc_asset(&etc_path, &asset_key, &out_path);
+    jtext(&mut env, &out)
+}
+
 /// Render into `out`, a direct buffer of at least `width × height × 4` bytes → whether it was
 /// filled.
 #[unsafe(no_mangle)]
@@ -422,5 +435,6 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativeBoardRead`: `boards::read` → JSON answer.
 // - `..._nativeBoardWrite`: `boards::write` → JSON answer.
 // - `..._nativeBoardLinks`: `boards::links` → JSON answer.
+// - `..._nativeBoardEtcAsset`: `boards::etc_asset` → JSON answer.
 // - `..._nativeBoardRelink`: `boards::relink_image` → JSON answer.
 // - `..._nativeBoardFindMissing`: `boards::find` → JSON answer.

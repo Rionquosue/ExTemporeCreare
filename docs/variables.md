@@ -56,7 +56,9 @@ Stored keys, paths, constants and identifiers.
 - Link statuses: `found`, `changed` (SHA-256 differs), `uri` (only a content URI locates it), `missing`.
 - Find-missing limits: 6 folders deep, 20 000 files.
 - Temporary board copies on Android: `<cacheDir>/engine-boards/`.
-- Board panel: pictures decoded at most 1024 px a side (`ReferenceBoard.MAX_SIDE`); a new image placed 280 px across at the board's zoom (`PLACED_SIZE`), centred on the camera, ids `ref-` + 8 characters; board zoom 0.01–64; view 240 dp high.
+- Board handles: resize reach 18 dp from a corner (`HANDLE_DP`), rotate reach 48 dp beyond it (`ROTATE_DP`), handle dot 6 dp; crop corners reach 1.6 × 18 dp; smallest crop 2 % of the source (`BoardCrop.MIN_FRACTION`); smallest image side 1 board unit.
+- Embedded references: source kind `etc-embedded` (`uri` = the `.etc`, `assetKey`); document image keys `reference-asset-` + first 16 hex of the SHA-256; records in `project.json` `referenceAssets`; at most 256 MB each; temporary copies `<cacheDir>/embedded-references/`. Embedding needs a saved document.
+- Board panel: pictures decoded at most 1024 px a side (`ReferenceBoard.MAX_SIDE`); a new image placed 280 px across at the board's zoom (`PLACED_SIZE`), centred on the camera and upright in the view, ids `ref-` + 8 characters; board zoom 0.01–64; view 240 dp high.
 - Board recovery: SharedPreferences `reference-board` (`PREFS`), key `current` (`{uri, modified, board}`), and `camera:<boardId>` for a camera not saved since; written at the end of each board gesture and on file changes. Going to the background saves a board with a file and unsaved changes to that file. Save As name `References.etcr`; picker MIME `ETCR_MIME`.
 
 ## Dial tools

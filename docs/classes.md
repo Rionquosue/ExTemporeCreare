@@ -15,7 +15,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/atomic.rs`: `write_atomic`, `write_atomic_with`, `write_new_with`, `sync_file`, `read_only_location`.
 - `src/base64.rs`: `encode`, `decode`, `decoded_len`.
 - `src/brushart.rs`: `with_brush_art`, `placed_as_groups`.
-- `src/etcr.rs`: reference boards (`.etcr`): `Board` (`new`, `image`, `image_mut`, `problem`), `BoardImage`, `Source`, `Transform`, `Crop`, `Viewport`; `read_board`, `write_board`, `sniff_board`, `board_thumbnail`.
+- `src/etcr.rs`: reference boards (`.etcr`): `Board` (`new`, `image`, `image_mut`, `problem`), `BoardImage`, `Source` (with `assetKey` for an image stored inside an `.etc`), `Transform` (with `flipX`, `flipY`), `Crop`, `Viewport` (with `rotationDegrees`); `LINKED_KIND`, `EMBEDDED_KIND`; `read_board`, `write_board`, `sniff_board`, `board_thumbnail`.
 - `src/boardlinks.rs`: board image links on a file system: `LinkStatus` (`Found`, `Changed`, `Uri`, `Missing`); `link_statuses`, `status`, `relink`, `find_missing`.
 
 ## engine/crates/brush (additions)
@@ -30,6 +30,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## engine/crates/engine (run-time presets, export slices)
 
 - `src/cmd/exportslices.rs`: export slices and grid as document data (`Document::extra["export"]`): `export.slice.list`, `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; `EXPORT_KEY`, `SLICE_FORMATS`, `DEFAULT_GRID_SPACING`.
+- `src/cmd/referenceassets.rs`: reference images stored inside the document (board Embed): `reference.embed`, `reference.asset`, `reference.list`; `sniff_mime`; `REFERENCE_ASSETS_KEY`, `REFERENCE_ASSET_PREFIX`, `MAX_REFERENCE_BYTES`.
 - `src/cmd/rasterpaint.rs`: raster painting into splotches (image objects keyed `paint-block-…`, the view's frame plus a buffer, at the zoom's resolution): `begin` (pen down: splotch reused, locked or new), `Stroke` (`frame`, `add`, `layer_pixels`, `finish`), `Decoded` (pixels kept between strokes), `points_of`, `block_of`, `paint.stroke` (a whole stroke); `BLOCK_KEY_PREFIX`, `MAX_SIDE`, `MAX_PIXELS`, `RESOLUTIONS`, `BUFFER_SHARE`, `ZOOM_TOLERANCE`.
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
 
@@ -66,7 +67,9 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## components/boards
 
-- `ReferenceBoard.kt`: `ReferenceBoard(context)` (`board`, `uri`, `fileName`, `modified`, `pictures`; `images`, `isMissing`, `fileOf`, `camera`, `setCamera`, `newBoard`, `open`, `save`, `saveIfChanged`, `checkpoint`, `restore`, `addImage`, `move`, `scale`, `toFront`, `remove`, `relink`; `decode`): the open `.etcr` board, apart from the artwork document, with app-local recovery of its unsaved state and camera.
+- `ReferenceBoard.kt`: `ReferenceBoard(context)` (`board`, `uri`, `fileName`, `modified`, `pictures`; `images`, `isMissing`, `fileOf`, `assetKeyOf`, `camera`, `setCamera`, `newBoard`, `open`, `save`, `saveIfChanged`, `checkpoint`, `restore`, `addImage`, `placeOf`, `cropOf`, `place`, `move`, `scale`, `rotate`, `flip`, `setCrop`, `embed`, `toFront`, `remove`, `relink`; `decode`): the open `.etcr` board, apart from the artwork document, with app-local recovery of its unsaved state and camera.
+- `BoardGeometry.kt`: `BoardPoint`, `BoardCamera` (`toView`, `toBoard`, `navigated`), `ImagePlace` (`pivot`, `toBoard`, `toLocal`, `corners`, `contains`, `scaledAboutPivot`, `reframed`, `toJson`, `of`), `BoardCrop`: board camera and image placement maths.
+- `EmbeddedReferences.kt`: `EmbeddedReferences(context, engine)` (`store`, `extract`, `tempFile`): reference images stored inside the artwork `.etc`.
 
 ## components/documents
 
@@ -125,8 +128,8 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
 - `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity with slider popover, Fill and mask shown disabled, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`.
 - `common/ConfirmDialog.kt`: `Confirmation`, `ConfirmDialog`: ask before a destructive action.
-- `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`, `BoardActions` (add, New, Open, Save, Relink, select, changed).
-- `board/BoardCanvas.kt`: `BoardCanvas`: the reference board's view through its own camera (move, resize the selected image, pan, zoom, select; missing images as placeholders).
+- `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`, `BoardActions` (add, New, Open, Save, Relink, Embed, select, changed, picture); image menu Delete, Embed, Flip (Horizontal, Vertical), Crop.
+- `board/BoardCanvas.kt`: `BoardCanvas`: the reference board's view through its own camera (two fingers: pan, zoom, rotate the view; one finger: move an image or pan; tap selects and shows corner handles: resize on a corner, rotate just outside; hold opens the image menu; crop mode; missing images as placeholders).
 - `color/ColorWorkspace.kt`: `ColorWorkspace`: saturation/value square, hue bar, hex and R, G, B entry, swatches, recent colours, mixing pad; `color/MixingPad.kt`: `MixingPad` (paint primary or alternate, sample, reset).
 - `debug/DebugOverlay.kt`: `DebugOverlay`: debug mode's on-screen readout.
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.

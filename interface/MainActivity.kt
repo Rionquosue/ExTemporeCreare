@@ -68,8 +68,10 @@ class MainActivity : ComponentActivity() {
             open = { boardOpen.launch(arrayOf("*/*")) },
             save = { state.board.uri?.let { state.boardDone(state.board.save(it)) } ?: boardSave.launch("References.etcr") },
             relink = { relinking = it; boardRelink.launch(arrayOf("image/*")) },
+            embed = { state.boardEmbed(it) },
             select = { state.boardSelected = it },
             changed = { state.boardChanged() },
+            picture = { state.boardPicture(it) },
         )
         val splash = SplashActions(
             newDocument = { dialog = DialogShown.NEW_DOCUMENT },

@@ -53,7 +53,8 @@ fn percent_decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-/// Where `source` is, from `board_dir`: its relative path first, then a `file://` URI (§7.2).
+/// Where `source` is, from `board_dir`: its relative path first, then a `file://` URI (§7.2). For an
+/// image stored inside an `.etc` file these locate that file, and its hash isn't the file's.
 pub fn status(source: &Source, board_dir: &Path) -> LinkStatus {
     let mut candidates = vec![];
     if let Some(rel) = &source.relative_path {
@@ -65,7 +66,7 @@ pub fn status(source: &Source, board_dir: &Path) -> LinkStatus {
     for p in candidates {
         if p.is_file() {
             let path = p.to_string_lossy().into_owned();
-            let changed = source.sha256.as_deref().is_some_and(|h| std::fs::read(&p).is_ok_and(|b| !h.eq_ignore_ascii_case(&sha256_hex(&b))));
+            let changed = source.kind != crate::etcr::EMBEDDED_KIND && source.sha256.as_deref().is_some_and(|h| std::fs::read(&p).is_ok_and(|b| !h.eq_ignore_ascii_case(&sha256_hex(&b))));
             return if changed { LinkStatus::Changed { path } } else { LinkStatus::Found { path } };
         }
     }
@@ -169,7 +170,7 @@ mod tests {
         BoardImage {
             id: id.into(),
             source: Source { kind: "linked-file".into(), relative_path: Some(rel.into()), original_filename: rel.rsplit('/').next().unwrap().into(), ..Source::default() },
-            transform: Transform { x: 0.0, y: 0.0, width: 10.0, height: 10.0, rotation_degrees: 0.0, pivot: [0.5, 0.5] },
+            transform: Transform { x: 0.0, y: 0.0, width: 10.0, height: 10.0, rotation_degrees: 0.0, pivot: [0.5, 0.5], flip_x: false, flip_y: false },
             crop: None,
             visible: true,
             extra: Map::new(),

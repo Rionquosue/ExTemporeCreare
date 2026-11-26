@@ -1,6 +1,8 @@
 //! Reference boards: `.etcr` files (`filestandard.md` §7). A board is an unbounded canvas of
-//! reference images linked to files outside it (never embedded), each with its own position, size,
-//! rotation, non-destructive crop and visibility, and the last camera (centre and zoom).
+//! reference images linked to files outside it (never embedded in the board), each with its own
+//! position, size, rotation, flips, non-destructive crop and visibility, and the last camera
+//! (centre, zoom and rotation). An image can instead be stored inside an artwork `.etc` file
+//! ([`EMBEDDED_KIND`]): its source then names that file and the asset key it is kept under.
 //!
 //! An `.etcr` file is a ZIP archive: `mimetype` first and stored (holding [`ETCR_MIME`]),
 //! `board.json` (authoritative) and an optional `Thumbnails/thumbnail.png`. Fields this version
@@ -26,17 +28,25 @@ pub const ETCR_FORMAT: &str = "ex-tempore-creare-reference";
 pub const ETCR_FORMAT_VERSION: &str = "0.1.0";
 /// The board's manifest entry.
 pub const BOARD_JSON: &str = "board.json";
+/// The source kind of an image linked to its own file.
+pub const LINKED_KIND: &str = "linked-file";
+/// The source kind of an image stored inside an artwork `.etc` file (§7.2): the source's `uri`
+/// and/or `relativePath` locate that `.etc`, its `assetKey` the image in it.
+pub const EMBEDDED_KIND: &str = "etc-embedded";
 
-/// The last camera over the board: its centre in board units and its zoom (§7.3).
+/// The last camera over the board: its centre in board units, its zoom and its rotation in
+/// degrees, clockwise (§7.3).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Viewport {
     pub center: [f64; 2],
     pub zoom: f64,
+    #[serde(default, rename = "rotationDegrees")]
+    pub rotation_degrees: f64,
 }
 
 impl Default for Viewport {
     fn default() -> Self {
-        Self { center: [0.0, 0.0], zoom: 1.0 }
+        Self { center: [0.0, 0.0], zoom: 1.0, rotation_degrees: 0.0 }
     }
 }
 
@@ -45,7 +55,7 @@ impl Default for Viewport {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Source {
-    /// `linked-file`.
+    /// [`LINKED_KIND`] or [`EMBEDDED_KIND`].
     pub kind: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub relative_path: Option<String>,
@@ -62,12 +72,15 @@ pub struct Source {
     /// Lowercase hex SHA-256 of the file's bytes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
+    /// For [`EMBEDDED_KIND`]: the key the image is kept under in the `.etc` file.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset_key: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
 /// An image's place on the board (§7.3): position and size in board units, rotation about the
-/// pivot (fractions of the size).
+/// pivot (fractions of the size), and whether it is mirrored left-right and/or top-bottom.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Transform {
@@ -79,6 +92,14 @@ pub struct Transform {
     pub rotation_degrees: f64,
     #[serde(default = "centre")]
     pub pivot: [f64; 2],
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub flip_x: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub flip_y: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 fn centre() -> [f64; 2] {
@@ -163,8 +184,8 @@ impl Board {
             return Some("it has no boardId".into());
         }
         let finite = |v: &[f64]| v.iter().all(|x| x.is_finite());
-        if !finite(&self.viewport.center) || !self.viewport.zoom.is_finite() || self.viewport.zoom <= 0.0 {
-            return Some("its viewport isn't a finite centre and a positive zoom".into());
+        if !finite(&self.viewport.center) || !self.viewport.rotation_degrees.is_finite() || !self.viewport.zoom.is_finite() || self.viewport.zoom <= 0.0 {
+            return Some("its viewport isn't a finite centre and rotation and a positive zoom".into());
         }
         let mut ids = std::collections::HashSet::new();
         for i in &self.images {
@@ -189,6 +210,9 @@ impl Board {
             }
             if i.source.relative_path.is_none() && i.source.uri.is_none() {
                 return Some(format!("image `{}` has neither a relative path nor a URI", i.id));
+            }
+            if i.source.kind == EMBEDDED_KIND && i.source.asset_key.as_deref().is_none_or(str::is_empty) {
+                return Some(format!("image `{}` is stored in an .etc file but has no assetKey", i.id));
             }
         }
         None
@@ -261,7 +285,7 @@ mod tests {
 
     fn board() -> Board {
         let mut b = Board::new("Character References");
-        b.viewport = Viewport { center: [250.0, -125.0], zoom: 0.85 };
+        b.viewport = Viewport { center: [250.0, -125.0], zoom: 0.85, rotation_degrees: 15.0 };
         b.images.push(BoardImage {
             id: "reference-001".into(),
             source: Source {
@@ -270,7 +294,7 @@ mod tests {
                 original_filename: "pose-reference.png".into(),
                 ..Source::default()
             },
-            transform: Transform { x: 150.0, y: -80.0, width: 600.0, height: 420.0, rotation_degrees: -12.0, pivot: [0.5, 0.5] },
+            transform: Transform { x: 150.0, y: -80.0, width: 600.0, height: 420.0, rotation_degrees: -12.0, pivot: [0.5, 0.5], flip_x: true, flip_y: false },
             crop: Some(Crop { x: 0.1, y: 0.0, width: 0.8, height: 1.0 }),
             visible: true,
             extra: Map::new(),
@@ -299,14 +323,32 @@ mod tests {
         let mut b = board();
         b.images.push(b.images[0].clone());
         assert!(b.problem().unwrap().contains("used twice"));
+        let mut b = board();
+        b.images[0].source.kind = EMBEDDED_KIND.into();
+        assert!(b.problem().unwrap().contains("assetKey"));
+        b.images[0].source.asset_key = Some("reference-asset-1".into());
+        assert!(b.problem().is_none());
+    }
+
+    #[test]
+    fn reads_a_board_without_the_newer_fields() {
+        let json = r#"{"format":"ex-tempore-creare-reference","formatVersion":"0.1.0","boardId":"b","title":"t",
+            "viewport":{"center":[1,2],"zoom":2},"images":[{"id":"a","source":{"kind":"linked-file","uri":"content://x"},
+            "transform":{"x":0,"y":0,"width":10,"height":10}}]}"#;
+        let b: Board = serde_json::from_str(json).unwrap();
+        assert_eq!(b.viewport.rotation_degrees, 0.0);
+        assert!(!b.images[0].transform.flip_x && !b.images[0].transform.flip_y);
+        let out = serde_json::to_string(&b).unwrap();
+        assert!(!out.contains("flipX") && out.contains("rotationDegrees"));
     }
 }
 
 // GLOSSARY
 // - `ETCR_EXTENSION`, `ETCR_MIME`, `ETCR_FORMAT`, `ETCR_FORMAT_VERSION`, `BOARD_JSON`: `.etcr` identity and entry names.
-// - `Viewport`: the board's last camera (centre, zoom).
-// - `Source`: where a reference image's file is (relative path, URI) and what identifies it (name, size, SHA-256).
-// - `Transform`: an image's position, size, rotation and pivot on the board.
+// - `LINKED_KIND`, `EMBEDDED_KIND`: source kinds (own file; stored inside an `.etc`).
+// - `Viewport`: the board's last camera (centre, zoom, rotation).
+// - `Source`: where a reference image's file is (relative path, URI, asset key inside an `.etc`) and what identifies it (name, size, SHA-256).
+// - `Transform`: an image's position, size, rotation, pivot and flips on the board. `is_false`: serde skip helper.
 // - `Crop`: a non-destructive crop in source-image fractions.
 // - `BoardImage`: one reference image (id, source, transform, crop, visibility).
 // - `Board`: `board.json`; `new`, `image`, `image_mut`, `problem` (the §7 rule it breaks).

@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.extemporecreare.app.components.color.ColorLibrary
+import com.extemporecreare.app.components.boards.EmbeddedReferences
 import com.extemporecreare.app.components.boards.ReferenceBoard
 import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.components.documents.DocumentSettings
@@ -92,6 +93,7 @@ class EditorState(private val context: Context) {
 
     /** The reference board (`.etcr`, apart from the document), what changed in it, and its selected image. */
     val board by lazy { ReferenceBoard(context) }
+    private val references by lazy { EmbeddedReferences(context, engine) }
     var boardRevision by mutableIntStateOf(0)
         private set
     var boardSelected by mutableStateOf<String?>(null)
@@ -179,6 +181,29 @@ class EditorState(private val context: Context) {
     fun backgroundBoard() {
         board.saveIfChanged()?.let { this.error = "Couldn't save the reference board: $it" }
         boardChanged()
+    }
+
+    /** Embed board image [id] in the open artwork document (`filestandard.md` §7.2); save the document to keep it. */
+    fun boardEmbed(id: String) {
+        val error = board.embed(id, documentUri, references)
+        if (error != null) this.error = error else {
+            message = "Embedded: save the document to keep it"
+            touched()
+        }
+        board.checkpoint()
+        boardChanged()
+    }
+
+    /** Board image [id]'s picture, scaled down: from its file, or from the artwork document when it is embedded. Reads files: call off the main thread. */
+    fun boardPicture(id: String): android.graphics.Bitmap? {
+        val file = board.fileOf(id) ?: return null
+        val key = board.assetKeyOf(id) ?: return ReferenceBoard.decode(context, file)
+        val out = references.tempFile()
+        return try {
+            if (references.extract(key, file, out)) ReferenceBoard.decode(out) else null
+        } finally {
+            out.delete()
+        }
     }
 
     /** The reference board changed: its panel reads it again. */
@@ -439,6 +464,7 @@ class EditorState(private val context: Context) {
 // - RECOVERY_FOLDER, RECOVERY_EVERY_MS: the recovery folder and interval (2 min).
 // - start(): presets, recovery setup, an interrupted session recovered. recoverInterrupted(): open its copies. saveRecovery(): write a copy.
 // - board, boardRevision, boardSelected: the reference board, what changed in it, its selected image.
+// - references: images stored inside the .etc. boardEmbed(id): embed a board image. boardPicture(id): a board image's picture.
 // - backgroundBoard(): keep or save the board going to the background. boardChanged(), boardDone(error): the board panel reads it again.
 // - stepTool(by): step the dial. newDocument(settings): a new finite or infinite document. home(): back to the splash.
 // - forget(uri), clearRecents(): change the recent files.

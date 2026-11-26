@@ -32,6 +32,8 @@ EXTEMPORECREARE
 |-- components/
 |   |-- readme.md
 |   |-- boards/
+|   |   |-- BoardGeometry.kt
+|   |   |-- EmbeddedReferences.kt
 |   |   |-- ReferenceBoard.kt
 |   |-- color/
 |   |   |-- ColorLibrary.kt
