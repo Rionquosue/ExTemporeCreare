@@ -22,6 +22,11 @@ import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -37,12 +42,13 @@ class LayersActions(
     val newRaster: () -> Unit,
     val newFolder: () -> Unit,
     val deleteCurrent: () -> Unit,
+    val move: (Long, Long, String) -> Unit,
 )
 
 /**
  * The Layers panel (`uistandards.md` §7.1): the creation row (Vector, Raster, Filter, Texture),
- * the compositing stack topmost first as cards ([LayerCard]), and the footer with Delete, the hint
- * and Add Folder. Filter and Texture layers have no engine object behind them yet and are shown
+ * the compositing stack topmost first as cards ([LayerCard]), which a card's grip drags above,
+ * below or into another (a folder's middle), and the footer with Delete, the hint and Add Folder. Filter and Texture layers have no engine object behind them yet and are shown
  * disabled.
  */
 @Composable
@@ -58,11 +64,27 @@ fun LayersPanel(rows: JSONArray, expanded: Boolean, onToggle: () -> Unit, action
             Text("COMPOSITING STACK", color = EtcColors.Soft, fontSize = 10.sp, modifier = Modifier.weight(1f))
             Text("TOP ↓ BOTTOM", color = EtcColors.Muted, fontSize = 10.sp)
         }
+        val bounds = remember { mutableMapOf<Long, Pair<Rect, Boolean>>() }
+        var dragging by remember { mutableStateOf<Long?>(null) }
+        var hint by remember { mutableStateOf<DropHint?>(null) }
+        val drag = CardDrag(
+            onBounds = { id, r, folder -> bounds[id] = r to folder },
+            onStart = { id, _ -> dragging = id },
+            onMove = { y -> hint = dragging?.let { dropAt(bounds, it, y) } },
+            onEnd = {
+                val from = dragging
+                val to = hint
+                dragging = null
+                hint = null
+                if (from != null && to != null) actions.move(from, to.id, to.place)
+            },
+            hint = hint,
+        )
         Column(
             Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            for (i in 0 until rows.length()) rows.optJSONObject(i)?.let { LayerCard(it, 0, actions.card) }
+            for (i in 0 until rows.length()) rows.optJSONObject(i)?.let { LayerCard(it, 0, actions.card, drag) }
         }
         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             FooterButton(Icons.Outlined.Delete, "Delete", actions.deleteCurrent)
@@ -70,6 +92,22 @@ fun LayersPanel(rows: JSONArray, expanded: Boolean, onToggle: () -> Unit, action
             FooterButton(Icons.Outlined.CreateNewFolder, "Add folder", actions.newFolder)
         }
     }
+}
+
+/**
+ * Where a card dragged to [y] (root coordinates) would go: above a card when over its upper part,
+ * below when over its lower part, and inside a folder when over its middle third. Not onto itself.
+ */
+private fun dropAt(bounds: Map<Long, Pair<Rect, Boolean>>, dragged: Long, y: Float): DropHint? {
+    val (id, value) = bounds.entries.filter { it.key != dragged && y >= it.value.first.top && y <= it.value.first.bottom }.minByOrNull { it.value.first.height }?.toPair() ?: return null
+    val (r, folder) = value
+    val t = (y - r.top) / r.height.coerceAtLeast(1f)
+    val place = when {
+        folder && t in 0.33f..0.67f -> "inside"
+        t < 0.5f -> "above"
+        else -> "below"
+    }
+    return DropHint(id, place)
 }
 
 /** How many rows the stack has, folders' rows included. */
@@ -105,8 +143,9 @@ private fun FooterButton(icon: ImageVector, description: String, onClick: () -> 
 }
 
 // GLOSSARY
-// - LayersActions: what the panel asks of the document (cards, new vector/raster layer, folder, delete).
+// - LayersActions: what the panel asks of the document (cards, new vector/raster layer, folder, delete, move).
 // - LayersPanel(rows, expanded, onToggle, actions, modifier): the Layers panel.
+// - dropAt(bounds, dragged, y): where a dragged card would go.
 // - count(rows): the rows, folders' included.
 // - Create(icon, label, modifier, onClick): a creation row button.
 // - FooterButton(icon, description, onClick): a footer icon button.

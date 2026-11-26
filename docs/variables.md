@@ -112,7 +112,8 @@ Stored keys, paths, constants and identifiers.
 - Workspace surround colour `#0C131B` (`EditorCanvasView.SURROUND`); overlay accents `#EFC98C`, `#83C5BB`.
 - Messages show 3.5 s.
 - Main menu: Home, New document…, Open…, Save as…, Zoom in (×1.25), Zoom out (×0.8), Fit artwork, Actual size (100 %), Focus mode, Reset panel layout.
-- Layers panel commands: `layer.setCurrent`, `layer.setProps {visible}`, `transparency.set {opacity|blend}`, `layer.new` (`Vector layer`, `Raster layer`), `layer.newSublayer` (`Folder`), `layer.delete`.
+- Layers panel commands: `layer.setCurrent`, `layer.setProps {visible}`, `transparency.set {opacity|blend}`, `layer.new` (`Vector layer`, `Raster layer`), `layer.newSublayer` (`Folder`), `layer.delete` (a folder with contents asks first), `layer.move {ids, target, place: above|below|inside}` (drag: a card's upper half above, lower half below, a folder's middle third inside).
+- Layer styles (modifier menu): Stroke → `appearance.addStroke`; Drop Shadow → `effect.apply stylize.dropShadow`; Outer Glow → `effect.apply stylize.outerGlow`; Bevel & Emboss, Color Overlay, Gradient Overlay shown unavailable. Fill and the mask control are shown disabled.
 
 ## Debug mode
 

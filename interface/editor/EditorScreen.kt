@@ -21,6 +21,8 @@ import com.extemporecreare.app.tools.export.ExportTool
 import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.ui.canvas.EditorCanvasView
 import com.extemporecreare.app.ui.color.ColorWorkspace
+import com.extemporecreare.app.ui.common.ConfirmDialog
+import com.extemporecreare.app.ui.common.Confirmation
 import com.extemporecreare.app.ui.debug.DebugOverlay
 import com.extemporecreare.app.ui.dial.ColorControl
 import com.extemporecreare.app.ui.dial.RotaryDial
@@ -132,6 +134,7 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
             if (state.debugOn) {
                 DebugOverlay(state.penReading, state.activeTool.name, state.camera.zoom, state.renderMs, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
             }
+            state.confirm?.let { c -> ConfirmDialog(c) { state.confirm = null } }
             state.message?.let { text ->
                 LaunchedEffect(text) {
                     delay(3500)
@@ -158,22 +161,35 @@ private fun layersActions(state: EditorState): LayersActions {
             setVisible = { id, on -> state.run("layer.setProps", JSONObject().put("id", id).put("visible", on)) },
             setOpacity = { id, v -> state.run("transparency.set", JSONObject().put("ids", ids(id)).put("opacity", v)) },
             setBlend = { id, mode -> state.run("transparency.set", JSONObject().put("ids", ids(id)).put("blend", mode)) },
+            addStyle = { id, command, params ->
+                params.remove("_label")
+                state.run(command, params.put("ids", ids(id)))
+            },
         ),
+        move = { id, target, place -> state.run("layer.move", JSONObject().put("ids", ids(id)).put("target", target).put("place", place)) },
         newVector = { state.run("layer.new", JSONObject().put("name", "Vector layer")) },
         newRaster = { state.run("layer.new", JSONObject().put("name", "Raster layer")) },
         newFolder = { state.run("layer.newSublayer", JSONObject().put("name", "Folder")) },
         deleteCurrent = {
-            val current = EngineAnswer(state.engine.layers()).okObject?.optJSONArray("rows")?.let { findCurrent(it) }
-            if (current == null) state.message = "Select a row to delete" else state.run("layer.delete", JSONObject().put("ids", ids(current)))
+            val rows = EngineAnswer(state.engine.layers()).okObject?.optJSONArray("rows")
+            val current = rows?.let { findCurrent(it) }
+            when {
+                current == null -> state.message = "Select a row to delete"
+                (current.optJSONArray("children")?.length() ?: 0) > 0 -> state.confirm = Confirmation(
+                    "Delete “${current.optString("name")}” and everything in it?",
+                    "Delete",
+                ) { state.run("layer.delete", JSONObject().put("ids", ids(current.optLong("id")))) }
+                else -> state.run("layer.delete", JSONObject().put("ids", ids(current.optLong("id"))))
+            }
         },
     )
 }
 
-/** The current row's id in [rows] (depth first), or null. */
-private fun findCurrent(rows: JSONArray): Long? {
+/** The current row in [rows] (depth first), or null. */
+private fun findCurrent(rows: JSONArray): JSONObject? {
     for (i in 0 until rows.length()) {
         val r = rows.optJSONObject(i) ?: continue
-        if (r.optBoolean("current")) return r.optLong("id")
+        if (r.optBoolean("current")) return r
         r.optJSONArray("children")?.let { findCurrent(it) }?.let { return it }
     }
     return null
@@ -183,4 +199,4 @@ private fun findCurrent(rows: JSONArray): Long? {
 // - EditorRequests: the system pickers the editor asks the activity for.
 // - EditorScreen(state, requests): the editor workspace.
 // - layersActions(state): the Layers panel's engine commands.
-// - findCurrent(rows): the current row's id.
+// - findCurrent(rows): the current row.

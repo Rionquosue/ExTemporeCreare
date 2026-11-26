@@ -117,7 +117,8 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `dial/ToolReadout.kt`: `ToolReadout`: the active tool's name and size, drag to adjust.
 - `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
-- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions`; `panels/LayerCard.kt`: `LayerCard`, `LayerCardActions`, `BLEND_MODES`.
+- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity with slider popover, Fill and mask shown disabled, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`.
+- `common/ConfirmDialog.kt`: `Confirmation`, `ConfirmDialog`: ask before a destructive action.
 - `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`.
 - `color/ColorWorkspace.kt`: `ColorWorkspace`: saturation/value square, hue bar, hex and R, G, B entry, swatches, recent colours, mixing pad; `color/MixingPad.kt`: `MixingPad` (paint primary or alternate, sample, reset).
 - `debug/DebugOverlay.kt`: `DebugOverlay`: debug mode's on-screen readout.

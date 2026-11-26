@@ -128,6 +128,8 @@ EXTEMPORECREARE
 |   |-- color/
 |   |   |-- ColorWorkspace.kt
 |   |   |-- MixingPad.kt
+|   |-- common/
+|   |   |-- ConfirmDialog.kt
 |   |-- debug/
 |   |   |-- DebugOverlay.kt
 |   |-- dial/

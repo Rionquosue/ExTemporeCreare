@@ -34,6 +34,7 @@ import com.extemporecreare.app.tools.pencil.PencilTool
 import com.extemporecreare.app.tools.selection.SelectionTool
 import com.extemporecreare.app.tools.shapes.ShapesTool
 import com.extemporecreare.app.ui.canvas.Camera
+import com.extemporecreare.app.ui.common.Confirmation
 import org.json.JSONObject
 
 /**
@@ -95,6 +96,9 @@ class EditorState(private val context: Context) {
     /** The colour workspace's swatches and history, and whether it is open. */
     val colors = ColorLibrary(context)
     var colorWorkspaceOpen by mutableStateOf(false)
+
+    /** A question to confirm before a destructive action, or null. */
+    var confirm by mutableStateOf<Confirmation?>(null)
 
     /** A message to show (an error or a result), or null. */
     var message by mutableStateOf<String?>(null)
@@ -369,6 +373,7 @@ class EditorState(private val context: Context) {
 // - chooseTool(index): make a tool active. pointer(event): feed a canvas event to the active tool.
 // - undo(), redo(), step(command): one step back or forward.
 // - colors, colorWorkspaceOpen: the colour workspace's library and whether it is open. setColor(which, hex): set primary or alternate.
+// - confirm: a question to confirm before a destructive action.
 // - flip(): mirror the view. swapColors(): swap primary and alternate. readColors(answer): read the defaults.
 // - run(command, params): a panel's engine command.
 // - save(uri), open(uri): the document's file. exportTo(tree): write the export regions into a folder.
