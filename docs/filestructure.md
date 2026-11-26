@@ -110,9 +110,31 @@ EXTEMPORECREARE
 |   |-- OFL-SourceSans3.txt
 |   |-- OFL-SourceSerif4.txt
 |-- interface/
+|   |-- MainActivity.kt
 |   |-- readme.md
+|   |-- canvas/
+|   |   |-- Camera.kt
+|   |   |-- EditorCanvasView.kt
+|   |   |-- OverlayPainter.kt
+|   |-- dial/
+|   |   |-- ColorControl.kt
+|   |   |-- DialTools.kt
+|   |   |-- RotaryDial.kt
+|   |   |-- ToolReadout.kt
+|   |-- editor/
+|   |   |-- EditorScreen.kt
+|   |   |-- EditorState.kt
+|   |   |-- ToolSettingsHost.kt
+|   |-- panels/
+|   |   |-- FloatingPanel.kt
+|   |   |-- LayerCard.kt
+|   |   |-- LayersPanel.kt
+|   |   |-- ReferenceBoardPanel.kt
+|   |   |-- TextureLibraryPanel.kt
 |   |-- theme/
 |   |   |-- EtcColors.kt
+|   |-- topbar/
+|   |   |-- TopBar.kt
 |   |-- tools/
 |       |-- ToolSettingsControls.kt
 |       |-- Brush/

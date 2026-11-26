@@ -97,3 +97,15 @@ Stored keys, paths, constants and identifiers.
 - View JSON `viewport` is also read by the Brush tool (the splotch's frame).
 - Layers rows JSON: `{"rows": [{"id", "name", "kind": "folder"|"raster"|"vector"|"guide", "visible", "locked", "opacity" 0–100, "blend" (engine name: Normal, Multiply, Screen, Overlay, SoftLight, HardLight, ColorDodge, ColorBurn, Darken, Lighten, Difference, Exclusion, Hue, Saturation, Color, Luminosity), "current", "children"?}]}`, topmost first.
 - Colours: primary = the stroke default, alternate = the fill default; `paintDefaults` / `setPaintDefaults` JSON `{"stroke": "#rrggbb"|null, "fill": "#rrggbb"|null}`.
+
+## Editor UI
+
+- Activity: `com.extemporecreare.app.ui.MainActivity` (launcher; keeps itself across configuration changes). Save As MIME `application/x-ex-tempore-creare` (`ETC_MIME`), default name `Untitled.etc`.
+- New document: `file.new {width: 1920, height: 1080}` (until the splash and New Document dialog exist).
+- Dial order: Brush, Marker, Pencil, Pen, Eraser, Fill, Selection, Shapes, Move, Crop, Export. Active sight 45° (`SIGHT`); ring radius 0.74 of the dial (`RING`); dial 340 dp, offset −110 dp, +110 dp into the lower-left corner.
+- Top bar height `BAR_HEIGHT` 52 dp; Layers panel width 368 dp; Texture library 260 dp; Reference board 270 dp.
+- Camera zoom range `MIN_ZOOM` 0.01 – `MAX_ZOOM` 64; Fit artwork leaves 18 % margin.
+- Workspace surround colour `#0C131B` (`EditorCanvasView.SURROUND`); overlay accents `#EFC98C`, `#83C5BB`.
+- Messages show 3.5 s.
+- Main menu: New document, Open…, Save as…, Fit artwork.
+- Layers panel commands: `layer.setCurrent`, `layer.setProps {visible}`, `transparency.set {opacity|blend}`, `layer.new` (`Vector layer`, `Raster layer`), `layer.newSublayer` (`Folder`), `layer.delete`.

@@ -85,6 +85,21 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## interface (package `com.extemporecreare.app.ui`)
 
+- `MainActivity.kt`: `MainActivity`, the app's activity: the editor and the system pickers (Save As, Open, Export folder).
+- `editor/EditorState.kt`: `EditorState`: engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
+- `editor/EditorScreen.kt`: `EditorScreen` (the workspace layout), `EditorRequests` (pickers).
+- `editor/ToolSettingsHost.kt`: `ToolSettingsHost`: the active tool's settings window.
+- `canvas/Camera.kt`: `Camera` (centre, zoom, View Flip): `toDoc`, `viewport`, `matrix`, `toScreen`, `panned`, `zoomedAbout`, `fit`.
+- `canvas/EditorCanvasView.kt`: `EditorCanvasView`: renders the document on a worker thread, draws the Brush's live stroke, Crop box, Export slices and tool overlays; stylus or one finger draws, two fingers pan and zoom; `follow`, `refresh`.
+- `canvas/OverlayPainter.kt`: `OverlayPainter`: tool overlays and canvas boxes.
+- `topbar/TopBar.kt`: `TopBar` (Menu, Save, Flip, Undo, Redo, Export, brand), `MenuEntry`, `BAR_HEIGHT`.
+- `dial/RotaryDial.kt`: `RotaryDial`: the ring of tools turning beneath the 45° active sight.
+- `dial/ColorControl.kt`: `ColorControl`: primary and alternate colours; tap swaps, double tap opens the colour workspace.
+- `dial/ToolReadout.kt`: `ToolReadout`: the active tool's name and size, drag to adjust.
+- `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
+- `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
+- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions`; `panels/LayerCard.kt`: `LayerCard`, `LayerCardActions`, `BLEND_MODES`.
+- `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`.
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
 - `tools/Brush/BrushToolSettingsPanel.kt`: `BrushToolSettingsPanel` (size, hardness, spacing, flow, opacity, pressure sizing, Lock canvas).
