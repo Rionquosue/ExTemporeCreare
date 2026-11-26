@@ -75,6 +75,19 @@ class EngineBridge : AutoCloseable {
     }
 
     /**
+     * A new document from the New Document dialog's [settingsJson] (`{"name", "infinite", "width",
+     * "height" (pt), "units"?, "colorMode"?, "ppi"?, "background"?: "transparent"|"white"|"#rrggbb"}`)
+     * → `{"ok": {"infinite", "artboards"}}`. An infinite canvas has no artboards.
+     */
+    fun newDocument(settingsJson: String): String = nativeNewDocument(live(), settingsJson)
+
+    /** The artwork camera the active document keeps → `{"ok": {"x", "y", "zoom"} | null}`. */
+    fun view(): String = nativeView(live())
+
+    /** Keep [cameraJson] (`{"x", "y", "zoom"}`) as the document's camera, saved with it. */
+    fun setView(cameraJson: String): String = nativeSetView(live(), cameraJson)
+
+    /**
      * The Layers panel's rows, topmost first → `{"ok": {"rows": [{"id", "name", "kind":
      * "folder"|"raster"|"vector"|"guide", "visible", "locked", "opacity" (0–100), "blend", "current",
      * "children"?}]}}`.
@@ -189,6 +202,9 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeSetToolOption(handle: Long, key: String, value: String): String
         @JvmStatic private external fun nativeState(handle: Long): String
         @JvmStatic private external fun nativeOverlays(handle: Long, view: String): String
+        @JvmStatic private external fun nativeNewDocument(handle: Long, settings: String): String
+        @JvmStatic private external fun nativeView(handle: Long): String
+        @JvmStatic private external fun nativeSetView(handle: Long, camera: String): String
         @JvmStatic private external fun nativeLayers(handle: Long): String
         @JvmStatic private external fun nativePaintDefaults(handle: Long): String
         @JvmStatic private external fun nativeSetPaintDefaults(handle: Long, values: String): String
@@ -232,6 +248,8 @@ class EngineBridge : AutoCloseable {
 // - state(): canvas mode, artboards, selection and selected images → JSON answer.
 // - overlays(viewJson): what the active tool draws over the canvas → JSON answer.
 // - render(x, y, width, height, scale, out): draw part of the active document into a direct buffer.
+// - newDocument(settingsJson): a finite or infinite document → JSON answer.
+// - view(), setView(cameraJson): the artwork camera kept with the document.
 // - layers(): the Layers panel's rows → JSON answer.
 // - paintDefaults(), setPaintDefaults(valuesJson): the primary (stroke) and alternate (fill) colours → JSON answer.
 // - paintBegin, paintAdd, paintPixels, paintEnd, paintCancel: the Brush tool's live raster stroke into a splotch.
@@ -243,4 +261,4 @@ class EngineBridge : AutoCloseable {
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
 // - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths.
-// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeLayers, nativePaintDefaults, nativeSetPaintDefaults, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
+// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeNewDocument, nativeView, nativeSetView, nativeLayers, nativePaintDefaults, nativeSetPaintDefaults, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.

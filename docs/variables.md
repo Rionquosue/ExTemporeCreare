@@ -101,13 +101,17 @@ Stored keys, paths, constants and identifiers.
 ## Editor UI
 
 - Activity: `com.extemporecreare.app.ui.MainActivity` (launcher; keeps itself across configuration changes). Save As MIME `application/x-ex-tempore-creare` (`ETC_MIME`), default name `Untitled.etc`.
-- New document: `file.new {width: 1920, height: 1080}` (until the splash and New Document dialog exist).
+- Startup: a cold launch shows the splash; configuration changes keep the editor. Recent files: SharedPreferences `recent-files` key `recent`, at most 10 (`RecentFiles.MAX`), thumbnails from `Thumbnails/thumbnail.png`.
+- New Document: `EngineBridge.newDocument` with `{name, infinite, width, height (px = pt), units: "Pixels", colorMode rgb|cmyk, ppi 1–2400, background transparent|white|#rrggbb}`; in/cm/mm convert to pixels at the ppi; defaults kept in SharedPreferences `document-defaults` key `settings` (default 1920 × 1080 px, 144 ppi, RGB, transparent). Presets: Infinite canvas, Screen 1920 × 1080, Tablet 2560 × 1600, Square 2048, A4 300 ppi, Letter 300 ppi.
+- Infinite canvas: a document with no artboards (the artboard `file.new` makes is removed before its history starts).
+- Artwork camera: kept with the document (`setView {x, y, zoom}`, saved as the document's view, named `Artwork`) before each save and on Home; restored on open. View Flip is not saved.
+- Panel layout: SharedPreferences `panel-layout` (`layersOpen`, `texturesOpen`, `boardOpen`); focus mode is not kept.
 - Dial order: Brush, Marker, Pencil, Pen, Eraser, Fill, Selection, Shapes, Move, Crop, Export. Active sight 45° (`SIGHT`); ring radius 0.74 of the dial (`RING`); dial 340 dp, offset −110 dp, +110 dp into the lower-left corner.
 - Top bar height `BAR_HEIGHT` 52 dp; Layers panel width 368 dp; Texture library 260 dp; Reference board 270 dp.
 - Camera zoom range `MIN_ZOOM` 0.01 – `MAX_ZOOM` 64; Fit artwork leaves 18 % margin.
 - Workspace surround colour `#0C131B` (`EditorCanvasView.SURROUND`); overlay accents `#EFC98C`, `#83C5BB`.
 - Messages show 3.5 s.
-- Main menu: New document, Open…, Save as…, Fit artwork.
+- Main menu: Home, New document…, Open…, Save as…, Zoom in (×1.25), Zoom out (×0.8), Fit artwork, Actual size (100 %), Focus mode, Reset panel layout.
 - Layers panel commands: `layer.setCurrent`, `layer.setProps {visible}`, `transparency.set {opacity|blend}`, `layer.new` (`Vector layer`, `Raster layer`), `layer.newSublayer` (`Folder`), `layer.delete`.
 
 ## Debug mode

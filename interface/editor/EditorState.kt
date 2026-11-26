@@ -8,6 +8,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.extemporecreare.app.components.debug.DebugMode
+import com.extemporecreare.app.components.documents.DocumentSettings
+import com.extemporecreare.app.components.documents.RecentFiles
 import com.extemporecreare.app.components.debug.PenReading
 import com.extemporecreare.app.components.engine.EngineBridge
 import com.extemporecreare.app.components.engine.EngineFiles
@@ -39,6 +41,23 @@ import org.json.JSONObject
  * URI and the message to show. The UI reads it and calls its actions.
  */
 class EditorState(private val context: Context) {
+
+    /** Which screen shows: the opening splash or the editor (`uistandards.md` §5.1). */
+    enum class Screen { SPLASH, EDITOR }
+
+    /** The screen showing. */
+    var screen by mutableStateOf(Screen.SPLASH)
+        private set
+
+    /** The recently used documents. */
+    val recents = RecentFiles(context)
+
+    /** Goes up when the recent files change. */
+    var recentsRevision by mutableIntStateOf(0)
+        private set
+
+    /** The floating panels' layout. */
+    val layout = PanelLayout(context)
 
     /** The engine session. */
     val engine = EngineBridge()
@@ -91,18 +110,41 @@ class EditorState(private val context: Context) {
     private var viewW = 0
     private var viewH = 0
 
-    /** Install the presets, make a new document and choose the first tool. */
+    /** Install the presets; the splash shows first (a cold launch, §5.1). */
     fun start() {
         EngineBridge.setPresetsRoot(EnginePresets.install(context).path)
-        newDocument()
     }
 
-    /** A new document (1920 × 1080 points) in place of the open one. */
-    fun newDocument() {
+    /** A new document from [settings] in place of the open one, the settings kept as the defaults. */
+    fun newDocument(settings: DocumentSettings) {
         activeTool.deactivate(engine)
-        show(EngineAnswer(engine.execute("file.new", JSONObject().put("width", 1920).put("height", 1080).toString())).error)
+        val answer = EngineAnswer(engine.newDocument(settings.toEngineJson().toString()))
+        if (!answer.isOk) {
+            show(answer.error)
+            return
+        }
+        DocumentSettings.keepDefaults(context, settings)
         documentUri = null
         afterDocumentChange()
+    }
+
+    /** Back to the splash (Home): the document stays open until another replaces it. */
+    fun home() {
+        keepCamera()
+        screen = Screen.SPLASH
+        recentsRevision++
+    }
+
+    /** Take [uri] off the recent files. */
+    fun forget(uri: Uri) {
+        recents.remove(uri)
+        recentsRevision++
+    }
+
+    /** Empty the recent files. */
+    fun clearRecents() {
+        recents.clear()
+        recentsRevision++
     }
 
     /** The canvas view's size: fit the artwork the first time it is known. */
@@ -110,14 +152,41 @@ class EditorState(private val context: Context) {
         val first = viewW == 0
         viewW = w
         viewH = h
-        if (first) fitArtwork()
+        if (first) restoreCamera()
     }
 
-    /** Fit the first artboard in the view. */
+    /** Fit the first artboard in the view; on an infinite canvas, the artwork (else the origin at 100 %). */
     fun fitArtwork() {
         if (viewW == 0) return
-        val a = EngineAnswer(engine.state()).okObject?.optJSONArray("artboards")?.optJSONObject(0) ?: return
-        camera = Camera.fit(a.optDouble("x"), a.optDouble("y"), a.optDouble("width"), a.optDouble("height"), viewW, viewH).copy(flipped = camera.flipped)
+        val a = EngineAnswer(engine.state()).okObject?.optJSONArray("artboards")?.optJSONObject(0)
+            ?: EngineAnswer(engine.execute("export.slice.list", "{}")).okObject?.optJSONObject("contentBounds")
+        camera = if (a == null) {
+            Camera(0.0, 0.0, 1.0, camera.flipped)
+        } else {
+            Camera.fit(a.optDouble("x"), a.optDouble("y"), a.optDouble("width"), a.optDouble("height"), viewW, viewH).copy(flipped = camera.flipped)
+        }
+    }
+
+    /** Zoom the view by [factor] about its centre. */
+    fun zoomBy(factor: Double) {
+        if (viewW == 0) return
+        camera = camera.zoomedAbout(factor, viewW / 2f, viewH / 2f, viewW, viewH)
+    }
+
+    /** The view at 100 % (one screen pixel a point), its centre kept. */
+    fun actualSize() {
+        camera = camera.copy(zoom = 1.0)
+    }
+
+    /** Keep the camera with the document, so a save writes it (§12). */
+    private fun keepCamera() {
+        engine.setView(JSONObject().put("x", camera.cx).put("y", camera.cy).put("zoom", camera.zoom).toString())
+    }
+
+    /** The camera the document keeps, else fit the artwork. */
+    private fun restoreCamera() {
+        val v = runCatching { JSONObject(engine.view()).optJSONObject("ok") }.getOrNull()
+        if (v != null && viewW > 0) camera = Camera(v.optDouble("x"), v.optDouble("y"), v.optDouble("zoom", 1.0), camera.flipped) else fitArtwork()
     }
 
     /** The view state the tools take: the zoom and the view's frame in document points. */
@@ -188,9 +257,12 @@ class EditorState(private val context: Context) {
 
     /** Save to [uri] (the document's own, or a new one from Save As). */
     fun save(uri: Uri) {
+        keepCamera()
         val answer = EngineAnswer(EngineFiles(context, engine).save(uri))
         if (answer.isOk) {
             documentUri = uri
+            recents.add(uri, displayName(uri))
+            recentsRevision++
             message = "Saved"
         } else {
             show(answer.error)
@@ -201,9 +273,19 @@ class EditorState(private val context: Context) {
     fun open(uri: Uri) {
         activeTool.deactivate(engine)
         val answer = EngineAnswer(EngineFiles(context, engine).open(uri))
-        if (answer.isOk) documentUri = uri else show(answer.error)
+        if (!answer.isOk) {
+            show(answer.error)
+            return
+        }
+        documentUri = uri
+        recents.add(uri, displayName(uri))
+        recentsRevision++
         afterDocumentChange()
     }
+
+    /** [uri]'s display name. */
+    private fun displayName(uri: Uri): String =
+        com.extemporecreare.app.components.engine.UriReplace(context).displayName(uri).ifEmpty { uri.lastPathSegment ?: "Document" }
 
     /** Export the regions the Export tool's scope writes into folder [tree] (the top bar's Export). */
     fun exportTo(tree: Uri) {
@@ -238,7 +320,8 @@ class EditorState(private val context: Context) {
     private fun afterDocumentChange() {
         readColors()
         show(activeTool.activate(engine, viewJson()))
-        fitArtwork()
+        restoreCamera()
+        screen = Screen.EDITOR
         revision++
     }
 
@@ -264,8 +347,12 @@ class EditorState(private val context: Context) {
 // - primary, alternate: the stroke and fill defaults. message: what to show. settingsOpen: the tool settings window.
 // - documentUri: the open document's URI. viewW, viewH: the canvas size.
 // - debugOn, penReading, renderMs: debug mode's state for the readout.
-// - start(): presets, a new document, the first tool. newDocument(): a new 1920 × 1080 document.
-// - onViewSize(w, h): the canvas size; fits the artwork the first time. fitArtwork(): fit the first artboard.
+// - Screen, screen: the splash or the editor. recents, recentsRevision: the recent files. layout: the panels' layout.
+// - start(): presets. newDocument(settings): a new finite or infinite document. home(): back to the splash.
+// - forget(uri), clearRecents(): change the recent files.
+// - zoomBy(factor), actualSize(): view controls. keepCamera(), restoreCamera(): the camera kept with the document.
+// - displayName(uri): a document's name.
+// - onViewSize(w, h): the canvas size; restores the camera the first time. fitArtwork(): fit the first artboard or the artwork.
 // - viewJson(): the zoom and view frame for the tools.
 // - chooseTool(index): make a tool active. pointer(event): feed a canvas event to the active tool.
 // - undo(), redo(), step(command): one step back or forward.

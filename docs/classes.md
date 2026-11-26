@@ -42,12 +42,13 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/files.rs`: `PendingSave`; `open` (a copied file with its URI as path), `save` (write into temporary files, keep pending), `save_finish` (with the final URI a rename gave), `validate`.
 - `src/jni_exports.rs`: the JNI functions of `EngineBridge`.
 - `src/paint.rs`: the Brush tool's live strokes: `begin`, `add`, `pixels`, `end`, `cancel`.
+- `src/documents.rs`: `new_document` (finite, or infinite with no artboards), `view`, `set_view` (the artwork camera saved with the document).
 - `src/panels.rs`: `layers`: the Layers panel's rows (folder, raster, vector, guide), topmost first.
 - `src/colors.rs`: `paint_defaults`, `set_paint_defaults`: the primary (stroke) and alternate (fill) colours, without touching the selection.
 
 ## components/engine
 
-- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `layers`, `paintDefaults`, `setPaintDefaults`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
+- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `newDocument`, `view`, `setView`, `layers`, `paintDefaults`, `setPaintDefaults`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
 - `EngineFiles.kt`: `EngineFiles(context, engine)`: `open(uri)` and `save(uri, mode, options)` through content URIs, temporary files in `cacheDir/engine-files`, a check of each `.etc`, then the replace: renamed over the original where the provider allows (`replaceByRename`), else copied into the URI (`copyInto`).
 - `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`.
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.
@@ -57,6 +58,11 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `DebugMode.kt`: `DebugMode` (`TAG`, `isOn`, `log`): debug mode switched from ADB with the `log.tag.ETCDebug` property.
 - `PenReading.kt`: `PenReading` (`line`, `of`): what one pointer reported (tool type, pressure, tilt, orientation, hover distance, buttons, the tools' tilt).
+
+## components/documents
+
+- `RecentFiles.kt`: `RecentFiles` (`Recent`; `list`, `add`, `remove`, `clear`, `exists`, `thumbnail`): up to ten recent documents with persisted access and each `.etc`'s thumbnail.
+- `DocumentSettings.kt`: `DocumentSettings` (`toPixels`, `pixels`, `toEngineJson`, `toJson`, `fromJson`, `defaults`, `keepDefaults`): a new document's settings and the reusable defaults.
 
 ## components/tools (shared by the dial tools)
 
@@ -90,8 +96,11 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## interface (package `com.extemporecreare.app.ui`)
 
-- `MainActivity.kt`: `MainActivity`, the app's activity: the editor and the system pickers (Save As, Open, Export folder).
-- `editor/EditorState.kt`: `EditorState`: engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
+- `MainActivity.kt`: `MainActivity`, the app's activity: splash or editor, the system pickers (Save As, Open, Locate, Export folder) and the New Document and Settings dialogs.
+- `editor/EditorState.kt`: `EditorState`: screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
+- `editor/PanelLayout.kt`: `PanelLayout`: the panels' expanded states (kept in the preferences), focus mode, `reset`.
+- `document/NewDocumentDialog.kt`: `NewDocumentDialog`; `document/DocumentPresets.kt`: `DOCUMENT_PRESETS`.
+- `splash/SplashScreen.kt`: `SplashScreen`, `SplashActions`; `splash/SettingsDialog.kt`: `SettingsDialog` (New Document defaults, clear recents, reset panel layout).
 - `editor/EditorScreen.kt`: `EditorScreen` (the workspace layout), `EditorRequests` (pickers).
 - `editor/ToolSettingsHost.kt`: `ToolSettingsHost`: the active tool's settings window.
 - `canvas/Camera.kt`: `Camera` (centre, zoom, View Flip): `toDoc`, `viewport`, `matrix`, `toScreen`, `panned`, `zoomedAbout`, `fit`.

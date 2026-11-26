@@ -10,10 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -44,7 +41,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** What the editor asks of the activity: the system pickers. */
-class EditorRequests(val saveAs: () -> Unit, val open: () -> Unit, val exportFolder: () -> Unit, val openBoard: () -> Unit)
+class EditorRequests(val newDocument: () -> Unit, val saveAs: () -> Unit, val open: () -> Unit, val exportFolder: () -> Unit, val openBoard: () -> Unit)
 
 /**
  * The editor workspace (`uistandards.md` §4): the artwork canvas filling the screen under the top
@@ -56,9 +53,7 @@ class EditorRequests(val saveAs: () -> Unit, val open: () -> Unit, val exportFol
  */
 @Composable
 fun EditorScreen(state: EditorState, requests: EditorRequests) {
-    var layersOpen by remember { mutableStateOf(true) }
-    var texturesOpen by remember { mutableStateOf(false) }
-    var boardOpen by remember { mutableStateOf(false) }
+    val layout = state.layout
     val revision = state.revision
     // Debug mode follows its ADB switch (DebugMode), checked every second.
     LaunchedEffect(Unit) {
@@ -79,10 +74,16 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
         )
         TopBar(
             menu = listOf(
-                MenuEntry("New document") { state.newDocument() },
+                MenuEntry("Home") { state.home() },
+                MenuEntry("New document…") { requests.newDocument() },
                 MenuEntry("Open…") { requests.open() },
                 MenuEntry("Save as…") { requests.saveAs() },
+                MenuEntry("Zoom in") { state.zoomBy(1.25) },
+                MenuEntry("Zoom out") { state.zoomBy(0.8) },
                 MenuEntry("Fit artwork") { state.fitArtwork() },
+                MenuEntry("Actual size (100 %)") { state.actualSize() },
+                MenuEntry(if (layout.focus) "Leave focus mode" else "Focus mode") { layout.toggleFocus() },
+                MenuEntry("Reset panel layout") { layout.reset() },
             ),
             onSave = { state.documentUri?.let { state.save(it) } ?: requests.saveAs() },
             onFlip = { state.flip() },
@@ -92,17 +93,19 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
             onExport = { requests.exportFolder() },
         )
         Box(Modifier.fillMaxSize().padding(top = BAR_HEIGHT)) {
-            TextureLibraryPanel(texturesOpen, { texturesOpen = !texturesOpen }, Modifier.align(Alignment.TopStart).padding(16.dp))
-            val export = state.activeTool as? ExportTool
-            Box(Modifier.align(Alignment.TopEnd).padding(12.dp).width(368.dp)) {
-                if (export != null) {
-                    ExportToolSettingsPanel(export, state.engine, revision) { state.show(it); state.touched() }
-                } else {
-                    val rows = remember(revision) { JSONObject(state.engine.layers()).optJSONObject("ok")?.optJSONArray("rows") ?: JSONArray() }
-                    LayersPanel(rows, layersOpen, { layersOpen = !layersOpen }, layersActions(state))
+            if (!layout.focus) {
+                TextureLibraryPanel(layout.texturesOpen, layout::toggleTextures, Modifier.align(Alignment.TopStart).padding(16.dp))
+                val export = state.activeTool as? ExportTool
+                Box(Modifier.align(Alignment.TopEnd).padding(12.dp).width(368.dp)) {
+                    if (export != null) {
+                        ExportToolSettingsPanel(export, state.engine, revision) { state.show(it); state.touched() }
+                    } else {
+                        val rows = remember(revision) { JSONObject(state.engine.layers()).optJSONObject("ok")?.optJSONArray("rows") ?: JSONArray() }
+                        LayersPanel(rows, layout.layersOpen, layout::toggleLayers, layersActions(state))
+                    }
                 }
+                ReferenceBoardPanel(0, layout.boardOpen, layout::toggleBoard, requests.openBoard, Modifier.align(Alignment.BottomEnd).padding(16.dp))
             }
-            ReferenceBoardPanel(0, boardOpen, { boardOpen = !boardOpen }, requests.openBoard, Modifier.align(Alignment.BottomEnd).padding(16.dp))
             RotaryDial(
                 names = state.tools.map { it.name },
                 active = state.activeIndex,

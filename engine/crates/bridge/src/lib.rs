@@ -6,6 +6,7 @@
 pub mod boards;
 pub mod calls;
 pub mod colors;
+pub mod documents;
 mod convert;
 pub mod files;
 mod jni_exports;
@@ -19,6 +20,7 @@ pub use sessions::{create, destroy};
 // - `boards`: reference boards (`.etcr`) and their linked images, as JSON.
 // - `calls`: the operations the UI asks of the engine, answered as JSON.
 // - `colors`: the paint defaults the tools paint with (primary: stroke, alternate: fill).
+// - `documents`: new documents (finite or infinite) and the artwork camera they keep.
 // - `convert`: JSON conversions of view state and tool requests.
 // - `files`: opening and saving through temporary files for content URIs.
 // - `jni_exports`: the JNI functions of `EngineBridge`.

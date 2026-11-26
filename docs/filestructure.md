@@ -34,6 +34,9 @@ EXTEMPORECREARE
 |   |-- debug/
 |   |   |-- DebugMode.kt
 |   |   |-- PenReading.kt
+|   |-- documents/
+|   |   |-- DocumentSettings.kt
+|   |   |-- RecentFiles.kt
 |   |-- engine/
 |   |   |-- EngineBoards.kt
 |   |   |-- EngineBridge.kt
@@ -126,9 +129,13 @@ EXTEMPORECREARE
 |   |   |-- DialTools.kt
 |   |   |-- RotaryDial.kt
 |   |   |-- ToolReadout.kt
+|   |-- document/
+|   |   |-- DocumentPresets.kt
+|   |   |-- NewDocumentDialog.kt
 |   |-- editor/
 |   |   |-- EditorScreen.kt
 |   |   |-- EditorState.kt
+|   |   |-- PanelLayout.kt
 |   |   |-- ToolSettingsHost.kt
 |   |-- panels/
 |   |   |-- FloatingPanel.kt
@@ -138,6 +145,9 @@ EXTEMPORECREARE
 |   |   |-- TextureLibraryPanel.kt
 |   |-- theme/
 |   |   |-- EtcColors.kt
+|   |-- splash/
+|   |   |-- SettingsDialog.kt
+|   |   |-- SplashScreen.kt
 |   |-- topbar/
 |   |   |-- TopBar.kt
 |   |-- tools/

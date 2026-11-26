@@ -10,7 +10,7 @@ use jni::JNIEnv;
 use jni::objects::{JByteBuffer, JClass, JString};
 use jni::sys::{jboolean, jdouble, jint, jlong, jstring};
 
-use crate::{boards, calls, colors, files, paint, panels, sessions};
+use crate::{boards, calls, colors, documents, files, paint, panels, sessions};
 
 /// A Java string as Rust text (empty when it can't be read).
 fn text(env: &mut JNIEnv, s: &JString) -> String {
@@ -365,6 +365,36 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     jtext(&mut env, &out)
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeNewDocument(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    settings: JString,
+) -> jstring {
+    let settings = text(&mut env, &settings);
+    let out = documents::new_document(handle, &settings);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeView(mut env: JNIEnv, _class: JClass, handle: jlong) -> jstring {
+    let out = documents::view(handle);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeSetView(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    camera: JString,
+) -> jstring {
+    let camera = text(&mut env, &camera);
+    let out = documents::set_view(handle, &camera);
+    jtext(&mut env, &out)
+}
+
 // GLOSSARY
 // - `text`: a Java string as Rust text.
 // - `jtext`: Rust text as a Java string.
@@ -380,6 +410,7 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativeOverlays`: what the active tool draws over the canvas → JSON answer.
 // - `..._nativeRender`: render a region of the active document into a direct byte buffer.
 // - `..._nativePaintBegin`, `..._nativePaintAdd`, `..._nativePaintEnd`, `..._nativePaintCancel`: `paint::begin`, `add`, `end`, `cancel` → JSON answer.
+// - `..._nativeNewDocument`, `..._nativeView`, `..._nativeSetView`: `documents::new_document`, `view`, `set_view` → JSON answer.
 // - `..._nativeLayers`: `panels::layers` → JSON answer.
 // - `..._nativePaintDefaults`, `..._nativeSetPaintDefaults`: `colors::paint_defaults`, `set_paint_defaults` → JSON answer.
 // - `..._nativePaintPixels`: the live Brush stroke's layer over a splotch region into a direct byte buffer.
