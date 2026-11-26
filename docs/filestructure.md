@@ -56,6 +56,8 @@ EXTEMPORECREARE
 |   |-- classes.md
 |   |-- filestructure.md
 |   |-- variables.md
+|   |-- research/
+|   |   |-- adf_study_notes.md
 |   |-- Standardsdocs/
 |   |   |-- applicationstandard.md
 |   |   |-- filestandard.md
