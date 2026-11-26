@@ -13,6 +13,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
+import com.extemporecreare.app.components.debug.DebugMode
+import com.extemporecreare.app.components.debug.PenReading
 import com.extemporecreare.app.components.engine.EngineBridge
 import com.extemporecreare.app.components.tools.ToolPointer
 import com.extemporecreare.app.tools.brush.BrushTool
@@ -80,12 +82,16 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         rendering = true
         val (w, h, cam, rev) = Quad(width, height, state.camera, state.revision)
         worker.execute {
+            val started = System.nanoTime()
             val v = cam.viewport(w, h)
             val buffer = EngineBridge.renderBuffer(w, h)
             val ok = state.engine.render(v[0], v[1], w, h, cam.zoom, buffer)
             val bmp = if (ok) Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { buffer.rewind(); it.copyPixelsFromBuffer(buffer) } else null
+            val ms = (System.nanoTime() - started) / 1_000_000
             main.post {
                 rendering = false
+                state.renderMs = ms
+                DebugMode.log("render", "${w}×$h at zoom ${cam.zoom} in $ms ms (revision $rev)")
                 if (bmp != null) {
                     rendered = bmp
                     renderedCamera = cam
@@ -224,7 +230,22 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
             tiltX = (tilt * sin(o) * mirror).toFloat()
             tiltY = (-tilt * cos(o)).toFloat()
         }
+        if (state.debugOn) {
+            val reading = PenReading.of(e, i, x, y, tiltX, tiltY)
+            state.penReading = reading
+            if (kind != ToolPointer.Kind.DRAG || e.historySize == 0) DebugMode.log("pen", reading.line())
+        }
         state.pointer(ToolPointer(kind, x, y, if (stylus) pressure.coerceIn(0f, 1f) else 1f, tiltX, tiltY))
+    }
+
+    /** Debug mode: a hovering pen's readings, logged and shown without drawing. */
+    override fun onHoverEvent(e: MotionEvent): Boolean {
+        if (!state.debugOn) return super.onHoverEvent(e)
+        val (x, y) = state.camera.toDoc(e.getX(0), e.getY(0), width, height)
+        val reading = PenReading.of(e, 0, x, y, null, null)
+        state.penReading = reading
+        DebugMode.log("pen", reading.line())
+        return true
     }
 
     override fun onDetachedFromWindow() {
@@ -257,6 +278,7 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
 // - drawLiveStroke(canvas, cam): copy the stroke's dirty pixels in and draw its splotch.
 // - drawSlices(canvas, cam, tool): the Export tool's slices and boxes.
 // - onTouchEvent: draw with one finger or a stylus; navigate with two fingers.
+// - onHoverEvent(e): debug mode's hovering pen readings.
 // - centreAndSpan(e), sendHistory(e, i), send(kind, e, i), sendAt(...): touch to tool events.
 // - Quad: a render's size, camera and revision.
 // - SURROUND: the workspace colour. REPLACE: a copy-as-is paint.

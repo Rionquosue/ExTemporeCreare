@@ -53,6 +53,11 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.
 - `EnginePresets.kt`: `EnginePresets.install(context)`: copies the bundled presets (assets `presets/`) into `filesDir/presets` when the app version changed and sets the engine's presets folder.
 
+## components/debug
+
+- `DebugMode.kt`: `DebugMode` (`TAG`, `isOn`, `log`): debug mode switched from ADB with the `log.tag.ETCDebug` property.
+- `PenReading.kt`: `PenReading` (`line`, `of`): what one pointer reported (tool type, pressure, tilt, orientation, hover distance, buttons, the tools' tilt).
+
 ## components/tools (shared by the dial tools)
 
 - `CanvasTool.kt`: `CanvasTool`, a rotary dial tool: `name`, `activate`, `pointer`, `deactivate`.
@@ -100,6 +105,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
 - `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions`; `panels/LayerCard.kt`: `LayerCard`, `LayerCardActions`, `BLEND_MODES`.
 - `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`.
+- `debug/DebugOverlay.kt`: `DebugOverlay`: debug mode's on-screen readout.
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
 - `tools/Brush/BrushToolSettingsPanel.kt`: `BrushToolSettingsPanel` (size, hardness, spacing, flow, opacity, pressure sizing, Lock canvas).

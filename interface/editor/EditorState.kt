@@ -7,6 +7,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.extemporecreare.app.components.debug.DebugMode
+import com.extemporecreare.app.components.debug.PenReading
 import com.extemporecreare.app.components.engine.EngineBridge
 import com.extemporecreare.app.components.engine.EngineFiles
 import com.extemporecreare.app.components.engine.EnginePresets
@@ -73,6 +75,11 @@ class EditorState(private val context: Context) {
     /** A message to show (an error or a result), or null. */
     var message by mutableStateOf<String?>(null)
 
+    /** Debug mode: whether it is on (followed by the editor), the last pointer reading and the last render's time. */
+    var debugOn by mutableStateOf(false)
+    var penReading by mutableStateOf<PenReading?>(null)
+    var renderMs by mutableStateOf(0L)
+
     /** Whether the active tool's settings window is open. */
     var settingsOpen by mutableStateOf(false)
 
@@ -124,6 +131,7 @@ class EditorState(private val context: Context) {
     fun chooseTool(index: Int) {
         if (index == activeIndex) return
         show(activeTool.deactivate(engine))
+        DebugMode.log("tool", "chose ${tools[index].name}")
         activeIndex = index
         settingsOpen = false
         show(activeTool.activate(engine, viewJson()))
@@ -132,7 +140,11 @@ class EditorState(private val context: Context) {
 
     /** Feed a canvas pointer event to the active tool. */
     fun pointer(event: ToolPointer) {
+        val started = System.nanoTime()
         val r = activeTool.pointer(engine, event, viewJson())
+        if (event.kind != ToolPointer.Kind.DRAG || r.error != null) {
+            DebugMode.log("tool", "${activeTool.name} ${event.kind} (${"%.2f".format(event.x)}, ${"%.2f".format(event.y)}) in ${(System.nanoTime() - started) / 1_000_000} ms → created ${r.created} changed ${r.changed} error ${r.error}")
+        }
         show(r)
         if (event.kind == ToolPointer.Kind.UP || event.kind == ToolPointer.Kind.DOWN || r.changed) revision++
     }
@@ -168,6 +180,7 @@ class EditorState(private val context: Context) {
     /** Run an engine command for a panel and read the document again → whether it worked. */
     fun run(command: String, params: JSONObject): Boolean {
         val error = EngineAnswer(engine.execute(command, params.toString())).error
+        DebugMode.log("engine", "$command $params → ${error ?: "ok"}")
         show(error)
         revision++
         return error == null
@@ -250,6 +263,7 @@ class EditorState(private val context: Context) {
 // - camera: the artwork camera. revision: goes up when the document may have changed.
 // - primary, alternate: the stroke and fill defaults. message: what to show. settingsOpen: the tool settings window.
 // - documentUri: the open document's URI. viewW, viewH: the canvas size.
+// - debugOn, penReading, renderMs: debug mode's state for the readout.
 // - start(): presets, a new document, the first tool. newDocument(): a new 1920 × 1080 document.
 // - onViewSize(w, h): the canvas size; fits the artwork the first time. fitArtwork(): fit the first artboard.
 // - viewJson(): the zoom and view frame for the tools.

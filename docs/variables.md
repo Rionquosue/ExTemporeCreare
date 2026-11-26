@@ -109,3 +109,9 @@ Stored keys, paths, constants and identifiers.
 - Messages show 3.5 s.
 - Main menu: New document, Open…, Save as…, Fit artwork.
 - Layers panel commands: `layer.setCurrent`, `layer.setProps {visible}`, `transparency.set {opacity|blend}`, `layer.new` (`Vector layer`, `Raster layer`), `layer.newSublayer` (`Folder`), `layer.delete`.
+
+## Debug mode
+
+- Switch: the log level property of tag `ETCDebug` (`DebugMode.TAG`). On: `adb shell setprop log.tag.ETCDebug DEBUG`; off: `adb shell setprop log.tag.ETCDebug INFO`; read: `adb logcat -s ETCDebug`. The editor checks it every second.
+- Log areas: `[pen]` (pointer readings, hover included), `[tool]` (tool events, timings, results, tool choice), `[engine]` (panel commands and their errors), `[render]` (render size, zoom, time).
+- Readout: tool type, pressure, tilt and orientation (degrees, as Android reports them), hover distance, buttons, the tilt the tools get, screen and document position, active tool, zoom, last render time. Android has no standard barrel rotation axis.

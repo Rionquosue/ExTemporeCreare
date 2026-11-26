@@ -21,7 +21,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.extemporecreare.app.components.tools.EngineAnswer
 import com.extemporecreare.app.tools.export.ExportTool
+import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.ui.canvas.EditorCanvasView
+import com.extemporecreare.app.ui.debug.DebugOverlay
 import com.extemporecreare.app.ui.dial.ColorControl
 import com.extemporecreare.app.ui.dial.RotaryDial
 import com.extemporecreare.app.ui.dial.ToolReadout
@@ -49,7 +51,8 @@ class EditorRequests(val saveAs: () -> Unit, val open: () -> Unit, val exportFol
  * bar; the Texture library upper left; Layers (or, while the Export tool is active, Export
  * Settings in its place) upper right; the Reference board lower right; and the rotary dial cropped
  * into the lower-left corner with its colour control, the tool readout beside it and the active
- * tool's settings window above the readout.
+ * tool's settings window above the readout. While debug mode is on (switched from ADB,
+ * [DebugMode]) its readout shows at the top.
  */
 @Composable
 fun EditorScreen(state: EditorState, requests: EditorRequests) {
@@ -57,6 +60,17 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
     var texturesOpen by remember { mutableStateOf(false) }
     var boardOpen by remember { mutableStateOf(false) }
     val revision = state.revision
+    // Debug mode follows its ADB switch (DebugMode), checked every second.
+    LaunchedEffect(Unit) {
+        while (true) {
+            val on = DebugMode.isOn
+            if (on != state.debugOn) {
+                state.debugOn = on
+                if (!on) state.penReading = null
+            }
+            delay(1000)
+        }
+    }
     Box(Modifier.fillMaxSize().background(EtcColors.Bg)) {
         AndroidView(
             factory = { EditorCanvasView(it, state) },
@@ -107,6 +121,9 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
             )
             if (state.settingsOpen) {
                 Box(Modifier.align(Alignment.BottomStart).padding(start = 210.dp, bottom = 130.dp)) { ToolSettingsHost(state) { requests.saveAs() } }
+            }
+            if (state.debugOn) {
+                DebugOverlay(state.penReading, state.activeTool.name, state.camera.zoom, state.renderMs, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
             }
             state.message?.let { text ->
                 LaunchedEffect(text) {

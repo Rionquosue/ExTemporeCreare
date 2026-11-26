@@ -31,6 +31,9 @@ EXTEMPORECREARE
 |           |-- AndroidManifest.xml
 |-- components/
 |   |-- readme.md
+|   |-- debug/
+|   |   |-- DebugMode.kt
+|   |   |-- PenReading.kt
 |   |-- engine/
 |   |   |-- EngineBoards.kt
 |   |   |-- EngineBridge.kt
@@ -116,6 +119,8 @@ EXTEMPORECREARE
 |   |   |-- Camera.kt
 |   |   |-- EditorCanvasView.kt
 |   |   |-- OverlayPainter.kt
+|   |-- debug/
+|   |   |-- DebugOverlay.kt
 |   |-- dial/
 |   |   |-- ColorControl.kt
 |   |   |-- DialTools.kt
