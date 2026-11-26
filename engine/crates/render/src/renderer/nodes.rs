@@ -299,6 +299,7 @@ impl Renderer {
         let blended = a.blend != vectorcraft_color::BlendMode::Normal;
         if let NodeKind::Path { rule, guide: false, .. } = &a.kind
             && !f.opts.outline
+            && a.extras().fill_opacity.is_none()
             && (!blended || single_plain_fill(a))
             && !a.isolate
             && !fx::has_fx(a)
@@ -466,11 +467,10 @@ impl Renderer {
     }
 
     /// What `n` draws inside its transparency group (`knockout`: its children knock each other out).
-    /// A container's Fill below 100 % (`NodeExtras::fill_opacity`) fades its children as one
-    /// group, apart from its styles, unless a style is reading its silhouette ([`Self::full_fill`]).
+    /// A Fill below 100 % (`NodeExtras::fill_opacity`) fades what `n` draws as one group, apart
+    /// from its styles, unless a style is reading its silhouette ([`Self::full_fill`]).
     fn draw_content(&mut self, ctx: &mut RenderContext, f: &Frame, n: &Node, knockout: bool) {
-        if n.is_container()
-            && !f.opts.outline
+        if !f.opts.outline
             && !self.full_fill
             && let Some(fill) = n.extras().fill_opacity.filter(|o| *o < 1.0)
         {

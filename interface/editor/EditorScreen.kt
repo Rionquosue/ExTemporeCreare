@@ -131,7 +131,7 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
             if (!layout.focus) {
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     MovablePanel(PanelLayout.TEXTURES, layout) { header ->
-                        TextureLibraryPanel(layout.texturesOpen, layout::toggleTextures, headerModifier = header)
+                        TextureLibraryPanel(state.textures, layout.texturesOpen, layout::toggleTextures, { state.insertTexture(it) }, headerModifier = header)
                     }
                     MovablePanel(PanelLayout.LAYERS, layout) { header ->
                         val export = state.activeTool as? ExportTool
@@ -148,7 +148,7 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
                                 val stack = remember(revision) { JSONObject(state.engine.layers()).optJSONObject("ok") ?: JSONObject() }
                                 val rows = stack.optJSONArray("rows") ?: JSONArray()
                                 val masks = MaskContext(stack.optInt("selected"), if (stack.isNull("editingMask")) null else stack.optLong("editingMask"))
-                                LayersPanel(rows, masks, layout.layersOpen, layout::toggleLayers, layersActions(state), layersView, headerModifier = header)
+                                LayersPanel(rows, masks, layout.layersOpen, layout::toggleLayers, layersActions(state, layout), layersView, headerModifier = header)
                             }
                         }
                     }
@@ -216,7 +216,7 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
 }
 
 /** The Layers panel's actions on the document through engine commands. */
-private fun layersActions(state: EditorState): LayersActions {
+private fun layersActions(state: EditorState, layout: PanelLayout): LayersActions {
     val ids = { id: Long -> JSONArray().put(id) }
     return LayersActions(
         card = LayerCardActions(
@@ -224,6 +224,7 @@ private fun layersActions(state: EditorState): LayersActions {
             setVisible = { id, on -> state.run("layer.setProps", JSONObject().put("id", id).put("visible", on)) },
             setOpacity = { id, v -> state.run("transparency.set", JSONObject().put("ids", ids(id)).put("opacity", v)) },
             setFill = { id, v -> state.run("layer.setFill", JSONObject().put("ids", ids(id)).put("fill", v)) },
+            setTextureScale = { id, percent -> state.run("texture.set", JSONObject().put("id", id).put("scale", percent / 100.0)) },
             mask = MaskActions(
                 add = { id, mode -> state.run("layer.mask.add", JSONObject().put("id", id).put("mode", mode)) },
                 fromSelection = { id -> state.run("layer.mask.fromSelection", JSONObject().put("id", id)) },
@@ -245,6 +246,9 @@ private fun layersActions(state: EditorState): LayersActions {
         move = { id, target, place -> state.run("layer.move", JSONObject().put("ids", ids(id)).put("target", target).put("place", place)) },
         newVector = { state.run("layer.new", JSONObject().put("name", "Vector layer")) },
         newRaster = { state.run("layer.new", JSONObject().put("name", "Raster layer")) },
+        newTexture = { if (!layout.texturesOpen) layout.toggleTextures() },
+        filters = { state.filters },
+        newFilter = { effect -> state.run("filter.new", JSONObject().put("effect", effect)) },
         newFolder = { state.run("layer.newSublayer", JSONObject().put("name", "Folder")) },
         deleteCurrent = {
             val rows = EngineAnswer(state.engine.layers()).okObject?.optJSONArray("rows")
@@ -274,5 +278,5 @@ private fun findCurrent(rows: JSONArray): JSONObject? {
 // GLOSSARY
 // - EditorRequests: the system pickers the editor asks the activity for.
 // - EditorScreen(state, requests, board): the editor workspace; board: the Reference board panel's actions.
-// - layersActions(state): the Layers panel's engine commands.
+// - layersActions(state, layout): the Layers panel's engine commands (Texture opens the Texture library).
 // - findCurrent(rows): the current row.

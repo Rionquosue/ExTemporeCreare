@@ -23,3 +23,6 @@ etcfile = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 jni = { workspace = true }
+
+[dev-dependencies]
+image = { workspace = true }

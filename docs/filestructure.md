@@ -10,7 +10,7 @@ All tool code lives in tools/
 
 All dependencies live in dependencies/
 
-The Android app module lives in app/. Its Gradle build compiles the Kotlin in interface/, components/ and tools/, packages tools/Libraries/presets as assets, and packages the engine bridge library built from engine/.
+The Android app module lives in app/. Its Gradle build compiles the Kotlin in interface/, components/ and tools/, packages tools/Libraries/presets and tools/Libraries/textures (the Texture library's images) as assets, and packages the engine bridge library built from engine/.
 
 ## Existing file structure
 
@@ -50,6 +50,8 @@ EXTEMPORECREARE
 |   |   |-- EngineFiles.kt
 |   |   |-- EnginePresets.kt
 |   |   |-- UriReplace.kt
+|   |-- textures/
+|   |   |-- TextureLibrary.kt
 |   |-- tools/
 |       |-- CanvasTool.kt
 |       |-- DragBox.kt
@@ -232,4 +234,6 @@ EXTEMPORECREARE
             |-- patterns/
             |-- swatches/
             |-- symbols/
+        |-- textures/
+            |-- README.md
 ```

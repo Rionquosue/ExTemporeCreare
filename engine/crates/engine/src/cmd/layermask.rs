@@ -1,5 +1,5 @@
-//! Layer masks (`uistandards.md` §7.1, as in Photoshop): a greyscale mask on a layer or folder,
-//! shown as its sublayer, where white shows the layer, black hides it and greys partly show it.
+//! Layer masks (`uistandards.md` §7.1, as in Photoshop): a greyscale mask on a row of the Layers
+//! panel (a folder, or an object it shows as a layer), shown as its sublayer, where white shows the layer, black hides it and greys partly show it.
 //! It is the node's opacity mask (`OpacityMask`): its art's luminance over a white background
 //! (Reveal All, `clip` off) or a black one (Hide All, `clip` on), optionally inverted. Painting
 //! into it goes through `transparency.editOpacityMask` / `stopEditingOpacityMask`.
@@ -23,7 +23,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Add Layer Mask",
             [],
             None,
-            "{id (layer or folder), mode?: reveal|hide|selection (default reveal)} give the layer a mask: Reveal All (white: all shows), Hide All (black: nothing shows) or the selection (white where the selected objects are, black elsewhere; refused with nothing selected); refused when it has one; one undo step → {id, mode}",
+            "{id (object, layer or folder), mode?: reveal|hide|selection (default reveal)} give the layer a mask: Reveal All (white: all shows), Hide All (black: nothing shows) or the selection (white where the selected objects are, black elsewhere; refused with nothing selected); refused when it has one; one undo step → {id, mode}",
             has_doc,
             add
         ),
@@ -59,13 +59,10 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-/// The layer or folder `id` of `p`, checked.
+/// The row `id` of `p` (an object, layer or folder), checked.
 fn layer_id(s: &Session, p: &Value, c: &str) -> Result<NodeId> {
     let id = p.get("id").and_then(Value::as_u64).map(NodeId).ok_or_else(|| bad(c, "`id` is required"))?;
-    let n = s.doc()?.doc.node(id).ok_or_else(|| bad(c, format!("no object {}", id.0)))?;
-    if !n.is_container() {
-        return Err(bad(c, format!("{} is not a layer or folder", id.0)));
-    }
+    s.doc()?.doc.node(id).ok_or_else(|| bad(c, format!("no object {}", id.0)))?;
     Ok(id)
 }
 

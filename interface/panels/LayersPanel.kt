@@ -3,6 +3,7 @@ package com.extemporecreare.app.ui.panels
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,8 @@ import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Texture
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +50,10 @@ class LayersActions(
     val card: LayerCardActions,
     val newVector: () -> Unit,
     val newRaster: () -> Unit,
+    val newTexture: () -> Unit,
+    /** The filters a filter layer can apply, as (effect id, label). */
+    val filters: () -> List<Pair<String, String>>,
+    val newFilter: (String) -> Unit,
     val newFolder: () -> Unit,
     val deleteCurrent: () -> Unit,
     val move: (Long, Long, String) -> Unit,
@@ -55,8 +62,9 @@ class LayersActions(
 /**
  * The Layers panel (`uistandards.md` §7.1): the creation row (Vector, Raster, Filter, Texture),
  * the compositing stack topmost first as cards ([LayerCard]), which a card's grip drags above,
- * below or into another (a folder's middle), and the footer with Delete, the hint and Add Folder. Filter and Texture layers have no engine object behind them yet and are shown
- * disabled.
+ * below or into another (a folder's middle), and the footer with Delete, the hint and Add Folder.
+ * Texture opens the Texture library, where a texture is picked; Filter offers the filters a filter
+ * layer can apply (it filters everything below it on the page, `uistandards.md` §7.3).
  */
 @Composable
 fun LayersPanel(
@@ -73,8 +81,16 @@ fun LayersPanel(
         Row(Modifier.padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Create(Icons.Outlined.Category, "Vector", Modifier.weight(1f), actions.newVector)
             Create(Icons.Outlined.Layers, "Raster", Modifier.weight(1f), actions.newRaster)
-            Create(Icons.Outlined.AutoAwesome, "Filter", Modifier.weight(1f), null)
-            Create(Icons.Outlined.Texture, "Texture", Modifier.weight(1f), null)
+            Box(Modifier.weight(1f)) {
+                var menu by remember { mutableStateOf(false) }
+                Create(Icons.Outlined.AutoAwesome, "Filter", Modifier.fillMaxWidth()) { menu = true }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.heightIn(max = 420.dp)) {
+                    for ((effect, label) in actions.filters()) {
+                        DropdownMenuItem(text = { Text(label) }, onClick = { menu = false; actions.newFilter(effect) })
+                    }
+                }
+            }
+            Create(Icons.Outlined.Texture, "Texture", Modifier.weight(1f), actions.newTexture)
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text("COMPOSITING STACK", color = EtcColors.Soft, fontSize = 10.sp, modifier = Modifier.weight(1f))

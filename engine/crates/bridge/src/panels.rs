@@ -11,6 +11,12 @@ use crate::sessions::Bridge;
 /// A row's type as the panel names it: `folder` (a layer or group, which holds rows), `raster`
 /// (an image, the Brush's splotches included), `guide` (a ruler guide) or `vector` (any other art).
 fn kind_of(n: &Node) -> &'static str {
+    if n.extras().texture.is_some() {
+        return "texture";
+    }
+    if n.extras().filter.is_some() {
+        return "filter";
+    }
     match &n.kind {
         NodeKind::Layer { .. } | NodeKind::Group { .. } => "folder",
         NodeKind::Image(_) => "raster",
@@ -51,6 +57,12 @@ fn row(n: &Node, current: Option<u64>) -> Value {
         "mask": n.extras().mask.as_deref().map_or(Value::Null, |m| json!({ "enabled": !m.disabled, "inverted": m.invert, "background": if m.clip { "black" } else { "white" } })),
         "current": current == Some(n.id.0),
     });
+    if let Some(t) = n.extras().texture.as_deref() {
+        v["scale"] = json!(t.scale);
+    }
+    if let Some(fl) = n.extras().filter.as_deref() {
+        v["effect"] = json!(fl.effect);
+    }
     if kind == "folder"
         && let Some(children) = n.children()
     {
@@ -124,6 +136,18 @@ mod tests {
         let grey = |p: Vec<u8>| p[0] < 235 && p[0].abs_diff(p[1]) < 8;
         let shadow = (100..200).flat_map(|y| (100..200).map(move |x| (x, y))).filter(|(x, y)| *x > 134 || *y > 134).any(|(x, y)| grey(at(&faded, x, y)));
         assert!(shadow, "the drop shadow stays");
+        // An object row: Fill and a mask work on it too.
+        ok(calls::execute(h, "shape.rectangle", r#"{"x": 10, "y": 150, "width": 30, "height": 30}"#));
+        ok(calls::execute(h, "paint.setFill", r##"{"color": "#0000ff"}"##));
+        let v: Value = serde_json::from_str(&layers(h)).unwrap();
+        let object = v["ok"]["rows"][0]["children"][0]["id"].as_u64().unwrap();
+        ok(calls::execute(h, "layer.setFill", &json!({"ids": [object], "fill": 0}).to_string()));
+        let px = calls::render(h, 0.0, 0.0, 200, 200, 1.0).unwrap();
+        assert!(at(&px, 25, 165)[..3].iter().all(|c| *c > 245), "an object's Fill fades it: {:?}", at(&px, 25, 165));
+        ok(calls::execute(h, "layer.setFill", &json!({"ids": [object], "fill": 100}).to_string()));
+        ok(calls::execute(h, "layer.mask.add", &json!({"id": object, "mode": "hide"}).to_string()));
+        let px = calls::render(h, 0.0, 0.0, 200, 200, 1.0).unwrap();
+        assert!(at(&px, 25, 165)[..3].iter().all(|c| *c > 245), "an object's mask hides it: {:?}", at(&px, 25, 165));
         sessions::destroy(h);
     }
 
@@ -207,11 +231,70 @@ mod tests {
         assert!(lit[0] > 60 && shaded[1] < 200 && middle == vec![0, 255, 0], "over the green overlay, lit top left, shaded bottom right: {lit:?} {shaded:?} {middle:?}");
         sessions::destroy(h);
     }
+
+    /// A texture layer tiles its image as a live pattern over the canvas at its scale, is a
+    /// "texture" row, and sets no export bounds.
+    #[test]
+    fn a_texture_layer_tiles_its_image() {
+        let h = sessions::create();
+        let ok = |r: String| -> Value { serde_json::from_str::<Value>(&r).unwrap().get("ok").cloned().unwrap_or_else(|| panic!("{r}")) };
+        ok(calls::execute(h, "file.new", r#"{"width": 200, "height": 200}"#));
+        let dir = std::env::temp_dir().join(format!("etc-bridge-texture-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let png = dir.join("checks.png");
+        image::RgbImage::from_fn(2, 1, |x, _| if x == 0 { image::Rgb([255, 0, 0]) } else { image::Rgb([0, 0, 255]) }).save(&png).unwrap();
+        let made = ok(calls::execute(h, "texture.new", &json!({"path": png.to_string_lossy(), "name": "Checks", "scale": 10}).to_string()));
+        let id = made["id"].as_u64().unwrap();
+        let at = |x: usize, y: usize| calls::render(h, 0.0, 0.0, 200, 200, 1.0).unwrap()[(y * 200 + x) * 4..(y * 200 + x) * 4 + 3].to_vec();
+        // Image smoothing blends a little at the pixels' edges.
+        let red = |p: Vec<u8>| p[0] > 200 && p[2] < 60;
+        let blue = |p: Vec<u8>| p[2] > 200 && p[0] < 60;
+        assert!(red(at(5, 5)) && blue(at(15, 5)) && red(at(25, 5)), "tiles at 10 pt a pixel: {:?} {:?} {:?}", at(5, 5), at(15, 5), at(25, 5));
+        let v: Value = serde_json::from_str(&layers(h)).unwrap();
+        let row = &v["ok"]["rows"][0]["children"][0];
+        assert_eq!((row["kind"].as_str(), row["scale"].as_f64(), row["id"].as_u64()), (Some("texture"), Some(10.0), Some(id)));
+        assert!(ok(calls::execute(h, "export.slice.list", "{}"))["contentBounds"].is_null(), "a texture sets no export bounds");
+        ok(calls::execute(h, "texture.set", &json!({"id": id, "scale": 20}).to_string()));
+        assert!(red(at(8, 5)) && blue(at(30, 5)), "scaled up: {:?} {:?}", at(8, 5), at(30, 5));
+        let _ = std::fs::remove_dir_all(&dir);
+        sessions::destroy(h);
+    }
+
+    /// A filter layer filters everything drawn below it on the page, in other folders too, and
+    /// nothing above it; hidden, it filters nothing.
+    #[test]
+    fn a_filter_layer_filters_everything_below_it() {
+        let h = sessions::create();
+        let ok = |r: String| -> Value { serde_json::from_str::<Value>(&r).unwrap().get("ok").cloned().unwrap_or_else(|| panic!("{r}")) };
+        ok(calls::execute(h, "file.new", r#"{"width": 200, "height": 200}"#));
+        // Below, in the first layer: a black square; then a second layer with the filter and, above
+        // it, a black square of its own.
+        ok(calls::execute(h, "shape.rectangle", r#"{"x": 20, "y": 20, "width": 60, "height": 60}"#));
+        ok(calls::execute(h, "paint.setFill", r##"{"color": "#000000"}"##));
+        ok(calls::execute(h, "layer.new", r#"{"name": "Top", "top": true}"#));
+        let filters = ok(calls::execute(h, "filter.list", "{}"));
+        assert!(filters["filters"].as_array().unwrap().iter().any(|f| f["effect"] == "pixelate.crystallize"));
+        let made = ok(calls::execute(h, "filter.new", r#"{"effect": "sketch.photocopy"}"#));
+        ok(calls::execute(h, "shape.rectangle", r#"{"x": 120, "y": 120, "width": 60, "height": 60}"#));
+        ok(calls::execute(h, "paint.setFill", r##"{"color": "#000000"}"##));
+        let v: Value = serde_json::from_str(&layers(h)).unwrap();
+        let top = &v["ok"]["rows"][0]["children"];
+        assert!(top.as_array().unwrap().iter().any(|r| r["kind"] == "filter" && r["effect"] == "sketch.photocopy"));
+        let px = |p: &[u8], x: usize, y: usize| p[(y * 200 + x) * 4..(y * 200 + x) * 4 + 3].to_vec();
+        let filtered = calls::render(h, 0.0, 0.0, 200, 200, 1.0).unwrap();
+        ok(calls::execute(h, "layer.setProps", &json!({"id": made["id"], "visible": false}).to_string()));
+        let plain = calls::render(h, 0.0, 0.0, 200, 200, 1.0).unwrap();
+        let below_changed = (20..80).flat_map(|y| (20..80).map(move |x| (x, y))).any(|(x, y)| px(&filtered, x, y) != px(&plain, x, y));
+        let above_same = (125..175).flat_map(|y| (125..175).map(move |x| (x, y))).all(|(x, y)| px(&filtered, x, y) == px(&plain, x, y));
+        assert!(below_changed, "the square below in another layer is filtered");
+        assert!(above_same, "the square above is not");
+        sessions::destroy(h);
+    }
 }
 
 
 // GLOSSARY
-// - `kind_of`: a row's type: folder, raster, guide or vector.
+// - `kind_of`: a row's type: folder, raster, guide, texture, filter or vector.
 // - `name_of`: a row's name, else its kind's.
 // - `row`: one row with a folder's rows, topmost first.
 // - `layers`: the active document's rows for the Layers panel.

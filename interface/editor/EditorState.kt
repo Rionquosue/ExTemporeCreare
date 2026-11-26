@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import com.extemporecreare.app.components.color.ColorLibrary
 import com.extemporecreare.app.components.boards.EmbeddedReferences
 import com.extemporecreare.app.components.boards.ReferenceBoard
+import com.extemporecreare.app.components.textures.TextureLibrary
 import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.components.documents.DocumentSettings
 import com.extemporecreare.app.components.documents.RecentFiles
@@ -94,6 +95,15 @@ class EditorState(private val context: Context) {
     /** The reference board (`.etcr`, apart from the document), what changed in it, and its selected image. */
     val board by lazy { ReferenceBoard(context) }
     private val references by lazy { EmbeddedReferences(context, engine) }
+
+    /** The filters a filter layer can apply (`filter.list`), as (effect id, label). */
+    val filters: List<Pair<String, String>> by lazy {
+        val list = EngineAnswer(engine.execute("filter.list", "{}")).okObject?.optJSONArray("filters")
+        (0 until (list?.length() ?: 0)).mapNotNull { list?.optJSONObject(it) }.map { it.optString("effect") to it.optString("label") }
+    }
+
+    /** The Texture library's presets (`tools/Libraries/textures`). */
+    val textures by lazy { TextureLibrary(context) }
     var boardRevision by mutableIntStateOf(0)
         private set
     var boardSelected by mutableStateOf<String?>(null)
@@ -382,6 +392,12 @@ class EditorState(private val context: Context) {
         if (editing != id) run("transparency.editOpacityMask", JSONObject().put("id", id))
     }
 
+    /** Insert [texture] as a texture layer (`uistandards.md` §7.4): a live pattern, editable, not baked in. */
+    fun insertTexture(texture: TextureLibrary.Texture) {
+        val file = runCatching { textures.file(texture) }.getOrElse { error = "Couldn't read the texture ${texture.name}"; return }
+        if (run("texture.new", JSONObject().put("path", file.path).put("name", texture.name))) message = "Added texture ${texture.name}"
+    }
+
     /** Save to [uri] (the document's own, or a new one from Save As). */
     fun save(uri: Uri) {
         keepCamera()
@@ -483,6 +499,7 @@ class EditorState(private val context: Context) {
 // - board, boardRevision, boardSelected: the reference board, what changed in it, its selected image.
 // - references: images stored inside the .etc. boardEmbed(id): embed a board image. boardPicture(id): a board image's picture.
 // - paintMask(id): start or stop painting a layer's mask.
+// - textures, insertTexture(texture): the Texture library and inserting a texture layer. filters: the filter layers' filters.
 // - backgroundBoard(): keep or save the board going to the background. boardChanged(), boardDone(error): the board panel reads it again.
 // - stepTool(by): step the dial. newDocument(settings): a new finite or infinite document. home(): back to the splash.
 // - forget(uri), clearRecents(): change the recent files.

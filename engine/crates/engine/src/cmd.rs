@@ -77,6 +77,8 @@ pub mod rasterpaint;
 pub mod referenceassets;
 pub mod layerfill;
 pub mod layermask;
+pub mod texturelayer;
+pub mod filterlayer;
 pub mod recovery;
 pub(crate) mod select;
 pub(crate) mod shaper;
@@ -389,6 +391,8 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(referenceassets::specs());
         v.extend(layerfill::specs());
         v.extend(layermask::specs());
+        v.extend(texturelayer::specs());
+        v.extend(filterlayer::specs());
         v.extend(assets::specs());
         v.extend(cut::specs());
         v.extend(halftone::specs());

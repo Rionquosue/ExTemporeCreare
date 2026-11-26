@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::blobs::{blob_key, blob_pixmap, image_mip, lookup, mask_value, mip_level, plain_image, shape_masked_image, white_shape_mask};
 use super::clock::now;
 use super::frame::{
@@ -293,18 +295,44 @@ impl Renderer {
         }
         (self.nested, self.backdrop, self.picture) = (0, None, None);
         self.clip_paths.clear();
-        if opts.trim && !f.doc.artboards.is_empty() {
-            let mut clip = BezPath::new();
-            for ab in &f.doc.artboards {
-                clip.extend(ab.rect.path_elements(0.1));
+        // Filter layers (`uistandards.md` §7.3) filter everything drawn below them on the page: the
+        // page is drawn in passes between them, each pass over the filtered picture of the ones
+        // before it.
+        let pm = match (!opts.outline).then(|| filter_passes(f.doc, opts)).flatten() {
+            None => {
+                self.draw_art(&mut ctx, f);
+                self.finish(&mut ctx, self.raster)
             }
-            let blends = self.children_blend(&f.doc.layers);
-            let trim = Composite { clip: Some((&clip, FillRule::NonZero)), blends, ..Default::default() };
-            self.group(&mut ctx, f, trim, &mut |r, c, fr| r.draw_page(c, fr));
-        } else {
-            self.draw_page(&mut ctx, f);
-        }
-        let pm = self.finish(&mut ctx, self.raster);
+            Some((filters, segments)) => {
+                let all: HashSet<NodeId> = segments.iter().flatten().copied().chain(filters.iter().map(|n| n.id)).collect();
+                let mut below: Option<Arc<vello_cpu::Pixmap>> = None;
+                let mut out = None;
+                for (k, segment) in segments.iter().enumerate() {
+                    if let Some(img) = below.take() {
+                        ctx.set_transform(Affine::IDENTITY);
+                        ctx.reset_paint_transform();
+                        ctx.set_paint(vello_cpu::Image { image: vello_cpu::ImageSource::Pixmap(img), sampler: peniko::ImageSampler { quality: peniko::ImageQuality::Low, ..Default::default() } });
+                        ctx.fill_rect(&Rect::new(0.0, 0.0, f64::from(w), f64::from(h)));
+                    }
+                    let keep: HashSet<NodeId> = segment.iter().copied().collect();
+                    let mut hidden = opts.hidden.clone();
+                    hidden.extend(all.iter().filter(|id| !keep.contains(id)));
+                    let pass = RenderOptions { hidden, ..opts.clone() };
+                    self.draw_art(&mut ctx, &Frame { opts: &pass, ..*f });
+                    let mut pm = self.finish(&mut ctx, self.raster);
+                    match filters.get(k) {
+                        Some(filter) => {
+                            apply_filter_layer(f, filter, &mut pm);
+                            ctx.reset();
+                            ctx.set_aliasing_threshold(opts.anti_alias.threshold());
+                            below = Some(Arc::new(pm));
+                        }
+                        None => out = Some(pm),
+                    }
+                }
+                out.expect("a pass follows the last filter layer")
+            }
+        };
         self.contexts.push((threads, ctx));
         if self.contexts.len() > 2 {
             self.contexts.remove(0);
@@ -314,6 +342,21 @@ impl Renderer {
             over_background(&mut pixels, f.ink.fixed8(screen_under_art(f, bg)));
         }
         pixels
+    }
+
+    /// The page's art, trimmed to the artboards when `f` asks for it.
+    fn draw_art(&mut self, ctx: &mut RenderContext, f: &Frame) {
+        if f.opts.trim && !f.doc.artboards.is_empty() {
+            let mut clip = BezPath::new();
+            for ab in &f.doc.artboards {
+                clip.extend(ab.rect.path_elements(0.1));
+            }
+            let blends = self.children_blend(&f.doc.layers);
+            let trim = Composite { clip: Some((&clip, FillRule::NonZero)), blends, ..Default::default() };
+            self.group(ctx, f, trim, &mut |r, c, fr| r.draw_page(c, fr));
+        } else {
+            self.draw_page(ctx, f);
+        }
     }
 
     /// The page's art: the layers (or the pattern being edited), inside the page group when the
@@ -495,5 +538,69 @@ pub(crate) fn over_background(pixels: &mut [u8], [r, g, b, a]: [u8; 4]) {
         for (v, bg) in p.iter_mut().zip(under) {
             *v = (u32::from(*v) + (bg * rest + 127) / 255).min(255) as u8;
         }
+    }
+}
+
+/// The page's visible filter layers in paint order, and the objects drawn in each passage around
+/// them (before the first, between each two, after the last): `None` without filter layers. Plain
+/// layers and groups are walked into; any other object is drawn whole in its passage.
+fn filter_passes(doc: &Document, opts: &RenderOptions) -> Option<(Vec<Arc<Node>>, Vec<Vec<NodeId>>)> {
+    fn walk(n: &Arc<Node>, opts: &RenderOptions, filters: &mut Vec<Arc<Node>>, segments: &mut Vec<Vec<NodeId>>) {
+        if !n.visible || opts.hidden.contains(&n.id) {
+            return;
+        }
+        if n.extras().filter.is_some() {
+            filters.push(n.clone());
+            segments.push(vec![]);
+            return;
+        }
+        match &n.kind {
+            NodeKind::Layer { children, clip: false, .. } | NodeKind::Group { children, clip: false } => {
+                for c in children {
+                    walk(c, opts, filters, segments);
+                }
+            }
+            _ => segments.last_mut().expect("a passage").push(n.id),
+        }
+    }
+    fn has(n: &Node) -> bool {
+        n.extras().filter.is_some() || n.children().is_some_and(|c| c.iter().any(|c| has(c)))
+    }
+    if !doc.layers.iter().any(|l| has(l)) {
+        return None;
+    }
+    let mask_layer = doc.mask_edit.map(|m| m.layer);
+    let (mut filters, mut segments) = (vec![], vec![vec![]]);
+    for l in doc.layers.iter().filter(|l| Some(l.id) != mask_layer) {
+        walk(l, opts, &mut filters, &mut segments);
+    }
+    (!filters.is_empty()).then_some((filters, segments))
+}
+
+/// Run filter layer `filter`'s pixel filter over `pm` (the page drawn below it in frame `f`),
+/// mixed with the unfiltered picture at the filter layer's opacity.
+fn apply_filter_layer(f: &Frame, filter: &Node, pm: &mut vello_cpu::Pixmap) {
+    let Some(spec) = filter.extras().filter.as_deref() else { return };
+    let params = crate::effects::merged_params(&spec.effect, &spec.params);
+    let Some(fx) = crate::effects::pixel::parse(&spec.effect, &params) else { return };
+    let (w, h) = (pm.width() as usize, pm.height() as usize);
+    let space = crate::effects::PixelSpace {
+        to_doc: f.view.inverse(),
+        px: f.px,
+        center: f.visible.center(),
+        size: f.visible.size().to_vec2(),
+        channels: Default::default(),
+        line: 72.0 / f.doc.raster_ppi(),
+        extent: 0.5 * f.visible.width().hypot(f.visible.height()),
+    };
+    let opacity = filter.opacity.clamp(0.0, 1.0);
+    if opacity >= 1.0 {
+        fx.apply(pm.data_as_u8_slice_mut(), w, h, &space);
+        return;
+    }
+    let mut filtered = pm.data_as_u8_slice().to_vec();
+    fx.apply(&mut filtered, w, h, &space);
+    for (o, n) in pm.data_as_u8_slice_mut().iter_mut().zip(filtered) {
+        *o = (*o as f32 + (n as f32 - *o as f32) * opacity).round() as u8;
     }
 }

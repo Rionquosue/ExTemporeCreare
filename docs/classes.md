@@ -33,6 +33,8 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/cmd/exportslices.rs`: export slices and grid as document data (`Document::extra["export"]`): `export.slice.list`, `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; `EXPORT_KEY`, `SLICE_FORMATS`, `DEFAULT_GRID_SPACING`.
 - `src/cmd/layerfill.rs`: `layer.setFill` (Photoshop's Fill: content opacity apart from the styles, `NodeExtras::fill_opacity`).
 - `src/cmd/layermask.rs`: Photoshop-style layer masks on the node's opacity mask: `layer.mask.add` (reveal, hide, selection), `layer.mask.fromSelection`, `layer.mask.invert`, `layer.mask.setEnabled`, `layer.mask.delete`, `layer.mask.info`; painting through `transparency.editOpacityMask`.
+- `src/cmd/texturelayer.rs`: texture layers: `texture.new` (a locked rectangle over the canvas filled with the image as a live pattern, `NodeExtras::texture` = `TextureSpec`), `texture.set` (scale); `INFINITE_EXTENT`, `TEXTURE_KEY_PREFIX`, `MAX_TEXTURE_BYTES`.
+- `src/cmd/filterlayer.rs`: filter layers: `filter.list` (the pixel filters), `filter.new` (an empty folder with `NodeExtras::filter` = `FilterSpec`), `filter.set`; the renderer draws the page in passes at them (`renderer.rs`: `filter_passes`, `apply_filter_layer`, `draw_art`).
 - `src/cmd/referenceassets.rs`: reference images stored inside the document (board Embed): `reference.embed`, `reference.asset`, `reference.list`; `sniff_mime`; `REFERENCE_ASSETS_KEY`, `REFERENCE_ASSET_PREFIX`, `MAX_REFERENCE_BYTES`.
 - `src/cmd/rasterpaint.rs`: raster painting into splotches (image objects keyed `paint-block-…`, the view's frame plus a buffer, at the zoom's resolution): `begin` (pen down: splotch reused, locked or new), `Stroke` (`frame`, `add`, `layer_pixels`, `finish`), `Decoded` (pixels kept between strokes), `points_of`, `block_of`, `paint.stroke` (a whole stroke); `BLOCK_KEY_PREFIX`, `MAX_SIDE`, `MAX_PIXELS`, `RESOLUTIONS`, `BUFFER_SHARE`, `ZOOM_TOLERANCE`.
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
@@ -73,6 +75,10 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `ReferenceBoard.kt`: `ReferenceBoard(context)` (`board`, `uri`, `fileName`, `modified`, `pictures`; `images`, `isMissing`, `fileOf`, `assetKeyOf`, `camera`, `setCamera`, `newBoard`, `open`, `save`, `saveIfChanged`, `checkpoint`, `restore`, `addImage`, `placeOf`, `cropOf`, `place`, `move`, `scale`, `rotate`, `flip`, `setCrop`, `embed`, `toFront`, `remove`, `relink`; `decode`): the open `.etcr` board, apart from the artwork document, with app-local recovery of its unsaved state and camera.
 - `BoardGeometry.kt`: `BoardPoint`, `BoardCamera` (`toView`, `toBoard`, `navigated`), `ImagePlace` (`pivot`, `toBoard`, `toLocal`, `corners`, `contains`, `scaledAboutPivot`, `reframed`, `toJson`, `of`), `BoardCrop`: board camera and image placement maths.
 - `EmbeddedReferences.kt`: `EmbeddedReferences(context, engine)` (`store`, `extract`, `tempFile`): reference images stored inside the artwork `.etc`.
+
+## components/textures
+
+- `TextureLibrary.kt`: `TextureLibrary(context)` (`Texture`; `list`, `preview`, `file`): the textures in `tools/Libraries/textures`, packaged as the `textures` assets.
 
 ## components/documents
 
@@ -129,9 +135,9 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `dial/DialGrip.kt`: `DialGrip` (hold and drag to move the dial), `DialStepper` (step the dial by one tool).
 - `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
-- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity and Fill with slider popovers, mask button and mask sublayer, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`; `panels/MaskRow.kt`: `MaskButton`, `MaskRow`, `MaskActions`, `MaskContext` (a layer's mask as its sublayer and its quick operations).
+- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`, `newTexture` opening the Texture library, `filters` and `newFilter` for the Filter menu), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity and Fill with slider popovers, mask button and mask sublayer, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`; `panels/MaskRow.kt`: `MaskButton`, `MaskRow`, `MaskActions`, `MaskContext` (a layer's mask as its sublayer and its quick operations).
 - `common/ConfirmDialog.kt`: `Confirmation`, `ConfirmDialog`: ask before a destructive action.
-- `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`, `BoardActions` (add, New, Open, Save, Relink, Embed, select, changed, picture); image menu Delete, Embed, Flip (Horizontal, Vertical), Crop.
+- `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel` (named preview tiles; tapping one inserts a texture layer); `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`, `BoardActions` (add, New, Open, Save, Relink, Embed, select, changed, picture); image menu Delete, Embed, Flip (Horizontal, Vertical), Crop.
 - `board/BoardCanvas.kt`: `BoardCanvas`: the reference board's view through its own camera (two fingers: pan, zoom, rotate the view; one finger: move an image or pan; tap selects and shows corner handles: resize on a corner, rotate just outside; hold opens the image menu; crop mode; missing images as placeholders).
 - `color/ColorWorkspace.kt`: `ColorWorkspace`: saturation/value square, hue bar, hex and R, G, B entry, swatches, recent colours, mixing pad; `color/MixingPad.kt`: `MixingPad` (paint primary or alternate, sample, reset).
 - `debug/DebugOverlay.kt`: `DebugOverlay`: debug mode's on-screen readout.

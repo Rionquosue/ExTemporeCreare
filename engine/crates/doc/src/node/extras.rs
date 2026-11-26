@@ -96,6 +96,30 @@ pub struct NodeExtras {
     /// apart from its layer styles (appearance strokes and effects), which keep their own opacity.
     /// `None`: 100 %.
     pub fill_opacity: Option<f32>,
+    /// A texture layer (`uistandards.md` §7.4): this rectangle is filled with a texture's image as
+    /// a live pattern; [`TextureSpec`] names the image and its scale. Export bounds leave it out.
+    pub texture: Option<Box<TextureSpec>>,
+    /// A filter layer (`uistandards.md` §7.3): this empty folder applies a pixel filter to
+    /// everything drawn below it on the page, across folders, at the folder's opacity.
+    pub filter: Option<Box<FilterSpec>>,
+}
+
+/// What makes an empty folder a filter layer: the pixel filter's effect id and parameters.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct FilterSpec {
+    pub effect: String,
+    #[serde(default)]
+    pub params: serde_json::Value,
+}
+
+/// What makes an object a texture layer: the stored image (a key into `Document::images`), the
+/// pattern that tiles it, the texture's name and its scale (1: one image pixel a point).
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct TextureSpec {
+    pub asset: String,
+    pub pattern: String,
+    pub name: String,
+    pub scale: f64,
 }
 
 /// No extras: what [`Node::extras`] gives for a node without any.
@@ -129,6 +153,8 @@ pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
     clip_pieces: false,
     image_quad: None,
     fill_opacity: None,
+    texture: None,
+    filter: None,
 };
 
 /// A node's [`NodeExtras`], if it has any ([`Node::extras`]). Extras that are all unset equal

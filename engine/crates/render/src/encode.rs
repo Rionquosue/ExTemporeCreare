@@ -240,7 +240,30 @@ fn vp8_partition_at_limit(file: &[u8]) -> bool {
 /// without effects of its own by the art it shows. `None` when nothing would be drawn.
 pub fn art_bounds(doc: &Document) -> Option<Rect> {
     let symbols = doc.symbol_boxes();
-    doc.layers.iter().fold(None, |acc, l| vectorcraft_geom::union_opt(acc, drawn_bounds(&symbols, l)))
+    let layers = without_textures(&doc.layers);
+    layers.iter().fold(None, |acc, l| vectorcraft_geom::union_opt(acc, drawn_bounds(&symbols, l)))
+}
+
+/// `nodes` without their texture layers (`NodeExtras::texture`): textures fill whatever an export
+/// covers and set no bounds of their own. Borrowed when there are none.
+fn without_textures(nodes: &[Arc<Node>]) -> std::borrow::Cow<'_, [Arc<Node>]> {
+    fn has(n: &Node) -> bool {
+        n.extras().texture.is_some() || n.children().is_some_and(|c| c.iter().any(|c| has(c)))
+    }
+    fn strip(n: &Arc<Node>) -> Arc<Node> {
+        if !n.children().is_some_and(|c| c.iter().any(|c| has(c))) {
+            return n.clone();
+        }
+        let mut copy = (**n).clone();
+        if let Some(children) = copy.children_mut() {
+            *children = children.iter().filter(|c| c.extras().texture.is_none()).map(strip).collect();
+        }
+        Arc::new(copy)
+    }
+    if !nodes.iter().any(|n| has(n)) {
+        return std::borrow::Cow::Borrowed(nodes);
+    }
+    std::borrow::Cow::Owned(nodes.iter().filter(|n| n.extras().texture.is_none()).map(strip).collect())
 }
 
 /// Bounds of the art an export draws ([`art_bounds`]) that is on artboard rectangle `rect`: each
@@ -268,6 +291,7 @@ fn art_bounds_on_with(doc: &Document, rect: Rect, mut renderer: Option<&mut crat
             NodeKind::Layer { template: false, clip: false, children, .. } if n.visible => {
                 children.iter().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, on(symbols, c, rect, renderer.as_deref_mut())))
             }
+            _ if n.extras().texture.is_some() => None,
             _ => drawn_bounds_with(symbols, n, Some(n), renderer).filter(|b| b.x0 < rect.x1 && b.x1 > rect.x0 && b.y0 < rect.y1 && b.y1 > rect.y0),
         }
     }

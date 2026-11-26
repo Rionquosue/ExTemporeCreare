@@ -991,13 +991,12 @@ impl Renderer {
             };
             made.push((fx, shadow));
         }
-        // A container at Fill below 100 % knocks its shadows and glows out under its content (as
+        // An object at Fill below 100 % knocks its shadows and glows out under its content (as
         // Photoshop's "Layer Knocks Out Drop Shadow"): they are drawn in a layer of their own and
         // the content's silhouette, at full Fill, is cut out of them.
         let knocks_out = !made.is_empty()
             && !self.full_fill
             && !f.opts.outline
-            && content.node.is_container()
             && content.node.extras().fill_opacity.is_some_and(|o| o < 1.0);
         if knocks_out {
             ctx.set_transform(Affine::IDENTITY);

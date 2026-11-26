@@ -343,7 +343,7 @@ pub struct PixelSpace {
 const SCREEN_ANGLES: [(&str, f64); 4] = [("channel1", 108.0), ("channel2", 162.0), ("channel3", 90.0), ("channel4", 45.0)];
 
 /// Effect `id`'s parameters `p` (defaults merged in) as a [`PixelFx`]; `None` for other effects.
-pub(crate) fn parse(id: &str, p: &Value) -> Option<PixelFx> {
+pub fn parse(id: &str, p: &Value) -> Option<PixelFx> {
     let quality = |levels: [(&str, u32); 3], default: u32| {
         let q = text(p, "quality", "");
         levels.iter().find(|(name, _)| name.eq_ignore_ascii_case(q)).map_or(default, |(_, v)| *v)

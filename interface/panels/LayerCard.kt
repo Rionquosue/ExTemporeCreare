@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.DragIndicator
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.DropdownMenu
@@ -89,6 +91,8 @@ class LayerCardActions(
     val setVisible: (Long, Boolean) -> Unit,
     val setOpacity: (Long, Int) -> Unit,
     val setFill: (Long, Int) -> Unit,
+    /** A texture layer's scale, in percent (100: one image pixel a point). */
+    val setTextureScale: (Long, Int) -> Unit,
     val setBlend: (Long, String) -> Unit,
     val addStyle: (Long, String, JSONObject) -> Unit,
     val mask: MaskActions,
@@ -178,10 +182,19 @@ fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: Card
             Box(Modifier.size(30.dp).border(1.dp, EtcColors.Line, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                 Icon(iconOf(kind), null, tint = EtcColors.Muted, modifier = Modifier.size(16.dp))
             }
-            BlendPicker(row.optString("blend", "Normal")) { actions.setBlend(id, it) }
+            // A filter layer filters what is below it, mixed at its Opacity; it has no blend, Fill or mask of its own.
+            val filter = kind == "filter"
+            if (!filter) BlendPicker(row.optString("blend", "Normal")) { actions.setBlend(id, it) }
             PercentControl("Opacity", row.optDouble("opacity", 100.0).toInt(), Modifier.weight(1f)) { actions.setOpacity(id, it) }
-            PercentControl("Fill", row.optDouble("fill", 100.0).toInt(), Modifier.weight(1f)) { actions.setFill(id, it) }
-            MaskButton(row, masks, actions.mask)
+            if (!filter) {
+                PercentControl("Fill", row.optDouble("fill", 100.0).toInt(), Modifier.weight(1f)) { actions.setFill(id, it) }
+                MaskButton(row, masks, actions.mask)
+            }
+        }
+        if (kind == "texture") {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PercentControl("Scale", (row.optDouble("scale", 1.0) * 100).toInt(), Modifier.weight(1f), max = 1000) { actions.setTextureScale(id, it.coerceAtLeast(1)) }
+            }
         }
         MaskRow(row, masks, actions.mask)
         if (hint?.place == "below") DropLine()
@@ -203,6 +216,8 @@ private fun chipLabel(kind: String, row: JSONObject): String = when (kind) {
     "folder" -> "Folder · ${row.optJSONArray("children")?.length() ?: 0}"
     "raster" -> "Raster"
     "guide" -> "Guide"
+    "texture" -> "Texture"
+    "filter" -> "Filter"
     else -> "Vector"
 }
 
@@ -210,6 +225,8 @@ private fun chipLabel(kind: String, row: JSONObject): String = when (kind) {
 private fun iconOf(kind: String): ImageVector = when (kind) {
     "folder" -> Icons.Outlined.Folder
     "raster" -> Icons.Outlined.Image
+    "texture" -> Icons.Outlined.Texture
+    "filter" -> Icons.Outlined.AutoAwesome
     else -> Icons.Outlined.Layers
 }
 
@@ -258,16 +275,16 @@ private fun BlendPicker(current: String, onPick: (String) -> Unit) {
 }
 
 /**
- * A 0–100 % property (`uistandards.md` §7.1): the value typed directly (committed on Done or when
- * the field loses focus), the % sign, and an arrow opening a larger slider that names the
- * property; both show the same value.
+ * A percentage property, 0–[max] % (100 by default; `uistandards.md` §7.1): the value typed
+ * directly (committed on Done or when the field loses focus), the % sign, and an arrow opening a
+ * larger slider that names the property; both show the same value.
  */
 @Composable
-private fun PercentControl(label: String, value: Int, modifier: Modifier, enabled: Boolean = true, onSet: (Int) -> Unit) {
+private fun PercentControl(label: String, value: Int, modifier: Modifier, enabled: Boolean = true, max: Int = 100, onSet: (Int) -> Unit) {
     var v by remember(value) { mutableFloatStateOf(value.toFloat()) }
     var text by remember(value) { mutableStateOf(value.toString()) }
     var open by remember { mutableStateOf(false) }
-    val commit = { text.toIntOrNull()?.coerceIn(0, 100)?.let { n -> v = n.toFloat(); text = n.toString(); if (n != value) onSet(n) } }
+    val commit = { text.toIntOrNull()?.coerceIn(0, max)?.let { n -> v = n.toFloat(); text = n.toString(); if (n != value) onSet(n) } }
     Column(modifier) {
         Text(label, color = EtcColors.Soft, fontSize = 10.sp)
         Row(
@@ -276,7 +293,7 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
         ) {
             BasicTextField(
                 value = text,
-                onValueChange = { t -> text = t.filter { it.isDigit() }.take(3) },
+                onValueChange = { t -> text = t.filter { it.isDigit() }.take(max.toString().length) },
                 enabled = enabled,
                 singleLine = true,
                 textStyle = TextStyle(color = if (enabled) EtcColors.Text else EtcColors.Soft, fontSize = 12.sp),
@@ -295,7 +312,7 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
                             value = v,
                             onValueChange = { v = it; text = it.toInt().toString() },
                             onValueChangeFinished = { onSet(v.toInt()) },
-                            valueRange = 0f..100f,
+                            valueRange = 0f..max.toFloat(),
                             colors = SliderDefaults.colors(thumbColor = EtcColors.Gold, activeTrackColor = EtcColors.Gold2, inactiveTrackColor = EtcColors.Line),
                         )
                     }
@@ -315,4 +332,4 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
 // - chipLabel(kind, row), iconOf(kind): a row's chip and icon. Chip(text): a small outlined label.
 // - StyleMenu(onPick): the modifier menu.
 // - BlendPicker(current, onPick): the blend mode dropdown.
-// - PercentControl(label, value, modifier, enabled, onSet): typed percentage with a slider popover.
+// - PercentControl(label, value, modifier, enabled, max, onSet): typed percentage with a slider popover.
