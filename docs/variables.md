@@ -87,9 +87,11 @@ Stored keys, paths, constants and identifiers.
 ## Tool settings windows
 
 - UI package: `com.extemporecreare.app.ui` (folder `interface/`).
-- Slider ranges: Brush size 0.1–5000 pt (cubic), spacing 1–1000 % (squared), flow and opacity 1–100 %; Marker, Pencil, Pen and Eraser size 0.1–1000 pt (cubic track); Pencil cone sharpness 1–80°, grain size 0.05–50 pt (cubic), grain strength 0–100 %; hardness 0–100 %; Fill tolerance 0–72 pt (`MAX_TOLERANCE`, squared track); Shapes sides and points 3–100 (`MAX_COUNT`).
+- Slider ranges: Brush size 0.5–5000 px (cubic), spacing 1–1000 % (squared), flow and opacity 1–100 %; Marker, Pencil, Pen and Eraser size 0.1–1000 pt (cubic track); Pencil cone sharpness 1–80°, grain size 0.05–50 pt (cubic), grain strength 0–100 %; hardness 0–100 %; Fill tolerance 0–72 pt (`MAX_TOLERANCE`, squared track); Shapes sides and points 3–100 (`MAX_COUNT`).
 - Settings window width 240–340 dp, corner radius 16 dp; choices and buttons radius 8 dp.
 - Selection and Move have no settings window (`uistandards.md` §6.2).
-- Brush settings JSON: `{"size": pt 0.1–5000 (20), "hardness": % (80), "spacing": % 1–1000 (25), "flow": % 1–100 (100), "opacity": % 1–100 (100), "pressureSize": bool (true)}`.
-- Paint blocks: image objects whose image key starts `paint-block-` (`BLOCK_KEY_PREFIX`), named `Paint`; resolution at creation = the view's zoom in pixels per point, clamped 0.25–64 (`RESOLUTIONS`, `BrushTool.MIN_RESOLUTION`/`MAX_RESOLUTION`); growth limits `MAX_SIDE` 16 384 px, `MAX_PIXELS` 64 Mi; stored as PNG; undo label `Brush`.
-- `paint.stroke` params: `points` ([x, y, pressure?]), `size`, `hardness`, `spacing`, `flow`, `opacity`, `pressureSize`, `color` (`#rrggbb`; default stroke, else fill, else black), `resolution`, `block` → `{id, created, width, height}`.
+- Brush settings JSON: `{"size": screen px (locked: the splotch's px) 0.5–5000 (20), "hardness": % (80), "spacing": % 1–1000 (25), "flow": % 1–100 (100), "opacity": % 1–100 (100), "pressureSize": bool (true)}`.
+- Splotches (paint blocks): image objects whose image key starts `paint-block-` (`BLOCK_KEY_PREFIX`), named `Paint`; made on pen-down from the view's frame plus `BUFFER_SHARE` (10 %) each side, at the zoom in pixels per point clamped 0.25–64 (`RESOLUTIONS`); reused without the lock when they cover the view at a resolution within `ZOOM_TOLERANCE` (5 %) of the zoom; a locked one grows to take in the view and buffer; limits `MAX_SIDE` 16 384 px, `MAX_PIXELS` 64 Mi; stored as PNG; undo label `Brush`.
+- `paint.stroke` params: `points` ([x, y, pressure?]), `view` ({x, y, width, height}), `zoom`, `locked` (splotch id), `size`, `hardness`, `spacing`, `flow`, `opacity`, `pressureSize`, `color` (`#rrggbb`; default stroke, else fill, else black) → `{id, created, width, height}`.
+- Live Brush stroke bridge answers: `paintBegin` → `{x, y, width, height, pixelsWide, pixelsHigh, splotch}`; `paintAdd` → `{painted: [x, y, w, h] | null}`; `paintPixels` fills premultiplied RGBA; `paintEnd` → `{id, created, width, height}`.
+- View JSON `viewport` is also read by the Brush tool (the splotch's frame).

@@ -4,11 +4,12 @@ import com.extemporecreare.app.components.tools.ToolSettings
 import org.json.JSONObject
 
 /**
- * The Brush tool's settings, as a raster painting app's brush has them: the dab's [size] in points
- * (0.1 to 5000), its [hardness] (percent of the dab that is solid before it fades), the [spacing]
- * between dabs (percent of the dab's diameter, 1 to 1000), the [flow] each dab adds (percent, 1 to
- * 100), the most the stroke covers, [opacity] (percent, 1 to 100), and whether the pen's pressure
- * scales the dabs ([pressureSize]).
+ * The Brush tool's settings, as a raster painting app's brush has them: the dab's [size] (0.5 to
+ * 5000; screen pixels, or with the canvas locked the locked splotch's pixels), its [hardness]
+ * (percent of the dab that is solid before it fades), the [spacing] between dabs (percent of the
+ * dab's diameter, 1 to 1000), the [flow] each dab adds (percent, 1 to 100), the most the stroke
+ * covers, [opacity] (percent, 1 to 100), and whether the pen's pressure scales the dabs
+ * ([pressureSize]).
  */
 data class BrushToolSettings(
     val size: Double = 20.0,
@@ -32,7 +33,7 @@ data class BrushToolSettings(
         fun fromJson(json: JSONObject): BrushToolSettings {
             val d = BrushToolSettings()
             return BrushToolSettings(
-                size = json.optDouble("size", d.size).coerceIn(0.1, 5000.0),
+                size = json.optDouble("size", d.size).coerceIn(0.5, 5000.0),
                 hardness = json.optDouble("hardness", d.hardness).coerceIn(0.0, 100.0),
                 spacing = json.optDouble("spacing", d.spacing).coerceIn(1.0, 1000.0),
                 flow = json.optDouble("flow", d.flow).coerceIn(1.0, 100.0),
@@ -44,6 +45,6 @@ data class BrushToolSettings(
 }
 
 // GLOSSARY
-// - BrushToolSettings: size (pt), hardness, spacing, flow, opacity (%) and pressureSize of the raster Brush tool.
+// - BrushToolSettings: size (screen px, or the locked splotch's px), hardness, spacing, flow, opacity (%) and pressureSize of the raster Brush tool.
 // - toJson(): the settings as JSON.
 // - fromJson(json): the settings from JSON, defaults for what is missing.

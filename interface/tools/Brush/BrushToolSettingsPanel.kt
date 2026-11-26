@@ -13,23 +13,32 @@ import com.extemporecreare.app.ui.tools.SettingSlider
 import com.extemporecreare.app.ui.tools.SettingSwitch
 import com.extemporecreare.app.ui.tools.ToolSettingsWindow
 
-/** The raster Brush tool's settings window: size, hardness, spacing, flow, opacity and pressure sizing. */
+/**
+ * The raster Brush tool's settings window: size (screen pixels, or the locked canvas's pixels),
+ * hardness, spacing, flow, opacity, pressure sizing, and the Lock canvas toggle.
+ */
 @Composable
 fun BrushToolSettingsPanel(tool: BrushTool, engine: EngineBridge, onResult: (ToolResult) -> Unit) {
     var s by remember { mutableStateOf(tool.settings) }
+    var locked by remember { mutableStateOf(tool.locked != null) }
     fun set(changed: BrushToolSettings) {
         s = changed
         onResult(tool.update(engine, changed))
     }
     ToolSettingsWindow(BrushTool.NAME) {
-        SettingSlider("Size", s.size, 0.1, 5000.0, "pt", { set(s.copy(size = it)) }, curve = 3.0)
+        SettingSlider("Size", s.size, 0.5, 5000.0, "px", { set(s.copy(size = it)) }, curve = 3.0)
         SettingSlider("Hardness", s.hardness, 0.0, 100.0, "%", { set(s.copy(hardness = it)) }, whole = true)
         SettingSlider("Spacing", s.spacing, 1.0, 1000.0, "%", { set(s.copy(spacing = it)) }, curve = 2.0, whole = true)
         SettingSlider("Flow", s.flow, 1.0, 100.0, "%", { set(s.copy(flow = it)) }, whole = true)
         SettingSlider("Opacity", s.opacity, 1.0, 100.0, "%", { set(s.copy(opacity = it)) }, whole = true)
         SettingSwitch("Pressure sets size", s.pressureSize) { set(s.copy(pressureSize = it)) }
+        SettingSwitch("Lock canvas", locked) {
+            val result = tool.setLocked(it)
+            locked = tool.locked != null
+            onResult(result)
+        }
     }
 }
 
 // GLOSSARY
-// - BrushToolSettingsPanel(tool, engine, onResult): the raster Brush settings window.
+// - BrushToolSettingsPanel(tool, engine, onResult): the raster Brush settings window, with the Lock canvas toggle.

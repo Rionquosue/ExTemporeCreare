@@ -7,13 +7,16 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use vectorcraft_engine::Session;
 
-/// One open engine session, with the save it is waiting to finish ([`crate::files::save`]) and the
-/// objects and the document the pointer's last press found ([`crate::calls::pointer`]).
+/// One open engine session, with the save it is waiting to finish ([`crate::files::save`]), the
+/// objects and the document the pointer's last press found ([`crate::calls::pointer`]), the Brush
+/// stroke being painted and the last painted splotch's decoded pixels ([`crate::paint`]).
 pub struct Bridge {
     pub session: Session,
     pub pending: Option<crate::files::PendingSave>,
     pub gesture_ids: Option<std::collections::HashSet<u64>>,
     pub gesture_doc: Option<Arc<vectorcraft_doc::Document>>,
+    pub stroke: Option<vectorcraft_engine::cmd::rasterpaint::Stroke>,
+    pub splotch_cache: Option<vectorcraft_engine::cmd::rasterpaint::Decoded>,
 }
 
 /// The next handle to give out (0 is never a valid handle).
@@ -27,7 +30,7 @@ fn table() -> &'static Mutex<HashMap<i64, Arc<Mutex<Bridge>>>> {
 /// Open a new session; returns its handle.
 pub fn create() -> i64 {
     let handle = NEXT.fetch_add(1, Ordering::Relaxed);
-    let bridge = Bridge { session: Session::new(), pending: None, gesture_ids: None, gesture_doc: None };
+    let bridge = Bridge { session: Session::new(), pending: None, gesture_ids: None, gesture_doc: None, stroke: None, splotch_cache: None };
     table().lock().unwrap_or_else(|e| e.into_inner()).insert(handle, Arc::new(Mutex::new(bridge)));
     handle
 }

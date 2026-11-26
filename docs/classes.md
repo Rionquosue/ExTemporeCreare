@@ -30,21 +30,22 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## engine/crates/engine (run-time presets, export slices)
 
 - `src/cmd/exportslices.rs`: export slices and grid as document data (`Document::extra["export"]`): `export.slice.list`, `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; `EXPORT_KEY`, `SLICE_FORMATS`, `DEFAULT_GRID_SPACING`.
-- `src/cmd/rasterpaint.rs`: `paint.stroke`: raster painting into paint blocks (image objects keyed `paint-block-…`) that keep their resolution and grow; `Brush`, `block_of`, `block_under`, `dab_cover`, `dabs`; `BLOCK_KEY_PREFIX`, `MAX_SIDE`, `MAX_PIXELS`, `RESOLUTIONS`.
+- `src/cmd/rasterpaint.rs`: raster painting into splotches (image objects keyed `paint-block-…`, the view's frame plus a buffer, at the zoom's resolution): `begin` (pen down: splotch reused, locked or new), `Stroke` (`frame`, `add`, `layer_pixels`, `finish`), `Decoded` (pixels kept between strokes), `points_of`, `block_of`, `paint.stroke` (a whole stroke); `BLOCK_KEY_PREFIX`, `MAX_SIDE`, `MAX_PIXELS`, `RESOLUTIONS`, `BUFFER_SHARE`, `ZOOM_TOLERANCE`.
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
 
 ## engine/crates/bridge (interface layer, `libetcbridge.so`)
 
-- `src/sessions.rs`: `Bridge` (one engine session, its pending save, and the objects and document at the last press: `gesture_ids`, `gesture_doc`); `create`, `destroy`, `with`: open sessions by handle.
+- `src/sessions.rs`: `Bridge` (one engine session, its pending save, the objects and document at the last press (`gesture_ids`, `gesture_doc`), the live Brush `stroke` and `splotch_cache`); `create`, `destroy`, `with`: open sessions by handle.
 - `src/boards.rs`: reference boards as JSON: `new_board`, `read`, `write`, `links`, `relink_image`, `find`.
 - `src/calls.rs`: `execute`, `pointer` (reports the objects a gesture added and whether it changed the document), `select_tool`, `tool_options`, `set_tool_option`, `state`, `overlays`, `render`, `set_presets_root`: what the UI asks of the engine, answered as `{"ok"}` / `{"error"}` JSON.
 - `src/convert.rs`: `view_info` (view state JSON → engine `ViewInfo`), `ui_request`, `ui_requests` (tool requests → JSON), `overlay_json`, `overlays_json` (tool overlays → JSON).
 - `src/files.rs`: `PendingSave`; `open` (a copied file with its URI as path), `save` (write into temporary files, keep pending), `save_finish` (with the final URI a rename gave), `validate`.
 - `src/jni_exports.rs`: the JNI functions of `EngineBridge`.
+- `src/paint.rs`: the Brush tool's live strokes: `begin`, `add`, `pixels`, `end`, `cancel`.
 
 ## components/engine
 
-- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
+- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
 - `EngineFiles.kt`: `EngineFiles(context, engine)`: `open(uri)` and `save(uri, mode, options)` through content URIs, temporary files in `cacheDir/engine-files`, a check of each `.etc`, then the replace: renamed over the original where the provider allows (`replaceByRename`), else copied into the URI (`copyInto`).
 - `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`.
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.
@@ -68,7 +69,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## tools (dial tools)
 
-- `Brush/BrushTool.kt`: `BrushTool` (raster painting with `paint.stroke`; engine `hand` chosen, no input): `stroke` (for the canvas preview); `Brush/BrushToolSettings.kt`: `BrushToolSettings`.
+- `Brush/BrushTool.kt`: `BrushTool` (live raster strokes into splotches; engine `hand` chosen, no input): `LiveStroke`, `live`, `locked`, `setLocked`, `livePixels`, `drawn`; `Brush/BrushToolSettings.kt`: `BrushToolSettings`.
 - `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerTip` (`ROUND`, `OVAL`, `CHISEL`), `TipOrientation` (`FIXED`, `TILT`, `ROTATION`), `MarkerToolSettings`. `MarkerTool.TIP_BRUSH` is the document Calligraphic brush that draws the Paintbrush's oval and chisel tips.
 - `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
 - `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
@@ -84,7 +85,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
-- `tools/Brush/BrushToolSettingsPanel.kt`: `BrushToolSettingsPanel` (size, hardness, spacing, flow, opacity, pressure sizing).
+- `tools/Brush/BrushToolSettingsPanel.kt`: `BrushToolSettingsPanel` (size, hardness, spacing, flow, opacity, pressure sizing, Lock canvas).
 - `tools/Marker/MarkerToolSettingsPanel.kt`: `MarkerToolSettingsPanel` (mode, size, hardness, tip shape, angle, thickness and what turns it, library brush dropdown).
 - `tools/Pencil/PencilToolSettingsPanel.kt`: `PencilToolSettingsPanel` (mode, size, hardness, tip, cone sharpness, grain size and strength).
 - `tools/Pen/PenToolSettingsPanel.kt`: `PenToolSettingsPanel` (size, hardness).

@@ -75,6 +75,33 @@ class EngineBridge : AutoCloseable {
     }
 
     /**
+     * The Brush tool's pen went down: get a live raster stroke and its splotch ready. [paramsJson] is
+     * as `paint.stroke` takes it without `points` (`view`, `zoom`, `locked`?, `size`, `hardness`,
+     * `spacing`, `flow`, `opacity`, `pressureSize`, `color`?) → `{"ok": {"x", "y", "width", "height",
+     * "pixelsWide", "pixelsHigh", "splotch"}}`, the splotch's document area and pixel size.
+     */
+    fun paintBegin(paramsJson: String): String = nativePaintBegin(live(), paramsJson)
+
+    /** Paint the live stroke on to [pointsJson] (`[[x, y, pressure]…]`) → `{"ok": {"painted": [x, y, w, h] | null}}`, splotch pixels. */
+    fun paintAdd(pointsJson: String): String = nativePaintAdd(live(), pointsJson)
+
+    /**
+     * The live stroke's own layer over splotch pixels ([x], [y], [width] × [height]) into [out] as
+     * premultiplied RGBA (what an `ARGB_8888` bitmap's `copyPixelsFromBuffer` reads), for the canvas
+     * to draw over the document while the stroke lasts → whether [out] was filled.
+     */
+    fun paintPixels(x: Int, y: Int, width: Int, height: Int, out: ByteBuffer): Boolean {
+        require(out.isDirect) { "the paint buffer must be direct" }
+        return nativePaintPixels(live(), x, y, width, height, out)
+    }
+
+    /** The pen was released: keep the live stroke in its splotch, one undo step → `{"ok": {"id", "created", "width", "height"}}`. */
+    fun paintEnd(): String = nativePaintEnd(live())
+
+    /** Drop the live stroke, changing nothing → the JSON answer. */
+    fun paintCancel(): String = nativePaintCancel(live())
+
+    /**
      * Open the file copied to [tempPath] (its display name [name] gives the title and type) as a
      * document whose path is [uri] → the JSON answer. [EngineFiles] does the copying.
      */
@@ -149,6 +176,11 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeSetToolOption(handle: Long, key: String, value: String): String
         @JvmStatic private external fun nativeState(handle: Long): String
         @JvmStatic private external fun nativeOverlays(handle: Long, view: String): String
+        @JvmStatic private external fun nativePaintBegin(handle: Long, params: String): String
+        @JvmStatic private external fun nativePaintAdd(handle: Long, points: String): String
+        @JvmStatic private external fun nativePaintPixels(handle: Long, x: Int, y: Int, width: Int, height: Int, out: ByteBuffer): Boolean
+        @JvmStatic private external fun nativePaintEnd(handle: Long): String
+        @JvmStatic private external fun nativePaintCancel(handle: Long): String
         @JvmStatic private external fun nativeOpen(handle: Long, temp: String, name: String, uri: String): String
         @JvmStatic private external fun nativeSave(handle: Long, mode: String, params: String, tempDir: String): String
         @JvmStatic private external fun nativeSaveFinish(handle: Long, ok: Boolean, finalUri: String): String
@@ -184,6 +216,7 @@ class EngineBridge : AutoCloseable {
 // - state(): canvas mode, artboards, selection and selected images → JSON answer.
 // - overlays(viewJson): what the active tool draws over the canvas → JSON answer.
 // - render(x, y, width, height, scale, out): draw part of the active document into a direct buffer.
+// - paintBegin, paintAdd, paintPixels, paintEnd, paintCancel: the Brush tool's live raster stroke into a splotch.
 // - openCopied(tempPath, name, uri): open a file copied to a temporary file, with its URI as path.
 // - saveToTemp(mode, paramsJson, tempDir): write a save into temporary files and keep it pending.
 // - saveFinish(ok, finalUri): complete or drop the pending save; finalUri is where the file ended up.
@@ -192,4 +225,4 @@ class EngineBridge : AutoCloseable {
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
 // - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths.
-// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
+// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.

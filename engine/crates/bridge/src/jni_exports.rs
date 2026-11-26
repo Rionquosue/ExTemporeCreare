@@ -10,7 +10,7 @@ use jni::JNIEnv;
 use jni::objects::{JByteBuffer, JClass, JString};
 use jni::sys::{jboolean, jdouble, jint, jlong, jstring};
 
-use crate::{boards, calls, files, sessions};
+use crate::{boards, calls, files, paint, sessions};
 
 /// A Java string as Rust text (empty when it can't be read).
 fn text(env: &mut JNIEnv, s: &JString) -> String {
@@ -281,6 +281,66 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     1
 }
 
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativePaintBegin(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    params: JString,
+) -> jstring {
+    let params = text(&mut env, &params);
+    let out = paint::begin(handle, &params);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativePaintAdd(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    points: JString,
+) -> jstring {
+    let points = text(&mut env, &points);
+    let out = paint::add(handle, &points);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativePaintPixels(
+    env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    x: jint,
+    y: jint,
+    width: jint,
+    height: jint,
+    out: JByteBuffer,
+) -> jboolean {
+    let (Ok(x), Ok(y), Ok(w), Ok(h)) = (u32::try_from(x), u32::try_from(y), u32::try_from(width), u32::try_from(height)) else { return 0 };
+    let Some(pixels) = paint::pixels(handle, x, y, w, h) else { return 0 };
+    let (Ok(addr), Ok(cap)) = (env.get_direct_buffer_address(&out), env.get_direct_buffer_capacity(&out)) else { return 0 };
+    if addr.is_null() || cap < pixels.len() {
+        return 0;
+    }
+    // SAFETY: `addr` is the start of a direct buffer of `cap` bytes, at least `pixels.len()`, that
+    // the JVM keeps alive for this call; nothing else writes to it during the call.
+    let dest = unsafe { std::slice::from_raw_parts_mut(addr, pixels.len()) };
+    dest.copy_from_slice(&pixels);
+    1
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativePaintEnd(mut env: JNIEnv, _class: JClass, handle: jlong) -> jstring {
+    let out = paint::end(handle);
+    jtext(&mut env, &out)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativePaintCancel(mut env: JNIEnv, _class: JClass, handle: jlong) -> jstring {
+    let out = paint::cancel(handle);
+    jtext(&mut env, &out)
+}
+
 // GLOSSARY
 // - `text`: a Java string as Rust text.
 // - `jtext`: Rust text as a Java string.
@@ -295,6 +355,8 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativeState`: canvas mode, artboards and selection for the app's tools → JSON answer.
 // - `..._nativeOverlays`: what the active tool draws over the canvas → JSON answer.
 // - `..._nativeRender`: render a region of the active document into a direct byte buffer.
+// - `..._nativePaintBegin`, `..._nativePaintAdd`, `..._nativePaintEnd`, `..._nativePaintCancel`: `paint::begin`, `add`, `end`, `cancel` → JSON answer.
+// - `..._nativePaintPixels`: the live Brush stroke's layer over a splotch region into a direct byte buffer.
 // - `..._nativeOpen`: open a copied file with its URI as the path → JSON answer.
 // - `..._nativeSave`: write a save into temporary files and keep it pending → JSON answer with the files.
 // - `..._nativeSaveFinish`: complete or drop the pending save → JSON answer.
