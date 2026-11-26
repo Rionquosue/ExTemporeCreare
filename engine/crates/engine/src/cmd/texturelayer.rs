@@ -12,7 +12,6 @@ use vectorcraft_doc::color::Paint;
 use vectorcraft_doc::{Appearance, AppearanceItem, FillLayer, ImageBlob, ImageObject, Node, NodeId, NodeKind, PatternDef, TextureSpec};
 use vectorcraft_geom::{Affine, Rect};
 
-use super::referenceassets::sniff_mime;
 use super::{CommandSpec, Result, Session, bad, cmd, has_doc};
 
 /// How far a texture reaches from the origin on an infinite canvas, in points (each way).
@@ -45,6 +44,23 @@ pub fn specs() -> Vec<CommandSpec> {
             set_texture
         ),
     ]
+}
+
+/// The MIME type of image bytes, from their signature (`None`: not an image the board reads).
+pub fn sniff_mime(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        Some("image/png")
+    } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+        Some("image/jpeg")
+    } else if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        Some("image/webp")
+    } else if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        Some("image/gif")
+    } else if bytes.starts_with(b"BM") {
+        Some("image/bmp")
+    } else {
+        None
+    }
 }
 
 /// Image width and height from PNG, JPEG, GIF, BMP or WebP bytes.
@@ -125,5 +141,5 @@ fn set_texture(s: &mut Session, p: &Value) -> Result<Value> {
 // GLOSSARY
 // - INFINITE_EXTENT: how far a texture reaches on an infinite canvas. TEXTURE_KEY_PREFIX, MAX_TEXTURE_BYTES: its image's key prefix and largest size.
 // - specs: texture.new, texture.set.
-// - image_size(bytes): an image's width and height.
+// - sniff_mime(bytes): an image's MIME type from its signature. image_size(bytes): its width and height.
 // - new_texture, set_texture: the commands.

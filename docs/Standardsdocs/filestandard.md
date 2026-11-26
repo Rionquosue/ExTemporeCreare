@@ -144,8 +144,7 @@ Alpha modifier targets include **Stroke, Bevel/Emboss, Color Overlay, Gradient O
 
 ### 4.5 Reference-board links and textures
 
-- Reference boards **MUST** be serialized in separate `.etcr` files as specified in §7. Artwork `.etc` files **MUST NOT** embed reference-board arrangements or board viewport state, nor reference images except those the user explicitly embeds (§7.2, **Embed**).
-- An embedded reference image is stored as a document image asset under a `reference-asset-` key and recorded in `project.json` `referenceAssets` (`{"<key>": {"sha256", "originalFilename", "mime"}}`). No artwork object uses it: it **MUST NOT** render in the canvas, thumbnail, merged preview or exports.
+- Reference boards **MUST** be serialized in separate `.etcr` files as specified in §7. Artwork `.etc` files **MUST NOT** embed reference images, reference-board arrangements or board viewport state. Embedded reference images live in the `.etcr` (§7.2, **Embed**).
 - An `.etc` project **MAY** contain `referenceBoards` descriptors with a board ID and a relative path or URI to a separate `.etcr` file. The link is not a dependency for rendering artwork.
 - Reference images **MUST NOT** become canvas layers unless explicitly inserted by the user as artwork; doing so creates a separate artwork resource rather than retaining an implicit link to the reference board.
 - Unavailable or moved `.etcr` files **MUST** be reported as missing and remain relinkable without damaging the `.etc` document.
@@ -322,6 +321,8 @@ The `.etcr` file **MUST** be a versioned ZIP container with a small UTF-8 JSON m
 References.etcr
 ├── mimetype                    # First ZIP entry; STORED, no trailing newline
 ├── board.json                  # Authoritative reference-board state
+├── References/                 # Only images the user embedded (§7.2), bytes unchanged
+│   └── ref-3f2a9c41d07be815.jpg
 └── Thumbnails/
     └── thumbnail.png           # Optional sRGB board preview
 ```
@@ -334,12 +335,12 @@ References.etcr
 
 ### 7.2 Reference image sourcing — external by default
 
-- For an image **already present on the device**, `.etcr` **MUST** save a **link to the existing file**, not duplicate its image bytes in `.etcr` or `.etc`.
+- For an image **already present on the device**, `.etcr` **MUST** save a **link to the existing file** by default, not duplicate its image bytes in `.etcr` or `.etc`, unless the user explicitly embeds it (**Embed**, below).
 - A source descriptor **MUST** provide a resolvable reference such as an external file URI and/or a relative file path, plus a stable source ID. Store the original filename and **SHOULD** store image dimensions and a SHA-256 hash for reliable relinking.
 - Resolve portable **relative paths** relative to the `.etcr` document where possible. A device-specific absolute URI **MAY** be saved as a fallback. External paths may point outside the `.etcr` ZIP, but archive entry paths must still satisfy §3; external files are **read-only by default**.
 - On mobile platforms with scoped file access, the app **MUST** use the operating system's permitted document/file-access mechanism. Device-specific grants, security tokens or credentials **MUST NOT** be embedded in a shareable `.etcr`; keep them in protected app-local state, associated with the source ID.
 - An image pasted from clipboard, produced in-app or obtained from a temporary source **MUST** first be retained as a separate accessible image file (for example in an app-managed reference-assets directory) and linked. Do not silently embed it in the artwork or reference board.
-- **Embed:** the user **MAY** explicitly store a reference image inside the artwork `.etc` document the board is used with. The image's bytes are kept in the `.etc` (§4.5) and its source becomes `kind: "etc-embedded"`: `uri` and/or `relativePath` locate the `.etc` file and `assetKey` names the stored image in it; `originalFilename` and `sha256` are kept. The `.etcr` still holds no image bytes. Embedding is never automatic.
+- **Embed:** the user **MAY** explicitly store a reference image inside the `.etcr` itself. Its bytes are kept unchanged as the archive entry `References/<name>` and its source becomes `kind: "embedded"` with `assetPath` naming that entry (one file name directly under `References/`); `originalFilename` and `sha256` are kept, and `uri` and `relativePath` are dropped. Embedding is never automatic, and an embedded image is never written into the `.etc`.
 - Other packing of reference images is not part of the alpha contract. A future, explicitly user-requested portable package operation **MAY** copy assets, but must not silently replace existing linked sources.
 - If a link is broken, permission is revoked or a file moved, **MUST** retain its original image entry, transformations and source metadata, show a missing-image placeholder and support a **Relink** operation. Neither the board nor the artwork may fail destructively.
 - Linked image updates on disk **SHOULD** be detectable using available file metadata or hash checks; reloading the source **MUST NOT** reset the object's crop, position, size or rotation.
@@ -408,9 +409,8 @@ Illustrative structure, not a finalized JSON Schema:
     {
       "id": "reference-002",
       "source": {
-        "kind": "etc-embedded",
-        "relativePath": "Character.etc",
-        "assetKey": "reference-asset-3f2a9c41d07be815",
+        "kind": "embedded",
+        "assetPath": "References/ref-3f2a9c41d07be815.jpg",
         "originalFilename": "hands.jpg",
         "sha256": "3f2a9c41d07be815…"
       },
@@ -421,7 +421,7 @@ Illustrative structure, not a finalized JSON Schema:
 }
 ```
 
-`relativePath` above identifies a **file outside the ZIP**, located relative to the `.etcr` file. It is **not** an image stored inside the archive. The application **MUST** obtain user/OS authorization before reading external files and **MUST** treat the reference board as untrusted input.
+`relativePath` above identifies a **file outside the ZIP**, located relative to the `.etcr` file. It is **not** an image stored inside the archive; only an `embedded` source's `assetPath` names an entry inside it. The application **MUST** obtain user/OS authorization before reading external files and **MUST** treat the reference board as untrusted input.
 
 ### 7.5 Link from `.etc` to `.etcr`
 

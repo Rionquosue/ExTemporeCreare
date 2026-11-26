@@ -195,9 +195,10 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     _class: JClass,
     path: JString,
     board_dir: JString,
+    embedded_dir: JString,
 ) -> jstring {
-    let (path, board_dir) = (text(&mut env, &path), text(&mut env, &board_dir));
-    let out = boards::read(&path, &board_dir);
+    let (path, board_dir, embedded_dir) = (text(&mut env, &path), text(&mut env, &board_dir), text(&mut env, &embedded_dir));
+    let out = boards::read(&path, &board_dir, &embedded_dir);
     jtext(&mut env, &out)
 }
 
@@ -208,9 +209,10 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     path: JString,
     board: JString,
     thumbnail: JString,
+    embedded_dir: JString,
 ) -> jstring {
-    let (path, board, thumbnail) = (text(&mut env, &path), text(&mut env, &board), text(&mut env, &thumbnail));
-    let out = boards::write(&path, &board, &thumbnail);
+    let (path, board, thumbnail, embedded_dir) = (text(&mut env, &path), text(&mut env, &board), text(&mut env, &thumbnail), text(&mut env, &embedded_dir));
+    let out = boards::write(&path, &board, &thumbnail, &embedded_dir);
     jtext(&mut env, &out)
 }
 
@@ -250,19 +252,6 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 ) -> jstring {
     let (board, board_dir, folders) = (text(&mut env, &board), text(&mut env, &board_dir), text(&mut env, &folders));
     let out = boards::find(&board, &board_dir, &folders);
-    jtext(&mut env, &out)
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeBoardEtcAsset(
-    mut env: JNIEnv,
-    _class: JClass,
-    etc_path: JString,
-    asset_key: JString,
-    out_path: JString,
-) -> jstring {
-    let (etc_path, asset_key, out_path) = (text(&mut env, &etc_path), text(&mut env, &asset_key), text(&mut env, &out_path));
-    let out = boards::etc_asset(&etc_path, &asset_key, &out_path);
     jtext(&mut env, &out)
 }
 
@@ -435,6 +424,5 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativeBoardRead`: `boards::read` → JSON answer.
 // - `..._nativeBoardWrite`: `boards::write` → JSON answer.
 // - `..._nativeBoardLinks`: `boards::links` → JSON answer.
-// - `..._nativeBoardEtcAsset`: `boards::etc_asset` → JSON answer.
 // - `..._nativeBoardRelink`: `boards::relink_image` → JSON answer.
 // - `..._nativeBoardFindMissing`: `boards::find` → JSON answer.

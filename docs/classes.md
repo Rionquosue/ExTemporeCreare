@@ -15,7 +15,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/atomic.rs`: `write_atomic`, `write_atomic_with`, `write_new_with`, `sync_file`, `read_only_location`.
 - `src/base64.rs`: `encode`, `decode`, `decoded_len`.
 - `src/brushart.rs`: `with_brush_art`, `placed_as_groups`.
-- `src/etcr.rs`: reference boards (`.etcr`): `Board` (`new`, `image`, `image_mut`, `problem`), `BoardImage`, `Source` (with `assetKey` for an image stored inside an `.etc`), `Transform` (with `flipX`, `flipY`), `Crop`, `Viewport` (with `rotationDegrees`); `LINKED_KIND`, `EMBEDDED_KIND`; `read_board`, `write_board`, `sniff_board`, `board_thumbnail`.
+- `src/etcr.rs`: reference boards (`.etcr`): `Board` (`new`, `image`, `image_mut`, `problem`), `BoardImage`, `Source` (with `assetPath` for an image embedded in the board), `Transform` (with `flipX`, `flipY`), `Crop`, `Viewport` (with `rotationDegrees`); `LINKED_KIND`, `EMBEDDED_KIND`, `ASSET_FOLDER`; `is_asset_path`, `board_assets`, `read_board`, `write_board`, `sniff_board`, `board_thumbnail`.
 - `src/boardlinks.rs`: board image links on a file system: `LinkStatus` (`Found`, `Changed`, `Uri`, `Missing`); `link_statuses`, `status`, `relink`, `find_missing`.
 
 ## engine/crates/brush (additions)
@@ -35,7 +35,6 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/cmd/layermask.rs`: Photoshop-style layer masks on the node's opacity mask: `layer.mask.add` (reveal, hide, selection), `layer.mask.fromSelection`, `layer.mask.invert`, `layer.mask.setEnabled`, `layer.mask.delete`, `layer.mask.info`; painting through `transparency.editOpacityMask`.
 - `src/cmd/texturelayer.rs`: texture layers: `texture.new` (a locked rectangle over the canvas filled with the image as a live pattern, `NodeExtras::texture` = `TextureSpec`), `texture.set` (scale); `INFINITE_EXTENT`, `TEXTURE_KEY_PREFIX`, `MAX_TEXTURE_BYTES`.
 - `src/cmd/filterlayer.rs`: filter layers: `filter.list` (the pixel filters), `filter.new` (an empty folder with `NodeExtras::filter` = `FilterSpec`), `filter.set`; the renderer draws the page in passes at them (`renderer.rs`: `filter_passes`, `apply_filter_layer`, `draw_art`).
-- `src/cmd/referenceassets.rs`: reference images stored inside the document (board Embed): `reference.embed`, `reference.asset`, `reference.list`; `sniff_mime`; `REFERENCE_ASSETS_KEY`, `REFERENCE_ASSET_PREFIX`, `MAX_REFERENCE_BYTES`.
 - `src/cmd/rasterpaint.rs`: raster painting into splotches (image objects keyed `paint-block-…`, the view's frame plus a buffer, at the zoom's resolution): `begin` (pen down: splotch reused, locked or new), `Stroke` (`frame`, `add`, `layer_pixels`, `finish`), `Decoded` (pixels kept between strokes), `points_of`, `block_of`, `paint.stroke` (a whole stroke); `BLOCK_KEY_PREFIX`, `MAX_SIDE`, `MAX_PIXELS`, `RESOLUTIONS`, `BUFFER_SHARE`, `ZOOM_TOLERANCE`.
 - `src/presets.rs`: built-in preset libraries read from `tools/Libraries/presets/<kind>/`. `Kind` (`Brushes`, `Symbols`, `Swatches`, `Gradients`, `Patterns`, `GraphicStyles`), `Entry` (one `index.json` row); `set_root`, `root`, `entries`, `entry`, `bytes`, `library`.
 
@@ -56,7 +55,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `newDocument`, `view`, `setView`, `layers`, `paintDefaults`, `setPaintDefaults`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
 - `EngineFiles.kt`: `EngineFiles(context, engine)`: `open(uri)` and `save(uri, mode, options)` through content URIs, temporary files in `cacheDir/engine-files`, a check of each `.etc`, then the replace: renamed over the original where the provider allows (`replaceByRename`), else copied into the URI (`copyInto`).
-- `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`.
+- `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`, `embeddedFolder`, `embeddedFile` (embedded images kept in `embeddedDir` while open); `EMBEDDED_KIND`, `ASSET_FOLDER`.
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.
 - `EnginePresets.kt`: `EnginePresets.install(context)`: copies the bundled presets (assets `presets/`) into `filesDir/presets` when the app version changed and sets the engine's presets folder.
 
@@ -72,9 +71,8 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## components/boards
 
-- `ReferenceBoard.kt`: `ReferenceBoard(context)` (`board`, `uri`, `fileName`, `modified`, `pictures`; `images`, `isMissing`, `fileOf`, `assetKeyOf`, `camera`, `setCamera`, `newBoard`, `open`, `save`, `saveIfChanged`, `checkpoint`, `restore`, `addImage`, `placeOf`, `cropOf`, `place`, `move`, `scale`, `rotate`, `flip`, `setCrop`, `embed`, `toFront`, `remove`, `relink`; `decode`): the open `.etcr` board, apart from the artwork document, with app-local recovery of its unsaved state and camera.
+- `ReferenceBoard.kt`: `ReferenceBoard(context)` (`board`, `uri`, `fileName`, `modified`, `pictures`; `images`, `isMissing`, `fileOf`, `isEmbedded`, `camera`, `setCamera`, `newBoard`, `open`, `save`, `saveIfChanged`, `checkpoint`, `restore`, `addImage`, `placeOf`, `cropOf`, `place`, `move`, `scale`, `rotate`, `flip`, `setCrop`, `embed`, `toFront`, `remove`, `relink`; `decode`): the open `.etcr` board, apart from the artwork document, with app-local recovery of its unsaved state and camera.
 - `BoardGeometry.kt`: `BoardPoint`, `BoardCamera` (`toView`, `toBoard`, `navigated`), `ImagePlace` (`pivot`, `toBoard`, `toLocal`, `corners`, `contains`, `scaledAboutPivot`, `reframed`, `toJson`, `of`), `BoardCrop`: board camera and image placement maths.
-- `EmbeddedReferences.kt`: `EmbeddedReferences(context, engine)` (`store`, `extract`, `tempFile`): reference images stored inside the artwork `.etc`.
 
 ## components/textures
 

@@ -58,7 +58,7 @@ class BoardActions(
  * `.etcr` [board] ([BoardCanvas]), its header counting the references with an add button. Below
  * the view: the board's file name (• when unsaved), New, Open and Save, and for the [selected]
  * image Front, Remove and, when its file is missing, Relink. Holding an image opens its menu:
- * Delete, Embed (store it inside the artwork `.etc`), Flip (Horizontal, Vertical) and Crop, which
+ * Delete, Embed (store the image inside the `.etcr`), Flip (Horizontal, Vertical) and Crop, which
  * shows the whole picture to crop with its corners until Done. Collapsing keeps the board, its
  * arrangement and camera. Pictures are read off the main thread as they are needed.
  */
@@ -116,7 +116,7 @@ fun ReferenceBoardPanel(
                     val id = menuFor
                     if (id != null && !flipMenu) {
                         DropdownMenuItem(text = { Text("Delete") }, onClick = { board.remove(id); actions.select(null); actions.changed(); close() })
-                        DropdownMenuItem(text = { Text("Embed") }, onClick = { close(); actions.embed(id) }, enabled = board.assetKeyOf(id) == null)
+                        DropdownMenuItem(text = { Text("Embed") }, onClick = { close(); actions.embed(id) }, enabled = !board.isEmbedded(id))
                         DropdownMenuItem(text = { Text("Flip ›") }, onClick = { flipMenu = true })
                         DropdownMenuItem(text = { Text("Crop") }, onClick = { cropping = id; close() })
                     } else if (id != null) {

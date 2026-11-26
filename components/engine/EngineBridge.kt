@@ -173,10 +173,10 @@ class EngineBridge : AutoCloseable {
         fun boardNew(title: String): String = nativeBoardNew(title)
 
         /** Read the `.etcr` file at [path], checking its links from [boardDir] → `{"ok": {"board", "links"}}`. */
-        fun boardRead(path: String, boardDir: String): String = nativeBoardRead(path, boardDir)
+        fun boardRead(path: String, boardDir: String, embeddedDir: String = ""): String = nativeBoardRead(path, boardDir, embeddedDir)
 
         /** Write [boardJson] as an `.etcr` file at [path] (atomically), with the PNG at [thumbnail] if not empty. */
-        fun boardWrite(path: String, boardJson: String, thumbnail: String = ""): String = nativeBoardWrite(path, boardJson, thumbnail)
+        fun boardWrite(path: String, boardJson: String, thumbnail: String = "", embeddedDir: String = ""): String = nativeBoardWrite(path, boardJson, thumbnail, embeddedDir)
 
         /** The link status of each image of [boardJson], from [boardDir] → `{"ok": [{"id", "status", …}]}`. */
         fun boardLinks(boardJson: String, boardDir: String): String = nativeBoardLinks(boardJson, boardDir)
@@ -190,9 +190,6 @@ class EngineBridge : AutoCloseable {
             nativeBoardFindMissing(boardJson, boardDir, foldersJson)
 
         /** Set the folder the built-in preset libraries are read from (once, at start). */
-        /** Write the reference image stored under [assetKey] in the `.etc` at [etcPath] to [outPath] → `{"ok": {"mime"}}`. */
-        fun boardEtcAsset(etcPath: String, assetKey: String, outPath: String): String = nativeBoardEtcAsset(etcPath, assetKey, outPath)
-
         fun setPresetsRoot(path: String) = nativeSetPresetsRoot(path)
 
         @JvmStatic private external fun nativeCreate(): Long
@@ -221,12 +218,11 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeSaveFinish(handle: Long, ok: Boolean, finalUri: String): String
         @JvmStatic private external fun nativeValidate(path: String): String
         @JvmStatic private external fun nativeBoardNew(title: String): String
-        @JvmStatic private external fun nativeBoardRead(path: String, boardDir: String): String
-        @JvmStatic private external fun nativeBoardWrite(path: String, board: String, thumbnail: String): String
+        @JvmStatic private external fun nativeBoardRead(path: String, boardDir: String, embeddedDir: String): String
+        @JvmStatic private external fun nativeBoardWrite(path: String, board: String, thumbnail: String, embeddedDir: String): String
         @JvmStatic private external fun nativeBoardLinks(board: String, boardDir: String): String
         @JvmStatic private external fun nativeBoardRelink(board: String, id: String, file: String, boardDir: String): String
         @JvmStatic private external fun nativeBoardFindMissing(board: String, boardDir: String, folders: String): String
-        @JvmStatic private external fun nativeBoardEtcAsset(etcPath: String, assetKey: String, outPath: String): String
         @JvmStatic private external fun nativeRender(
             handle: Long,
             x: Double,
@@ -264,6 +260,6 @@ class EngineBridge : AutoCloseable {
 // - close(): close the engine session.
 // - renderBuffer(width, height): a direct buffer sized for render().
 // - setPresetsRoot(path): set the built-in presets folder.
-// - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths.
-// - boardEtcAsset: a reference image stored inside a closed .etc file, written to a path.
+// - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths;
+//   read and write take the folder embedded images are kept in.
 // - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeNewDocument, nativeView, nativeSetView, nativeLayers, nativePaintDefaults, nativeSetPaintDefaults, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.

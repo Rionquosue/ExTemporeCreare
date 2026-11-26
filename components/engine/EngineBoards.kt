@@ -17,8 +17,12 @@ import java.security.MessageDigest
  * - Open: the board's bytes are copied to a temporary file and read by the engine bridge.
  * - Save: the board is written to a temporary file, read back to check it, then put in place of
  *   its URI ([UriReplace]).
+ * - Embedded images (`kind: "embedded"`, Embed on the board) are stored in the `.etcr` itself; the
+ *   app keeps their bytes in [embeddedDir]`/<boardId>/` while the board is open: Open puts them
+ *   there, Save packs them from there.
  * - Links: a source is found by its URI when the app can read it, else by its relative path from
- *   the board's folder when the board is in a folder the user granted. Relinking records the
+ *   the board's folder when the board is in a folder the user granted; an embedded one in
+ *   [embeddedDir]. Relinking records the
  *   picked file's URI, name, SHA-256 and, inside the board's folder, its relative
  *   path; the image's placement and crop are kept.
  */
@@ -26,6 +30,9 @@ class EngineBoards(private val context: Context) {
 
     /** The folder for temporary copies. */
     private val tempDir: File = File(context.cacheDir, "engine-boards").apply { mkdirs() }
+
+    /** Where open boards' embedded images are kept: one folder per board id. */
+    val embeddedDir: File = File(context.filesDir, "board-embedded").apply { mkdirs() }
 
     /** Puts saved boards in place of their URIs. */
     private val uris = UriReplace(context)
@@ -39,7 +46,7 @@ class EngineBoards(private val context: Context) {
         try {
             val input = context.contentResolver.openInputStream(uri) ?: throw IOException("can't read $uri")
             input.use { src -> FileOutputStream(temp).use { dst -> src.copyTo(dst) } }
-            val read = JSONObject(EngineBridge.boardRead(temp.path, ""))
+            val read = JSONObject(EngineBridge.boardRead(temp.path, "", embeddedDir.path))
             val ok = read.optJSONObject("ok") ?: return read.toString()
             ok.put("links", links(uri, ok.getJSONObject("board")))
             return read.toString()
@@ -52,7 +59,7 @@ class EngineBoards(private val context: Context) {
     fun save(uri: Uri, board: JSONObject, thumbnail: File? = null): String {
         val temp = File.createTempFile("board-", ".tmp", tempDir)
         try {
-            val written = JSONObject(EngineBridge.boardWrite(temp.path, board.toString(), thumbnail?.path ?: ""))
+            val written = JSONObject(EngineBridge.boardWrite(temp.path, board.toString(), thumbnail?.path ?: "", embeddedDir.path))
             if (!written.has("ok")) return written.toString()
             val check = JSONObject(EngineBridge.boardRead(temp.path, ""))
             if (!check.has("ok")) return check.toString()
@@ -71,12 +78,26 @@ class EngineBoards(private val context: Context) {
         val images = board.optJSONArray("images") ?: JSONArray()
         for (i in 0 until images.length()) {
             val image = images.getJSONObject(i)
-            val found = locate(boardUri, image.getJSONObject("source"))
+            val found = embeddedFile(board, image.getJSONObject("source"))?.takeIf { it.isFile }?.let { Uri.fromFile(it) }
+                ?: locate(boardUri, image.getJSONObject("source"))
             val row = JSONObject().put("id", image.getString("id")).put("status", if (found != null) "found" else "missing")
             if (found != null) row.put("uri", found.toString())
             out.put(row)
         }
         return out
+    }
+
+    /** The folder [board]'s embedded images are kept in (as the bridge names it: the board id's letters, digits and dashes). */
+    fun embeddedFolder(board: JSONObject): File {
+        val id = board.optString("boardId").filter { it.isLetterOrDigit() && it.code < 128 || it == '-' }
+        return File(embeddedDir, id.ifEmpty { "board" })
+    }
+
+    /** The local file of an embedded [source] of [board], or null when it isn't embedded. */
+    fun embeddedFile(board: JSONObject, source: JSONObject): File? {
+        if (source.optString("kind") != EMBEDDED_KIND) return null
+        val name = source.optString("assetPath").substringAfterLast('/').takeIf { it.isNotEmpty() } ?: return null
+        return File(embeddedFolder(board), name)
     }
 
     /** Where [source]'s file is: its URI when readable, else its relative path from the board's folder. */
@@ -130,6 +151,7 @@ class EngineBoards(private val context: Context) {
         val hash = sha256(file) ?: return null
         val source = image.optJSONObject("source") ?: JSONObject().also { image.put("source", it) }
         source.put("kind", "linked-file")
+        source.remove("assetPath")
         source.put("uri", file.toString())
         source.put("originalFilename", uris.displayName(file))
         source.put("sha256", hash)
@@ -217,11 +239,21 @@ class EngineBoards(private val context: Context) {
         } ?: return null
         digest.digest().joinToString("") { "%02x".format(it) }
     }.getOrNull()
+
+    companion object {
+        /** The source kind of an image embedded in the `.etcr` itself (`filestandard.md` §7.2). */
+        const val EMBEDDED_KIND = "embedded"
+
+        /** The archive folder of embedded images. */
+        const val ASSET_FOLDER = "References/"
+    }
 }
 
 // GLOSSARY
 // - EngineBoards: reference boards (.etcr) through content URIs.
-// - tempDir: the cache folder for temporary copies.
+// - tempDir: the cache folder for temporary copies. embeddedDir: where open boards' embedded images are kept.
+// - embeddedFolder(board), embeddedFile(board, source): a board's embedded images folder and an embedded image's file.
+// - EMBEDDED_KIND, ASSET_FOLDER: the embedded source kind and its archive folder.
 // - uris: the UriReplace that puts saved boards in place.
 // - newBoard(title): a new empty board.
 // - open(uri): read a board and check its links.

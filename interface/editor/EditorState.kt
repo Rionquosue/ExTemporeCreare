@@ -8,7 +8,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.extemporecreare.app.components.color.ColorLibrary
-import com.extemporecreare.app.components.boards.EmbeddedReferences
 import com.extemporecreare.app.components.boards.ReferenceBoard
 import com.extemporecreare.app.components.textures.TextureLibrary
 import com.extemporecreare.app.components.debug.DebugMode
@@ -94,7 +93,6 @@ class EditorState(private val context: Context) {
 
     /** The reference board (`.etcr`, apart from the document), what changed in it, and its selected image. */
     val board by lazy { ReferenceBoard(context) }
-    private val references by lazy { EmbeddedReferences(context, engine) }
 
     /** The filters a filter layer can apply (`filter.list`), as (effect id, label). */
     val filters: List<Pair<String, String>> by lazy {
@@ -193,28 +191,15 @@ class EditorState(private val context: Context) {
         boardChanged()
     }
 
-    /** Embed board image [id] in the open artwork document (`filestandard.md` §7.2); save the document to keep it. */
+    /** Embed board image [id] in the board (`filestandard.md` §7.2): saved inside the `.etcr`. */
     fun boardEmbed(id: String) {
-        val error = board.embed(id, documentUri, references)
-        if (error != null) this.error = error else {
-            message = "Embedded: save the document to keep it"
-            touched()
-        }
-        board.checkpoint()
+        val error = board.embed(id)
+        if (error != null) this.error = error else message = "Embedded: save the board to keep it"
         boardChanged()
     }
 
-    /** Board image [id]'s picture, scaled down: from its file, or from the artwork document when it is embedded. Reads files: call off the main thread. */
-    fun boardPicture(id: String): android.graphics.Bitmap? {
-        val file = board.fileOf(id) ?: return null
-        val key = board.assetKeyOf(id) ?: return ReferenceBoard.decode(context, file)
-        val out = references.tempFile()
-        return try {
-            if (references.extract(key, file, out)) ReferenceBoard.decode(out) else null
-        } finally {
-            out.delete()
-        }
-    }
+    /** Board image [id]'s picture, scaled down, from its file (an embedded one's local copy). Reads files: call off the main thread. */
+    fun boardPicture(id: String): android.graphics.Bitmap? = board.fileOf(id)?.let { ReferenceBoard.decode(context, it) }
 
     /** The reference board changed: its panel reads it again. */
     fun boardChanged() {
@@ -497,7 +482,7 @@ class EditorState(private val context: Context) {
 // - RECOVERY_FOLDER, RECOVERY_EVERY_MS: the recovery folder and interval (2 min).
 // - start(): presets, recovery setup, an interrupted session recovered. recoverInterrupted(): open its copies. saveRecovery(): write a copy.
 // - board, boardRevision, boardSelected: the reference board, what changed in it, its selected image.
-// - references: images stored inside the .etc. boardEmbed(id): embed a board image. boardPicture(id): a board image's picture.
+// - boardEmbed(id): embed a board image in the board. boardPicture(id): a board image's picture.
 // - paintMask(id): start or stop painting a layer's mask.
 // - textures, insertTexture(texture): the Texture library and inserting a texture layer. filters: the filter layers' filters.
 // - backgroundBoard(): keep or save the board going to the background. boardChanged(), boardDone(error): the board panel reads it again.

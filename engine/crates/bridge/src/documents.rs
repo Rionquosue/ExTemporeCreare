@@ -124,38 +124,6 @@ mod tests {
     }
 
     #[test]
-    fn an_embedded_reference_is_saved_in_the_etc_and_read_back_closed() {
-        let dir = std::env::temp_dir().join(format!("etc-bridge-embed-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let png = dir.join("pose.png");
-        let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
-        bytes.extend_from_slice(b"not really pixels");
-        std::fs::write(&png, &bytes).unwrap();
-        let h = sessions::create();
-        ok(&new_document(h, r#"{"name": "Card", "width": 200, "height": 100}"#));
-        let embedded = ok(&calls::execute(h, "reference.embed", &json!({"path": png.to_string_lossy(), "originalFilename": "pose.png"}).to_string()));
-        let key = embedded["assetKey"].as_str().unwrap().to_string();
-        assert!(key.starts_with("reference-asset-"));
-        assert_eq!(ok(&calls::execute(h, "reference.embed", &json!({"path": png.to_string_lossy()}).to_string()))["assetKey"], key.as_str(), "same bytes, same key");
-        let target = dir.join("card.etc");
-        let saved = ok(&files::save(h, "saveAs", &json!({"path": target.to_string_lossy()}).to_string(), &dir.to_string_lossy()));
-        std::fs::rename(saved["files"][0]["temp"].as_str().unwrap(), &target).unwrap();
-        ok(&files::save_finish(h, true, ""));
-        let out = dir.join("out.bin");
-        let read = ok(&crate::boards::etc_asset(&target.to_string_lossy(), &key, &out.to_string_lossy()));
-        assert_eq!((read["mime"].as_str(), std::fs::read(&out).unwrap()), (Some("image/png"), bytes));
-        let h2 = sessions::create();
-        ok(&files::open(h2, &target.to_string_lossy(), "card.etc", &target.to_string_lossy()));
-        assert_eq!(ok(&calls::execute(h2, "reference.list", "{}"))["assets"][0]["originalFilename"], "pose.png");
-        let px = calls::render(h2, 0.0, 0.0, 200, 100, 1.0).unwrap();
-        assert!(px.chunks(4).all(|p| p[3] == 0 || p[..3] == [255, 255, 255]), "never drawn as artwork");
-        sessions::destroy(h);
-        sessions::destroy(h2);
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
     fn a_finite_document_takes_its_size_and_background() {
         let h = sessions::create();
         ok(&new_document(h, r##"{"name": "Card", "width": 500, "height": 300, "background": "#204060"}"##));

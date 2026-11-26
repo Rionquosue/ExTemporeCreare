@@ -1,8 +1,8 @@
 //! Reference boards: `.etcr` files (`filestandard.md` §7). A board is an unbounded canvas of
-//! reference images linked to files outside it (never embedded in the board), each with its own
-//! position, size, rotation, flips, non-destructive crop and visibility, and the last camera
-//! (centre, zoom and rotation). An image can instead be stored inside an artwork `.etc` file
-//! ([`EMBEDDED_KIND`]): its source then names that file and the asset key it is kept under.
+//! reference images linked to files outside it, each with its own position, size, rotation, flips,
+//! non-destructive crop and visibility, and the last camera (centre, zoom and rotation). An image
+//! the user embeds ([`EMBEDDED_KIND`]) is stored in the board's own archive under
+//! [`ASSET_FOLDER`] instead.
 //!
 //! An `.etcr` file is a ZIP archive: `mimetype` first and stored (holding [`ETCR_MIME`]),
 //! `board.json` (authoritative) and an optional `Thumbnails/thumbnail.png`. Fields this version
@@ -30,9 +30,11 @@ pub const ETCR_FORMAT_VERSION: &str = "0.1.0";
 pub const BOARD_JSON: &str = "board.json";
 /// The source kind of an image linked to its own file.
 pub const LINKED_KIND: &str = "linked-file";
-/// The source kind of an image stored inside an artwork `.etc` file (§7.2): the source's `uri`
-/// and/or `relativePath` locate that `.etc`, its `assetKey` the image in it.
-pub const EMBEDDED_KIND: &str = "etc-embedded";
+/// The source kind of an image embedded in the `.etcr` itself (§7.2): its `assetPath` names the
+/// archive entry holding its bytes, under [`ASSET_FOLDER`].
+pub const EMBEDDED_KIND: &str = "embedded";
+/// The archive folder of embedded images.
+pub const ASSET_FOLDER: &str = "References/";
 
 /// The last camera over the board: its centre in board units, its zoom and its rotation in
 /// degrees, clockwise (§7.3).
@@ -72,9 +74,9 @@ pub struct Source {
     /// Lowercase hex SHA-256 of the file's bytes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
-    /// For [`EMBEDDED_KIND`]: the key the image is kept under in the `.etc` file.
+    /// For [`EMBEDDED_KIND`]: the archive entry holding the image's bytes (`References/<name>`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub asset_key: Option<String>,
+    pub asset_path: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -208,15 +210,39 @@ impl Board {
                     return Some(format!("image `{}` has a crop outside its source", i.id));
                 }
             }
-            if i.source.relative_path.is_none() && i.source.uri.is_none() {
+            if i.source.kind == EMBEDDED_KIND {
+                if !i.source.asset_path.as_deref().is_some_and(is_asset_path) {
+                    return Some(format!("image `{}` is embedded but its assetPath isn't a file under {ASSET_FOLDER}", i.id));
+                }
+            } else if i.source.relative_path.is_none() && i.source.uri.is_none() {
                 return Some(format!("image `{}` has neither a relative path nor a URI", i.id));
-            }
-            if i.source.kind == EMBEDDED_KIND && i.source.asset_key.as_deref().is_none_or(str::is_empty) {
-                return Some(format!("image `{}` is stored in an .etc file but has no assetKey", i.id));
             }
         }
         None
     }
+}
+
+/// Whether `path` is a safe archive path of an embedded image: one file name under [`ASSET_FOLDER`].
+pub fn is_asset_path(path: &str) -> bool {
+    path.strip_prefix(ASSET_FOLDER).is_some_and(|name| {
+        !name.is_empty() && name.len() <= 200 && name != "." && name != ".." && !name.contains(['/', '\\', '\0', ':'])
+    })
+}
+
+/// The embedded images' bytes of the `.etcr` file `bytes`, as (archive path, bytes), for the
+/// images of `board` (read from the same file) that are embedded.
+pub fn board_assets(bytes: &[u8], board: &Board) -> Result<Vec<(String, Vec<u8>)>, EtcError> {
+    let zip = ZipArchive::new(bytes)?;
+    let mut out = vec![];
+    for i in &board.images {
+        let Some(path) = i.source.asset_path.as_deref().filter(|_| i.source.kind == EMBEDDED_KIND) else { continue };
+        if out.iter().any(|(p, _): &(String, Vec<u8>)| p == path) {
+            continue;
+        }
+        let data = zip.read(path, MAX_ASSET)?.ok_or_else(|| EtcError::NotEtc(format!("embedded image `{path}` is missing from the board")))?;
+        out.push((path.to_string(), data));
+    }
+    Ok(out)
 }
 
 /// Whether `bytes` start like an `.etcr` file (its first entry a stored `mimetype` of [`ETCR_MIME`]).
@@ -261,11 +287,22 @@ pub fn board_thumbnail(bytes: &[u8]) -> Option<Vec<u8>> {
     ZipArchive::new(bytes).ok()?.read(THUMBNAIL, MAX_ASSET).ok()?
 }
 
-/// Write `board` as an `.etcr` file, with `thumbnail` (an sRGB PNG) when given. A board that
-/// breaks a rule of §7 is refused.
-pub fn write_board(board: &Board, thumbnail: Option<&[u8]>) -> Result<Vec<u8>, EtcError> {
+/// Write `board` as an `.etcr` file, with `thumbnail` (an sRGB PNG) when given and the embedded
+/// images' bytes from `assets` (archive path, bytes). A board that breaks a rule of §7, or an
+/// embedded image without its bytes, is refused.
+pub fn write_board(board: &Board, thumbnail: Option<&[u8]>, assets: &[(String, Vec<u8>)]) -> Result<Vec<u8>, EtcError> {
     if let Some(p) = board.problem() {
         return Err(EtcError::Encode(p));
+    }
+    let mut embedded: Vec<&str> = vec![];
+    for i in board.images.iter().filter(|i| i.source.kind == EMBEDDED_KIND) {
+        let path = i.source.asset_path.as_deref().unwrap_or_default();
+        if !assets.iter().any(|(p, _)| p == path) {
+            return Err(EtcError::Encode(format!("embedded image `{}` has no bytes for {path}", i.id)));
+        }
+        if !embedded.contains(&path) {
+            embedded.push(path);
+        }
     }
     let mut b = board.clone();
     b.format_version = ETCR_FORMAT_VERSION.into();
@@ -275,6 +312,11 @@ pub fn write_board(board: &Board, thumbnail: Option<&[u8]>) -> Result<Vec<u8>, E
     zip.add(BOARD_JSON, &json, Method::Deflate).map_err(EtcError::encode)?;
     if let Some(png) = thumbnail {
         zip.add(THUMBNAIL, png, Method::Stored).map_err(EtcError::encode)?;
+    }
+    for path in embedded {
+        if let Some((_, data)) = assets.iter().find(|(p, _)| p == path) {
+            zip.add(path, data, Method::Stored).map_err(EtcError::encode)?;
+        }
     }
     zip.finish().map_err(EtcError::encode)
 }
@@ -306,7 +348,7 @@ mod tests {
     fn round_trips_a_board_and_keeps_unknown_fields() {
         let mut b = board();
         b.extra.insert("fromTheFuture".into(), Value::from(1));
-        let bytes = write_board(&b, None).unwrap();
+        let bytes = write_board(&b, None, &[]).unwrap();
         assert!(sniff_board(&bytes) && !crate::sniff(&bytes));
         assert_eq!(read_board(&bytes).unwrap(), b);
         assert!(read_board(&crate::save(&vectorcraft_doc::Document::new(10.0, 10.0), false)).is_err(), "an .etc is no board");
@@ -316,7 +358,7 @@ mod tests {
     fn refuses_what_breaks_the_rules() {
         let mut b = board();
         b.images[0].crop = Some(Crop { x: 0.5, y: 0.0, width: 0.8, height: 1.0 });
-        assert!(write_board(&b, None).is_err());
+        assert!(write_board(&b, None, &[]).is_err());
         let mut b = board();
         b.viewport.zoom = 0.0;
         assert!(b.problem().is_some());
@@ -325,9 +367,22 @@ mod tests {
         assert!(b.problem().unwrap().contains("used twice"));
         let mut b = board();
         b.images[0].source.kind = EMBEDDED_KIND.into();
-        assert!(b.problem().unwrap().contains("assetKey"));
-        b.images[0].source.asset_key = Some("reference-asset-1".into());
+        assert!(b.problem().unwrap().contains("assetPath"));
+        b.images[0].source.asset_path = Some("References/../board.json".into());
+        assert!(b.problem().is_some(), "no paths out of the folder");
+        b.images[0].source.asset_path = Some("References/pose.png".into());
         assert!(b.problem().is_none());
+    }
+
+    #[test]
+    fn embedded_images_are_stored_in_the_board() {
+        let mut b = board();
+        b.images[0].source = Source { kind: EMBEDDED_KIND.into(), asset_path: Some("References/pose.png".into()), original_filename: "pose.png".into(), ..Source::default() };
+        assert!(write_board(&b, None, &[]).is_err(), "an embedded image needs its bytes");
+        let bytes = write_board(&b, None, &[("References/pose.png".into(), b"pixels".to_vec())]).unwrap();
+        let read = read_board(&bytes).unwrap();
+        assert_eq!(read, b);
+        assert_eq!(board_assets(&bytes, &read).unwrap(), vec![("References/pose.png".to_string(), b"pixels".to_vec())]);
     }
 
     #[test]
@@ -345,9 +400,10 @@ mod tests {
 
 // GLOSSARY
 // - `ETCR_EXTENSION`, `ETCR_MIME`, `ETCR_FORMAT`, `ETCR_FORMAT_VERSION`, `BOARD_JSON`: `.etcr` identity and entry names.
-// - `LINKED_KIND`, `EMBEDDED_KIND`: source kinds (own file; stored inside an `.etc`).
+// - `LINKED_KIND`, `EMBEDDED_KIND`, `ASSET_FOLDER`: source kinds (own file; embedded in the board) and the embedded images' folder.
+// - `is_asset_path`: a safe embedded image entry. `board_assets`: the embedded images' bytes of an `.etcr` file.
 // - `Viewport`: the board's last camera (centre, zoom, rotation).
-// - `Source`: where a reference image's file is (relative path, URI, asset key inside an `.etc`) and what identifies it (name, size, SHA-256).
+// - `Source`: where a reference image's file is (relative path, URI, or its entry in the board when embedded) and what identifies it (name, size, SHA-256).
 // - `Transform`: an image's position, size, rotation, pivot and flips on the board. `is_false`: serde skip helper.
 // - `Crop`: a non-destructive crop in source-image fractions.
 // - `BoardImage`: one reference image (id, source, transform, crop, visibility).
@@ -356,4 +412,4 @@ mod tests {
 // - `sniff_board`: whether bytes start like an `.etcr` file.
 // - `read_board`: read and check an `.etcr` file.
 // - `board_thumbnail`: the thumbnail of an `.etcr` file.
-// - `write_board`: write a board as an `.etcr` file.
+// - `write_board`: write a board as an `.etcr` file with its embedded images.

@@ -74,7 +74,6 @@ pub mod rasterfx;
 mod recolor;
 pub mod exportslices;
 pub mod rasterpaint;
-pub mod referenceassets;
 pub mod layerfill;
 pub mod layermask;
 pub mod texturelayer;
@@ -388,7 +387,6 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(recovery::specs());
         v.extend(exportslices::specs());
         v.extend(rasterpaint::specs());
-        v.extend(referenceassets::specs());
         v.extend(layerfill::specs());
         v.extend(layermask::specs());
         v.extend(texturelayer::specs());
