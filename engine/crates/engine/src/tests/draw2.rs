@@ -6561,3 +6561,19 @@ fn average_skips_locked_descendants_in_group() {
     assert_eq!(path(&s, b), orig_b);
     assert!(all_at(&anchor_points(&s, a), Point::new(50.0, 50.0)), "{:?}", anchor_points(&s, a));
 }
+
+/// A Blob Brush chisel tip turned by the pen's tilt: leaning right keeps its long axis along a level
+/// stroke (thin), leaning up the page turns it across (as tall as the tip is long).
+#[test]
+fn blob_brush_chisel_turns_with_the_pen_tilt() {
+    let mut s = session();
+    let height = |s: &mut Session, tilt: [f64; 2], x0: f64| {
+        let pts = json!([[x0, 100.0, 0.5, tilt[0], tilt[1], 0.0], [x0 + 100.0, 100.0, 0.5, tilt[0], tilt[1], 0.0]]);
+        let r = s.execute("path.blob", &json!({"points": pts, "size": 20, "roundness": 20, "shape": "rectangle", "angleFrom": "tilt", "merge": false})).unwrap();
+        let id = NodeId(r["id"].as_u64().unwrap());
+        s.doc().unwrap().doc.node(id).unwrap().geometric_bounds().unwrap().height()
+    };
+    assert!((height(&mut s, [30.0, 0.0], 0.0) - 4.0).abs() < 1e-6);
+    assert!((height(&mut s, [0.0, -30.0], 300.0) - 20.0).abs() < 1e-6);
+    assert!(s.execute("path.blob", &json!({"points": [[0, 0], [10, 0]], "shape": "star"})).is_err());
+}

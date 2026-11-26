@@ -501,6 +501,7 @@ fn erase_varied(s: &mut Session, samples: &[Sample], tip: [f64; 3], vary: [(Vari
         size: size / scale,
         variation: [av, rv, sv / scale],
         modes: Some([am, rm, sm]),
+        ..Calligraphic::default()
     };
     let brush = Brush { name: "Eraser".into(), kind: BrushKind::Calligraphic(nib) };
     let mut stroke = StrokeLayer::new(Paint::None, scale);

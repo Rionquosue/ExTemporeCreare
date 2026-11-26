@@ -233,7 +233,7 @@ fn mode(code: f64, varies: bool) -> Variation {
 pub(super) fn calligraphic(values: [f64; 3], variation: [f64; 3], codes: [f64; 3]) -> Calligraphic {
     let [angle, roundness, size] = values;
     let modes = [0, 1, 2].map(|i| mode(codes[i], variation[i] != 0.0));
-    Calligraphic { angle, roundness, size, variation, modes: Some(modes) }
+    Calligraphic { angle, roundness, size, variation, modes: Some(modes), ..Calligraphic::default() }
 }
 
 /// An Art brush's settings: its object's numbers 2 to 15, which a path's art style holds as the

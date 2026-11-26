@@ -26,6 +26,23 @@ pub(super) struct Sample {
     wheel: Option<f64>,
 }
 
+impl Sample {
+    /// The pen pressure recorded here, 0..1.
+    pub(super) fn pressure(&self) -> Option<f64> {
+        self.pressure
+    }
+    /// Which way the pen leans here, degrees counter-clockwise on the page from leaning right, when
+    /// it was tilted (by at least half a degree).
+    pub(super) fn bearing(&self) -> Option<f64> {
+        let [x, y] = self.tilt?;
+        (x.hypot(y) >= 0.5).then(|| (-y).atan2(x).to_degrees())
+    }
+    /// The barrel rotation here, degrees clockwise.
+    pub(super) fn rotation(&self) -> Option<f64> {
+        self.rotation
+    }
+}
+
 /// The keys of a point's pen values, in the order a point given as an array holds them after its
 /// x and y.
 const PEN_KEYS: [&str; 5] = ["pressure", "tiltX", "tiltY", "rotation", "wheel"];

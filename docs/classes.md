@@ -18,6 +18,11 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/etcr.rs`: reference boards (`.etcr`): `Board` (`new`, `image`, `image_mut`, `problem`), `BoardImage`, `Source`, `Transform`, `Crop`, `Viewport`; `read_board`, `write_board`, `sniff_board`, `board_thumbnail`.
 - `src/boardlinks.rs`: board image links on a file system: `LinkStatus` (`Found`, `Changed`, `Uri`, `Missing`); `link_statuses`, `status`, `relink`, `find_missing`.
 
+## engine/crates/brush (additions)
+
+- `src/lib.rs`: `NibShape` (`Ellipse`, `Rectangle`), the Calligraphic brush's new `shape` field.
+- `src/calli.rs`: `NibSpec` (shape, angle, roundness, size at one point), `nib_sweep` (the area a nib covers along a polyline); `Nib::shaped` (rectangle support).
+
 ## engine/crates/engine (run-time presets, export slices)
 
 - `src/cmd/exportslices.rs`: export slices and grid as document data (`Document::extra["export"]`): `export.slice.list`, `export.slice.add`, `export.slice.update`, `export.slice.delete`, `export.slice.duplicate`, `export.grid.set`; `EXPORT_KEY`, `SLICE_FORMATS`, `DEFAULT_GRID_SPACING`.
@@ -46,7 +51,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `EngineTool.kt`: `EngineTool<S>`, a dial tool built on an engine tool, with saved settings: `settings`, `isActive`, `engineToolId`, `pushSettings`, `update`, `setOption`.
 - `DragBox.kt`: `DragBox`, a rectangle a drag edits (`Grip`: `INSIDE`, `BOTTOM_RIGHT`; `gripAt`, `drag`, `snap`, `resizeAboutCentre`, `contains`, `copy`, `sameAs`; `of`, `reach`). Crop's canvas box and Export's slices.
 - `EngineAnswer.kt`: `EngineAnswer`, one bridge answer parsed: `isOk`, `okObject`, `error`.
-- `ToolPointer.kt`: `ToolPointer` (`Kind`: `DOWN`, `DRAG`, `UP`, `MOVE`), a pointer event in document points: `toJson`.
+- `ToolPointer.kt`: `ToolPointer` (`Kind`: `DOWN`, `DRAG`, `UP`, `MOVE`; `tiltX`, `tiltY`, `rotation` from a stylus), a pointer event in document points: `toJson`.
 - `ToolResult.kt`: `ToolResult` (`requests`, `created`, `error`, `changed`): `NONE`, `failed`, `failedOrNone`, `fromPointer`.
 - `ToolSettings.kt`: `ToolSettings` (`toJson`); `NoToolSettings`.
 - `ToolSettingsStore.kt`: `ToolSettingsStore(context)`: `load`, `save` per tool name.
@@ -56,7 +61,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 ## tools (dial tools)
 
-- `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerMode` (`PAINTBRUSH`, `BLOB`), `MarkerToolSettings`.
+- `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerMode` (`PAINTBRUSH`, `BLOB`), `MarkerTip` (`ROUND`, `OVAL`, `CHISEL`), `TipOrientation` (`FIXED`, `TILT`, `ROTATION`), `MarkerToolSettings`. `MarkerTool.TIP_BRUSH` is the document Calligraphic brush that draws the Paintbrush's oval and chisel tips.
 - `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
 - `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
 - `Fill/FillTool.kt`: `FillTool` (engine `fillArea`; infinite-canvas failsafe `fillScreen`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
@@ -70,7 +75,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
-- `tools/Marker/MarkerToolSettingsPanel.kt`: `MarkerToolSettingsPanel` (mode, size, hardness, library brush dropdown).
+- `tools/Marker/MarkerToolSettingsPanel.kt`: `MarkerToolSettingsPanel` (mode, size, hardness, tip shape, angle, thickness and what turns it, library brush dropdown).
 - `tools/Pen/PenToolSettingsPanel.kt`: `PenToolSettingsPanel` (size, hardness).
 - `tools/Eraser/EraserToolSettingsPanel.kt`: `EraserToolSettingsPanel` (size).
 - `tools/Fill/FillToolSettingsPanel.kt`: `FillToolSettingsPanel` (tolerance).

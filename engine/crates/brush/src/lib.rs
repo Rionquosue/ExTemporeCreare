@@ -25,6 +25,7 @@ use vectorcraft_color::Paint;
 use vectorcraft_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeId, NodeKind, StrokeLayer};
 use vectorcraft_geom::{BezPath, Rect};
 
+pub use calli::{NibSpec, nib_sweep};
 pub use colorize::{art_colors, colorize, instance_art, stain, tint_node};
 pub use defaults::defaults;
 pub use serde_json;
@@ -122,8 +123,26 @@ impl Colorization {
     }
 }
 
-/// Calligraphic brush: an elliptical nib swept along the path. Sizes are at 1 pt stroke weight
-/// (the stroke weight scales the brush).
+/// The shape of a Calligraphic nib.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NibShape {
+    /// An ellipse (round at 100 % roundness).
+    #[default]
+    Ellipse,
+    /// A flat rectangle with square corners (a chisel tip).
+    Rectangle,
+}
+
+impl NibShape {
+    /// Whether this is the default shape, [`NibShape::Ellipse`] (left out when saved).
+    pub fn is_ellipse(&self) -> bool {
+        *self == NibShape::Ellipse
+    }
+}
+
+/// Calligraphic brush: an elliptical or rectangular nib swept along the path. Sizes are at 1 pt
+/// stroke weight (the stroke weight scales the brush).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Calligraphic {
@@ -139,11 +158,15 @@ pub struct Calligraphic {
     /// where the variation is non-zero, else Fixed — see [`Calligraphic::modes`].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modes: Option<[Variation; 3]>,
+    /// The nib's shape: an ellipse (the default, left out when saved) or a rectangle; `roundness`
+    /// is its thickness over its length either way.
+    #[serde(skip_serializing_if = "NibShape::is_ellipse")]
+    pub shape: NibShape,
 }
 
 impl Default for Calligraphic {
     fn default() -> Self {
-        Self { angle: 0.0, roundness: 100.0, size: 3.0, variation: [0.0; 3], modes: None }
+        Self { angle: 0.0, roundness: 100.0, size: 3.0, variation: [0.0; 3], modes: None, shape: NibShape::Ellipse }
     }
 }
 

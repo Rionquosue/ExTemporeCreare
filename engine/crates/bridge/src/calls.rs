@@ -241,6 +241,34 @@ mod tests {
         sessions::destroy(h);
     }
 
+    /// The Marker's chisel tip on the Paintbrush: a Calligraphic rectangle brush turned by the pen's
+    /// bearing. A level stroke with the pen leaning up the page draws the tip across it (tall); leaning
+    /// right, along it (thin).
+    #[test]
+    fn a_chisel_tip_turns_with_the_pen_tilt_on_the_paintbrush() {
+        let h = sessions::create();
+        ok(&execute(h, "file.new", r#"{"width": 400, "height": 400}"#));
+        let params = json!({"angle": 0, "roundness": 20, "size": 1, "shape": "rectangle", "variation": [180, 0, 0], "modes": ["bearing", "fixed", "fixed"]});
+        ok(&execute(h, "brush.new", &json!({"type": "calligraphic", "name": "Marker Tip", "params": params}).to_string()));
+        ok(&execute(h, "brush.setCurrent", r#"{"name": "Marker Tip"}"#));
+        ok(&select_tool(h, "paintbrush", "{}"));
+        let stroke = |y: f64, tilt: [f64; 2]| {
+            let mut created = Vec::new();
+            for (kind, x) in [("down", 50.0), ("drag", 100.0), ("drag", 150.0), ("drag", 200.0), ("up", 200.0)] {
+                let ev = json!({"kind": kind, "pos": {"x": x, "y": y}, "pen": {"tilt": tilt}}).to_string();
+                created = ok(&pointer(h, &ev, "{}"))["created"].as_array().unwrap().clone();
+            }
+            ok(&execute(h, "stroke.set", &json!({"ids": created, "weight": 20}).to_string()));
+            // How many rows of the column at x = 125 the (black) stroke darkens on the white artboard.
+            let px = render(h, 125.0, y - 30.0, 1, 60, 1.0).expect("pixels");
+            px.chunks(4).filter(|p| p[3] > 127 && p[0] < 128).count() as f64
+        };
+        let across = stroke(100.0, [0.0, -40.0]);
+        let along = stroke(300.0, [40.0, 0.0]);
+        assert!(across > 15.0 && along < 8.0, "across {across}, along {along}");
+        sessions::destroy(h);
+    }
+
     #[test]
     fn a_session_runs_commands_takes_pointer_input_and_renders() {
         let h = sessions::create();

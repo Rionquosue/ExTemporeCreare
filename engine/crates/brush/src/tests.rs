@@ -1561,7 +1561,7 @@ fn pressure_maps_to_size_along_the_stroke() {
 /// Angle and roundness follow the pressure the same way, clamped to their ranges.
 #[test]
 fn pressure_varies_angle_and_roundness() {
-    let c = |modes| Calligraphic { angle: 0.0, roundness: 60.0, size: 10.0, variation: [90.0, 60.0, 0.0], modes: Some(modes) };
+    let c = |modes| Calligraphic { angle: 0.0, roundness: 60.0, size: 10.0, variation: [90.0, 60.0, 0.0], modes: Some(modes), ..Calligraphic::default() };
     let horizontal = line(0.0, 0.0, 100.0, 0.0);
     let draw = |c: Calligraphic, p: f64| {
         let b = Brush { name: "a".into(), kind: BrushKind::Calligraphic(c) };
@@ -1711,7 +1711,7 @@ fn bearing_and_rotation_turn_the_nib() {
 fn pen_modes_without_a_recording_draw_the_value_itself() {
     let horizontal = line(0.0, 0.0, 100.0, 0.0);
     for mode in [Variation::Tilt, Variation::Bearing, Variation::Rotation, Variation::StylusWheel] {
-        let c = Calligraphic { angle: 90.0, roundness: 50.0, size: 10.0, variation: [90.0, 50.0, 6.0], modes: Some([mode; 3]) };
+        let c = Calligraphic { angle: 90.0, roundness: 50.0, size: 10.0, variation: [90.0, 50.0, 6.0], modes: Some([mode; 3]), ..Calligraphic::default() };
         let b = Brush { name: "n".into(), kind: BrushKind::Calligraphic(c) };
         let h = bounds(&stroke_pieces(&Document::new(1.0, 1.0), &b, &horizontal, &stroke(1.0))).height();
         assert!(near(h, 10.0, 0.05), "{mode:?}: {h}");
@@ -1741,7 +1741,7 @@ fn a_mouse_stroke_draws_pen_modes_as_pressure_did() {
     let mouse = stroke(1.0);
     assert!(mouse.pressure.is_none() && mouse.tilt.is_none() && mouse.bearing.is_none() && mouse.rotation.is_none());
     let calli = |mode: Variation| {
-        let c = Calligraphic { angle: 30.0, roundness: 40.0, size: 8.0, variation: [60.0, 30.0, 4.0], modes: Some([mode; 3]) };
+        let c = Calligraphic { angle: 30.0, roundness: 40.0, size: 8.0, variation: [60.0, 30.0, 4.0], modes: Some([mode; 3]), ..Calligraphic::default() };
         stroke_pieces(&doc, &Brush { name: "c".into(), kind: BrushKind::Calligraphic(c) }, &wavy, &mouse)
     };
     let scattered = |mode: Variation| {
@@ -2476,4 +2476,20 @@ fn a_null_calligraphic_modes_setting_stays_when_another_value_changes() {
     // A brush whose modes follow its values: a null `modes` is the brush's own and is left out.
     let plain = calli(0.0, 100.0, 3.0).stroke_options_that_differ(&map(json!({"modes": null}))).unwrap();
     assert!(plain.is_empty(), "{plain:?}");
+}
+
+/// A chisel (rectangle) nib swept along a level line covers the line's length plus its thickness,
+/// and its full length across; the nib keeps its square corners.
+#[test]
+fn a_chisel_nib_sweeps_a_rectangle() {
+    let spec = NibSpec { shape: NibShape::Rectangle, angle: 90.0, roundness: 0.25, size: 10.0 };
+    let path = nib_sweep(&[Point::new(0.0, 0.0), Point::new(100.0, 0.0)], &[spec, spec]);
+    let b = path.control_bounds().expect("an outline");
+    assert!((b.width() - 102.5).abs() < 1e-6 && (b.height() - 10.0).abs() < 1e-6, "{b:?}");
+    let dab = nib_sweep(&[Point::new(0.0, 0.0)], &[NibSpec { angle: 0.0, ..spec }]);
+    let d = dab.control_bounds().expect("a dab");
+    assert!((d.width() - 10.0).abs() < 1e-6 && (d.height() - 2.5).abs() < 1e-6, "{d:?}");
+    let c: Calligraphic = serde_json::from_value(json!({"shape": "rectangle", "roundness": 25.0})).unwrap();
+    assert_eq!(c.shape, NibShape::Rectangle);
+    assert!(serde_json::to_value(Calligraphic::default()).unwrap().get("shape").is_none(), "an ellipse is left out");
 }

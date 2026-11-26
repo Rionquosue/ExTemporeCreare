@@ -32,7 +32,7 @@ Stored keys, paths, constants and identifiers.
 - Native library: `libetcbridge.so` (`System.loadLibrary("etcbridge")`), crate `etc-bridge` in `engine/crates/bridge`.
 - Bridge class: `com.extemporecreare.app.components.engine.EngineBridge`.
 - Answers: `{"ok": <result>}` or `{"error": {"kind": "engine"|"noSession"|"panic", "message"}}`.
-- Pointer event JSON: `{"kind": "down"|"drag"|"up"|"move"|"doubleclick"|"tripleclick", "pos": {"x", "y"}, "pressure"?, "mods"?: {"shift", "alt", "cmd", "ctrl", "space"}}`.
+- Pointer event JSON: `{"kind": "down"|"drag"|"up"|"move"|"doubleclick"|"tripleclick", "pos": {"x", "y"}, "pressure"?, "mods"?: {"shift", "alt", "cmd", "ctrl", "space"}, "pen"?: {"tilt": [x, y] (degrees, −90..90, document axes), "rotation" (degrees clockwise)}}`.
 - View JSON: `viewport` (`{"x", "y", "width", "height"}`, the screen in document points; read by the app's Fill tool), `zoom`, `outline`, `smartGuides`, `guides`, `snapToGrid`, `pixelPreview`, `showBbox`, `snapToPixel`, `snapToPoint`, `snapToGlyph`, `artboard`.
 - Tool request JSON: `{"type": "dialog"|"panel"|"switchTool"|"status"|"place"|"heldPress", …}`.
 - Pointer answer JSON: `{"requests": [tool requests], "created": [ids], "changed": bool}`; on `up`, `created` lists the outermost objects added since the `down` and `changed` whether the document changed.
@@ -62,13 +62,16 @@ Stored keys, paths, constants and identifiers.
 - Tool names (dial names and settings keys): `Marker` (was `Brush`), `Pen`, `Eraser`, `Fill`, `Selection`, `Shapes`, `Move`, `Crop`, `Export`.
 - Engine tools used: Marker `paintbrush` (mode `PAINTBRUSH`) / `blobBrush` (mode `BLOB`); Pen `pen`; Eraser `eraser`; Fill `fillArea`; Selection `selection`; Shapes `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`; Move `selection` (frame only); Crop `cropImage` (one image selected) or `hand` (canvas mode, no input); Export `hand` (no input).
 - Tool settings file: SharedPreferences `tool-settings` (`ToolSettingsStore.FILE`), one JSON string per tool name.
-- Marker settings JSON: `{"mode": "PAINTBRUSH"|"BLOB", "size": pt 0.1–1000 (5), "hardness": % 0–100 (100), "brushLibrary", "brushName"}`.
+- Marker settings JSON: `{"mode": "PAINTBRUSH"|"BLOB", "size": pt 0.1–1000 (5), "hardness": % 0–100 (100), "brushLibrary", "brushName", "tip": "ROUND"|"OVAL"|"CHISEL", "tipAngle": ° −180–180 (45), "tipThickness": % 1–100 (30), "orientation": "FIXED"|"TILT"|"ROTATION"}`.
+- Marker tip brush: document Calligraphic brush `Marker Tip` (`MarkerTool.TIP_BRUSH`): size 1 (the stroke weight sizes it), `shape` `ellipse`|`rectangle`, angle mode `fixed`|`bearing`|`rotation` with variation 180.
+- Calligraphic brush field `shape`: `ellipse` (default, not saved) | `rectangle`.
+- `path.blob` params `shape` (`ellipse`|`rectangle`) and `angleFrom` (`fixed`|`tilt`|`rotation`); Blob Brush tool options `shape`, `angleFrom` (kept with the tool settings).
 - Pen settings JSON: `{"size": pt 0.1–1000 (1), "hardness": % (100)}`.
 - Eraser settings JSON: `{"size": pt 0.1–1000 (10)}`.
 - Fill settings JSON: `{"tolerance": pt ≥ 0 (0)}` → engine `gapDetection` (tolerance > 0) and `gapLength`.
 - Fill failsafe (infinite canvas, tap changed nothing): `shape.rectangle` over `viewport`, `paint.setStroke {none}`, `select.set`, `object.arrange.sendToBack`, in undo group `Fill`.
 - Shapes settings JSON: `{"kind": "RECTANGLE"|"ELLIPSE"|"POLYGON"|"STAR"|"LINE", "sides": 3–1000 (6), "points": 3–1000 (5)}`.
-- Engine tool options set: Blob Brush and Eraser `size`; Fill Area `gapDetection`, `gapLength`; Polygon `sides`; Star `points`.
+- Engine tool options set: Blob Brush `size`, `angle`, `roundness`, `shape`, `angleFrom`; Eraser `size`; Fill Area `gapDetection`, `gapLength`; Polygon `sides`; Star `points`.
 - Hardness: feather radius = size / 2 × (1 − hardness / 100) pt, applied as effect `stylize.feather` to the objects a Marker stroke or a new Pen path added.
 - Undo group labels: `Marker`, `Pen`, `Move`.
 - Crop: canvas box grip reach `CropTool.REACH_PX` = 24 screen px; minimum box `CanvasCropBox.MIN` = 1 pt; canvas apply `artboard.setProps {index, x, y, width, height, moveArt: false, scaleArt: false}`; image apply `object.cropImage {rect}` from the Crop Image tool's `rect` option; cancel sets `rect` to null (image) or restores the artboard's bounds (canvas).

@@ -500,6 +500,47 @@ fn adjacent_to_topmost(doc: &Document, touched: &[NodeId], paint: &Paint) -> Vec
     out
 }
 
+/// The area of a Blob Brush stroke whose tip `shape` is `"rectangle"` (a chisel) or whose
+/// `angleFrom` is `"tilt"` (the tip's long axis turns with the way the pen leans, `angle` added) or
+/// `"rotation"` (it turns with the pen's barrel): the tip swept along `samples` point by point,
+/// each as wide as the pen's pressure gives with `variation` (Size set to Pressure). `None` for a
+/// round or oval tip at a fixed angle, which the usual outline draws.
+fn nib_region(p: &Value, samples: &[Sample], size: f64, angle: f64, roundness: f64, variation: Option<f64>, cmd: &str) -> Result<Option<PathData>> {
+    use vectorcraft_brush::{NibShape, NibSpec};
+    let shape = match p.get("shape").filter(|v| !v.is_null()).map(|v| v.as_str()) {
+        None | Some(Some("ellipse")) => NibShape::Ellipse,
+        Some(Some("rectangle")) => NibShape::Rectangle,
+        _ => return Err(bad(cmd, "`shape` is \"ellipse\" or \"rectangle\"")),
+    };
+    let from = match p.get("angleFrom").filter(|v| !v.is_null()).map(|v| v.as_str()) {
+        None => "fixed",
+        Some(Some(f @ ("fixed" | "tilt" | "rotation"))) => f,
+        _ => return Err(bad(cmd, "`angleFrom` is \"fixed\", \"tilt\" or \"rotation\"")),
+    };
+    if shape == NibShape::Ellipse && from == "fixed" {
+        return Ok(None);
+    }
+    let mut turn = angle;
+    let specs: Vec<NibSpec> = samples
+        .iter()
+        .map(|s| {
+            // A point without the reading keeps the angle the one before it had.
+            turn = match from {
+                "tilt" => s.bearing().map_or(turn, |b| angle + b),
+                "rotation" => s.rotation().map_or(turn, |r| angle - r),
+                _ => angle,
+            };
+            let width = match variation {
+                Some(v) => vectorcraft_tools::draw2::pressure_size(size, v, s.pressure().unwrap_or(0.5)),
+                None => size,
+            };
+            NibSpec { shape, angle: turn, roundness: (roundness / 100.0).max(0.001), size: width }
+        })
+        .collect();
+    let pts: Vec<Point> = samples.iter().map(|s| s.pt).collect();
+    Ok(Some(vectorcraft_brush::nib_sweep(&pts, &specs)))
+}
+
 pub(super) fn blob(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "path.blob";
     let samples = samples_param(p, "points", C)?;
@@ -539,6 +580,8 @@ pub(super) fn blob(s: &mut Session, p: &Value) -> Result<Value> {
         samples.clone()
     };
     let pressure = size_pressure(p, &mapped_samples, C)?;
+    // A chisel tip, or a tip turned by the pen, is swept along the stroke point by point.
+    let swept = nib_region(p, &samples, size, angle, roundness, pressure.as_ref().map(|(_, v)| *v), C)?;
     let pts: Vec<Point> = samples.into_iter().map(|s| s.pt).collect();
     let mapped_pts: Vec<Point> = mapped_samples.into_iter().map(|s| s.pt).collect();
     // The widest the brush gets: the area merges look in.
@@ -550,6 +593,7 @@ pub(super) fn blob(s: &mut Session, p: &Value) -> Result<Value> {
         };
         if roundness < 100.0 { path.transformed(squash) } else { path }
     };
+    let region = if let Some(region) = swept { region } else {
     let region = match (&pressure, pts.len() > 1) {
         (Some((prof, variation)), true) => {
             let fitted = match fidelity {
@@ -571,7 +615,8 @@ pub(super) fn blob(s: &mut Session, p: &Value) -> Result<Value> {
             fitted.unwrap_or_else(|| brush_region(&mapped_pts, size))
         }
     };
-    let region = if roundness < 100.0 { region.transformed(tip) } else { region };
+    if roundness < 100.0 { region.transformed(tip) } else { region }
+    };
     if region.is_empty() {
         return Err(EngineError::Other("empty brush stroke".into()));
     }

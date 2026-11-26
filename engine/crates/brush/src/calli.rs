@@ -1,4 +1,4 @@
-//! Calligraphic and bristle brushes: an elliptical nib swept along the path.
+//! Calligraphic and bristle brushes: an elliptical or rectangular nib swept along the path.
 //!
 //! The swept area of an ellipse moving along a curve is bounded by the ellipse's support points
 //! in the directions normal to the path. For nib axes `u`, `v` with semi-axes `a`, `b` the
@@ -13,36 +13,110 @@ use vectorcraft_doc::{Node, StrokeLayer};
 use vectorcraft_geom::{BezPath, PathData, Point, SubPath, Vec2};
 
 use crate::track::{Rng, Track, normal, seed_of, tracks};
-use crate::{Bristle, BristleShape, Calligraphic, PenAt, Variation, filled, tolerance};
+use crate::{Bristle, BristleShape, Calligraphic, NibShape, PenAt, Variation, filled, tolerance};
 
 /// The most pieces a varying nib cuts one segment of a subpath into, and about how many samples
 /// it takes along a whole subpath.
 const MAX_STEPS: f64 = 1024.0;
 
-/// An elliptical nib.
+/// An elliptical or rectangular nib.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Nib {
     u: Vec2,
     v: Vec2,
     a: f64,
     b: f64,
+    rectangle: bool,
 }
 
 impl Nib {
-    /// `angle` in degrees counter-clockwise on the page (y-down document space), `size` the
-    /// major diameter, `roundness` the minor/major ratio (0..1].
+    /// An elliptical nib: `angle` in degrees counter-clockwise on the page (y-down document
+    /// space), `size` the major diameter, `roundness` the minor/major ratio (0..1].
     pub fn new(angle_deg: f64, roundness: f64, size: f64) -> Self {
+        Self::shaped(NibShape::Ellipse, angle_deg, roundness, size)
+    }
+    /// A nib of `shape`; for a rectangle, `size` is its length and `roundness` its thickness over
+    /// its length.
+    pub fn shaped(shape: NibShape, angle_deg: f64, roundness: f64, size: f64) -> Self {
         let t = angle_deg.to_radians();
         let u = Vec2::new(t.cos(), -t.sin());
         let v = Vec2::new(-u.y, u.x);
         let a = (size / 2.0).max(1e-4);
-        Nib { u, v, a, b: (a * roundness.clamp(0.01, 1.0)).max(1e-4) }
+        Nib { u, v, a, b: (a * roundness.clamp(0.01, 1.0)).max(1e-4), rectangle: shape == NibShape::Rectangle }
     }
+    /// The nib's point furthest in direction `d`: for an ellipse its support point, for a rectangle
+    /// the corner on that side.
     pub fn support(&self, d: Vec2) -> Vec2 {
         let (du, dv) = (self.u.dot(d), self.v.dot(d));
+        if self.rectangle {
+            let side = |x: f64| if x >= 0.0 { 1.0 } else { -1.0 };
+            return self.u * (self.a * side(du)) + self.v * (self.b * side(dv));
+        }
         let den = ((self.a * du).powi(2) + (self.b * dv).powi(2)).sqrt().max(1e-12);
         (self.u * (self.a * self.a * du) + self.v * (self.b * self.b * dv)) / den
     }
+}
+
+/// A nib at one point of a stroke: its shape, angle (degrees counter-clockwise on the page),
+/// roundness (thickness over length, 0..1] and size (its length, in points).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct NibSpec {
+    pub shape: NibShape,
+    pub angle: f64,
+    pub roundness: f64,
+    pub size: f64,
+}
+
+impl NibSpec {
+    /// The nib part way (`t`, 0..1) from `self` to `to`, the angle turning the shorter way round.
+    fn lerp(&self, to: &NibSpec, t: f64) -> NibSpec {
+        let turn = (to.angle - self.angle + 540.0).rem_euclid(360.0) - 180.0;
+        NibSpec {
+            shape: self.shape,
+            angle: self.angle + turn * t,
+            roundness: self.roundness + (to.roundness - self.roundness) * t,
+            size: self.size + (to.size - self.size) * t,
+        }
+    }
+    fn nib(&self) -> Nib {
+        Nib::shaped(self.shape, self.angle, self.roundness, self.size)
+    }
+}
+
+/// The area a nib covers swept along the polyline `pts`, the nib at each point `nibs[i]` and in
+/// between them part way from one to the next: closed outlines, to be filled with the nonzero
+/// rule. One point gives the nib's own outline. Empty when `pts` is empty or the lists differ in
+/// length.
+pub fn nib_sweep(pts: &[Point], nibs: &[NibSpec]) -> PathData {
+    if pts.is_empty() || pts.len() != nibs.len() {
+        return PathData::new(Vec::new());
+    }
+    let largest = nibs.iter().map(|n| n.size).fold(0.0, f64::max);
+    if pts.len() == 1 || pts.windows(2).all(|w| w[0].distance(w[1]) < 1e-9) {
+        let nib = nibs[0].nib();
+        let ring: Vec<Point> = (0..64).map(|k| pts[0] + nib.support(rot(Vec2::new(1.0, 0.0), std::f64::consts::TAU * k as f64 / 64.0))).collect();
+        return PathData::new(vec![SubPath::polyline(&ring, true)]);
+    }
+    let mut cum = vec![0.0];
+    for w in pts.windows(2) {
+        let last = cum.last().copied().unwrap_or(0.0);
+        cum.push(last + w[0].distance(w[1]));
+    }
+    let total = cum.last().copied().unwrap_or(0.0).max(1e-12);
+    let at = |f: f64| -> Nib {
+        let s = f.clamp(0.0, 1.0) * total;
+        let i = cum.partition_point(|c| *c <= s).saturating_sub(1).min(nibs.len() - 1);
+        let j = (i + 1).min(nibs.len() - 1);
+        let span = (cum[j] - cum[i]).max(1e-12);
+        nibs[i].lerp(&nibs[j], ((s - cum[i]) / span).clamp(0.0, 1.0)).nib()
+    };
+    let mut bp = BezPath::new();
+    bp.move_to(pts[0]);
+    for p in &pts[1..] {
+        bp.line_to(*p);
+    }
+    let subs: Vec<SubPath> = tracks(&bp, tolerance(largest)).iter().flat_map(|t| sweep(t, &at, Some((t.len() / MAX_STEPS).max(0.25)))).collect();
+    PathData::new(subs)
 }
 
 /// Unit vector at `angle` radians from `base` towards its left normal.
@@ -151,14 +225,14 @@ pub(crate) fn calligraphic(c: &Calligraphic, bp: &BezPath, weight: f64, stroke: 
     let subs: Vec<SubPath> = if c.uses_pen() {
         let nib = |f: f64| {
             let [angle, round, size] = pressured(c, base, PenAt::of(stroke, f));
-            Nib::new(angle, round / 100.0, size * weight)
+            Nib::shaped(c.shape, angle, round / 100.0, size * weight)
         };
         // Flattened for the largest nib the pen gives.
         let size = pressured(c, base, PenAt::uniform(0.0))[2].max(pressured(c, base, PenAt::uniform(1.0))[2]) * weight;
         tracks(bp, tolerance(size)).iter().flat_map(|t| sweep(t, &nib, Some((t.len() / MAX_STEPS).max(0.25)))).collect()
     } else {
         let [angle, round, size] = base;
-        let nib = Nib::new(angle, round / 100.0, size * weight);
+        let nib = Nib::shaped(c.shape, angle, round / 100.0, size * weight);
         tracks(bp, tolerance(size * weight)).iter().flat_map(|t| sweep(t, &|_| nib, None)).collect()
     };
     if subs.is_empty() {

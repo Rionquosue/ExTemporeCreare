@@ -189,6 +189,11 @@ pub struct GestureTool {
     shift_line: Option<f64>,
     /// "Merge only with selection": a Blob Brush stroke merges only with selected paths.
     pub merge_only_selection: bool,
+    /// The Blob Brush tip's shape: `"ellipse"` or `"rectangle"` (a chisel), as `path.blob` takes it.
+    pub tip_shape: &'static str,
+    /// What turns the Blob Brush tip: `"fixed"` (its angle), `"tilt"` or `"rotation"` of the pen,
+    /// as `path.blob`'s `angleFrom`.
+    pub angle_from: &'static str,
     /// "Edit selected paths within N pixels".
     pub edit_within: f64,
     /// "Close paths when ends are within N pixels".
@@ -901,6 +906,8 @@ impl GestureTool {
             unconstrained: false,
             shift_line: None,
             merge_only_selection: false,
+            tip_shape: "ellipse",
+            angle_from: "fixed",
             edit_within: 12.0,
             close_within: 15.0,
             snap: DrawSnap::default(),
@@ -1599,7 +1606,9 @@ impl GestureTool {
                     "angle": self.angle,
                     "roundness": self.roundness,
                     "keepSelected": self.keep_selected,
-                    "mergeOnlySelection": self.merge_only_selection
+                    "mergeOnlySelection": self.merge_only_selection,
+                    "shape": self.tip_shape,
+                    "angleFrom": self.angle_from
                 }),
             )],
             "eraser" => vec![Action::Exec(
@@ -2064,7 +2073,9 @@ impl Tool for GestureTool {
                     "angle": self.angle,
                     "roundness": self.roundness,
                     "keepSelected": self.keep_selected,
-                    "mergeOnlySelection": self.merge_only_selection
+                    "mergeOnlySelection": self.merge_only_selection,
+                    "shape": self.tip_shape,
+                    "angleFrom": self.angle_from
                 })
             }
             "eraser" => json!({
@@ -2109,6 +2120,21 @@ impl Tool for GestureTool {
             }
             "keepSelected" => self.keep_selected = v.as_bool().unwrap_or(self.keep_selected),
             "mergeOnlySelection" => self.merge_only_selection = v.as_bool().unwrap_or(self.merge_only_selection),
+            "shape" if self.id == "blobBrush" => {
+                self.tip_shape = match v.as_str() {
+                    Some("rectangle") => "rectangle",
+                    Some("ellipse") => "ellipse",
+                    _ => self.tip_shape,
+                }
+            }
+            "angleFrom" if self.id == "blobBrush" => {
+                self.angle_from = match v.as_str() {
+                    Some("fixed") => "fixed",
+                    Some("tilt") => "tilt",
+                    Some("rotation") => "rotation",
+                    _ => self.angle_from,
+                }
+            }
             "editWithin" => self.edit_within = v.as_f64().unwrap_or(self.edit_within).clamp(0.0, 100.0),
             "closeWithin" => self.close_within = v.as_f64().unwrap_or(self.close_within).clamp(0.0, 100.0),
             _ => {}
@@ -2129,6 +2155,8 @@ impl Tool for GestureTool {
             "sizeVariation" => c::number(key, v, 0.0, 1000.0),
             "angle" => c::number(key, v, -180.0, 180.0),
             "roundness" => c::number(key, v, if self.id == "blobBrush" { 0.0 } else { 1.0 }, 100.0),
+            "shape" => c::one_of(key, v, &["ellipse", "rectangle"]),
+            "angleFrom" => c::one_of(key, v, &["fixed", "tilt", "rotation"]),
             "editWithin" | "closeWithin" => c::number(key, v, 0.0, 100.0),
             "angleVariation" => c::number(key, v, 0.0, 180.0),
             "roundnessVariation" => c::number(key, v, 0.0, 100.0),
