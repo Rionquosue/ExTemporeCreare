@@ -29,8 +29,8 @@ import com.extemporecreare.app.ui.theme.EtcColors
 /**
  * A floating panel (`uistandards.md` §3.2, §10): a rounded translucent surface with a thin border,
  * its header a grip, the [title], a [count] and a collapse chevron. Tapping the header collapses or
- * restores it ([onToggle]); the body ([content]) shows only while [expanded]. [actions] sit before
- * the chevron.
+ * restores it ([onToggle]); holding it starts a move ([headerModifier], from the panel's host). The
+ * body ([content]) shows only while [expanded]. [actions] sit before the chevron.
  */
 @Composable
 fun FloatingPanel(
@@ -39,6 +39,7 @@ fun FloatingPanel(
     expanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    headerModifier: Modifier = Modifier,
     actions: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -48,7 +49,7 @@ fun FloatingPanel(
             .border(1.dp, EtcColors.Line, RoundedCornerShape(16.dp)),
     ) {
         Row(
-            Modifier.clickable(onClick = onToggle).padding(horizontal = 12.dp, vertical = 10.dp),
+            headerModifier.clickable(onClick = onToggle).padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -64,4 +65,4 @@ fun FloatingPanel(
 }
 
 // GLOSSARY
-// - FloatingPanel(title, count, expanded, onToggle, modifier, actions, content): a floating panel with a collapsible header.
+// - FloatingPanel(title, count, expanded, onToggle, modifier, headerModifier, actions, content): a floating panel with a collapsible header.

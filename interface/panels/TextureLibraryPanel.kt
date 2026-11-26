@@ -13,8 +13,8 @@ import com.extemporecreare.app.ui.tools.SettingNote
  * The engine has no texture layer yet, so it lists none.
  */
 @Composable
-fun TextureLibraryPanel(expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
-    FloatingPanel("Texture library", "00", expanded, onToggle, modifier.width(260.dp)) {
+fun TextureLibraryPanel(expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier, headerModifier: Modifier = Modifier) {
+    FloatingPanel("Texture library", "00", expanded, onToggle, modifier.width(260.dp), headerModifier) {
         Box(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
             SettingNote("No texture presets yet: texture layers are not in the engine yet.")
         }
@@ -22,4 +22,4 @@ fun TextureLibraryPanel(expanded: Boolean, onToggle: () -> Unit, modifier: Modif
 }
 
 // GLOSSARY
-// - TextureLibraryPanel(expanded, onToggle, modifier): the Texture library panel.
+// - TextureLibraryPanel(expanded, onToggle, modifier, headerModifier): the Texture library panel.

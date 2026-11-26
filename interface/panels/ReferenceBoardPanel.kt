@@ -20,13 +20,14 @@ import com.extemporecreare.app.ui.tools.SettingNote
  * own view is not built yet.
  */
 @Composable
-fun ReferenceBoardPanel(references: Int, expanded: Boolean, onToggle: () -> Unit, onAdd: () -> Unit, modifier: Modifier = Modifier) {
+fun ReferenceBoardPanel(references: Int, expanded: Boolean, onToggle: () -> Unit, onAdd: () -> Unit, modifier: Modifier = Modifier, headerModifier: Modifier = Modifier) {
     FloatingPanel(
         "Reference board",
         "%02d REFS".format(references),
         expanded,
         onToggle,
         modifier.width(270.dp),
+        headerModifier = headerModifier,
         actions = { Icon(Icons.Outlined.Add, "Add reference", tint = EtcColors.Text, modifier = Modifier.size(20.dp).clickable(onClick = onAdd)) },
     ) {
         Box(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
@@ -36,4 +37,4 @@ fun ReferenceBoardPanel(references: Int, expanded: Boolean, onToggle: () -> Unit
 }
 
 // GLOSSARY
-// - ReferenceBoardPanel(references, expanded, onToggle, onAdd, modifier): the Reference board panel.
+// - ReferenceBoardPanel(references, expanded, onToggle, onAdd, modifier, headerModifier): the Reference board panel.

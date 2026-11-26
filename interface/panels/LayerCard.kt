@@ -41,6 +41,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -112,11 +113,11 @@ class CardDrag(
  * operations are still open (§13.3), so both are shown disabled.
  */
 @Composable
-fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: CardDrag) {
+fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: CardDrag, folders: SnapshotStateMap<Long, Boolean>) {
     val id = row.optLong("id")
     val kind = row.optString("kind")
     val folder = kind == "folder"
-    var open by remember(id) { mutableStateOf(true) }
+    val open = folders[id] ?: true
     val selected = row.optBoolean("current")
     val hint = drag.hint?.takeIf { it.id == id }
     Column(
@@ -138,7 +139,7 @@ fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: Card
                     if (open) Icons.Outlined.ExpandMore else Icons.Outlined.ChevronRight,
                     if (open) "Collapse" else "Expand",
                     tint = EtcColors.Muted,
-                    modifier = Modifier.size(22.dp).clickable { open = !open },
+                    modifier = Modifier.size(22.dp).clickable { folders[id] = !open },
                 )
             }
             Text(row.optString("name"), color = EtcColors.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -186,7 +187,7 @@ fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: Card
     }
     if (folder && open) {
         val children = row.optJSONArray("children")
-        for (i in 0 until (children?.length() ?: 0)) children?.optJSONObject(i)?.let { LayerCard(it, depth + 1, actions, drag) }
+        for (i in 0 until (children?.length() ?: 0)) children?.optJSONObject(i)?.let { LayerCard(it, depth + 1, actions, drag, folders) }
     }
 }
 
@@ -308,7 +309,7 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
 // - LAYER_STYLES: the modifier menu's styles (label, engine command and params, or null when unavailable).
 // - LayerCardActions: what a card asks of the document (select, visibility, opacity, blend, add a style).
 // - DropHint: where a dragged card would go. CardDrag: the grip drag shared by the cards.
-// - LayerCard(row, depth, actions, drag): one row as a card, a folder's rows below it.
+// - LayerCard(row, depth, actions, drag, folders): one row as a card, a folder's rows below it unless collapsed in folders.
 // - DropLine(): the drop indicator.
 // - chipLabel(kind, row), iconOf(kind): a row's chip and icon. Chip(text): a small outlined label.
 // - StyleMenu(onPick): the modifier menu.

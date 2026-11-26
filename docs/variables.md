@@ -105,7 +105,7 @@ Stored keys, paths, constants and identifiers.
 - New Document: `EngineBridge.newDocument` with `{name, infinite, width, height (px = pt), units: "Pixels", colorMode rgb|cmyk, ppi 1–2400, background transparent|white|#rrggbb}`; in/cm/mm convert to pixels at the ppi; defaults kept in SharedPreferences `document-defaults` key `settings` (default 1920 × 1080 px, 144 ppi, RGB, transparent). Presets: Infinite canvas, Screen 1920 × 1080, Tablet 2560 × 1600, Square 2048, A4 300 ppi, Letter 300 ppi.
 - Infinite canvas: a document with no artboards (the artboard `file.new` makes is removed before its history starts).
 - Artwork camera: kept with the document (`setView {x, y, zoom}`, saved as the document's view, named `Artwork`) before each save and on Home; restored on open. View Flip is not saved.
-- Panel layout: SharedPreferences `panel-layout` (`layersOpen`, `texturesOpen`, `boardOpen`); focus mode is not kept.
+- Panel layout: SharedPreferences `panel-layout` (`layersOpen`, `texturesOpen`, `boardOpen`, and per panel `<key>.dock` topStart|topEnd|bottomEnd|float, `<key>.x`, `<key>.y`); keys `textures`, `layers`, `board`; default docks textures topStart, layers topEnd, board bottomEnd; dock reach 70 dp (5 × the 14 dp margin); focus mode is not kept.
 - Dial order: Brush, Marker, Pencil, Pen, Eraser, Fill, Selection, Shapes, Move, Crop, Export. Active sight 45° (`SIGHT`); ring radius 0.74 of the dial (`RING`); dial 340 dp, offset −110 dp, +110 dp into the lower-left corner.
 - Top bar height `BAR_HEIGHT` 52 dp; Layers panel width 368 dp; Texture library 260 dp; Reference board 270 dp.
 - Camera zoom range `MIN_ZOOM` 0.01 – `MAX_ZOOM` 64; Fit artwork leaves 18 % margin.

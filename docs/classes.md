@@ -103,7 +103,8 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 
 - `MainActivity.kt`: `MainActivity`, the app's activity: splash or editor, the system pickers (Save As, Open, Locate, Export folder) and the New Document and Settings dialogs.
 - `editor/EditorState.kt`: `EditorState`: screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `setColor`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
-- `editor/PanelLayout.kt`: `PanelLayout`: the panels' expanded states (kept in the preferences), focus mode, `reset`.
+- `editor/PanelLayout.kt`: `PanelLayout` (`Place`, `places`, `place`, toggles, `toggleFocus`, `reset`): the panels' docks or floating positions and expanded states, kept in the preferences; focus mode.
+- `editor/MovablePanel.kt`: `MovablePanel`: hold a panel's header and drag to move it; edge dock targets with a placement preview; kept inside the workspace.
 - `document/NewDocumentDialog.kt`: `NewDocumentDialog`; `document/DocumentPresets.kt`: `DOCUMENT_PRESETS`.
 - `splash/SplashScreen.kt`: `SplashScreen`, `SplashActions`; `splash/SettingsDialog.kt`: `SettingsDialog` (New Document defaults, clear recents, reset panel layout).
 - `editor/EditorScreen.kt`: `EditorScreen` (the workspace layout), `EditorRequests` (pickers).
@@ -117,7 +118,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `dial/ToolReadout.kt`: `ToolReadout`: the active tool's name and size, drag to adjust.
 - `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
-- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity with slider popover, Fill and mask shown disabled, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`.
+- `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity with slider popover, Fill and mask shown disabled, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`.
 - `common/ConfirmDialog.kt`: `Confirmation`, `ConfirmDialog`: ask before a destructive action.
 - `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`.
 - `color/ColorWorkspace.kt`: `ColorWorkspace`: saturation/value square, hue bar, hex and R, G, B entry, swatches, recent colours, mixing pad; `color/MixingPad.kt`: `MixingPad` (paint primary or alternate, sample, reset).

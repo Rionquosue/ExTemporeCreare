@@ -1,15 +1,25 @@
 package com.extemporecreare.app.ui.editor
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DragHandle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +42,7 @@ import com.extemporecreare.app.ui.dial.sizeOf
 import com.extemporecreare.app.ui.panels.LayerCardActions
 import com.extemporecreare.app.ui.panels.LayersActions
 import com.extemporecreare.app.ui.panels.LayersPanel
+import com.extemporecreare.app.ui.panels.LayersViewState
 import com.extemporecreare.app.ui.panels.ReferenceBoardPanel
 import com.extemporecreare.app.ui.panels.TextureLibraryPanel
 import com.extemporecreare.app.ui.theme.EtcColors
@@ -51,12 +62,15 @@ class EditorRequests(val newDocument: () -> Unit, val saveAs: () -> Unit, val op
  * bar; the Texture library upper left; Layers (or, while the Export tool is active, Export
  * Settings in its place) upper right; the Reference board lower right; and the rotary dial cropped
  * into the lower-left corner with its colour control, the tool readout beside it and the active
- * tool's settings window above the readout. While debug mode is on (switched from ADB,
+ * tool's settings window above the readout. The panels move by holding their headers and dock at
+ * the workspace's edges ([MovablePanel]); focus mode hides them. While debug mode is on (switched from ADB,
  * [DebugMode]) its readout shows at the top.
  */
 @Composable
 fun EditorScreen(state: EditorState, requests: EditorRequests) {
     val layout = state.layout
+    // The Layers panel's scroll and collapsed folders, kept while Export Settings takes its place.
+    val layersView = remember { LayersViewState(ScrollState(0), mutableStateMapOf()) }
     val revision = state.revision
     // Debug mode follows its ADB switch (DebugMode), checked every second.
     LaunchedEffect(Unit) {
@@ -97,17 +111,31 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
         )
         Box(Modifier.fillMaxSize().padding(top = BAR_HEIGHT)) {
             if (!layout.focus) {
-                TextureLibraryPanel(layout.texturesOpen, layout::toggleTextures, Modifier.align(Alignment.TopStart).padding(16.dp))
-                val export = state.activeTool as? ExportTool
-                Box(Modifier.align(Alignment.TopEnd).padding(12.dp).width(368.dp)) {
-                    if (export != null) {
-                        ExportToolSettingsPanel(export, state.engine, revision) { state.show(it); state.touched() }
-                    } else {
-                        val rows = remember(revision) { JSONObject(state.engine.layers()).optJSONObject("ok")?.optJSONArray("rows") ?: JSONArray() }
-                        LayersPanel(rows, layout.layersOpen, layout::toggleLayers, layersActions(state))
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    MovablePanel(PanelLayout.TEXTURES, layout) { header ->
+                        TextureLibraryPanel(layout.texturesOpen, layout::toggleTextures, headerModifier = header)
+                    }
+                    MovablePanel(PanelLayout.LAYERS, layout) { header ->
+                        val export = state.activeTool as? ExportTool
+                        Box(Modifier.width(368.dp)) {
+                            if (export != null) {
+                                Column {
+                                    Box(
+                                        header.fillMaxWidth().height(18.dp).background(EtcColors.Panel2, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                                        contentAlignment = Alignment.Center,
+                                    ) { Icon(Icons.Outlined.DragHandle, "Hold to move Export Settings", tint = EtcColors.Soft, modifier = Modifier.size(16.dp)) }
+                                    ExportToolSettingsPanel(export, state.engine, revision) { state.show(it); state.touched() }
+                                }
+                            } else {
+                                val rows = remember(revision) { JSONObject(state.engine.layers()).optJSONObject("ok")?.optJSONArray("rows") ?: JSONArray() }
+                                LayersPanel(rows, layout.layersOpen, layout::toggleLayers, layersActions(state), layersView, headerModifier = header)
+                            }
+                        }
+                    }
+                    MovablePanel(PanelLayout.BOARD, layout) { header ->
+                        ReferenceBoardPanel(0, layout.boardOpen, layout::toggleBoard, requests.openBoard, headerModifier = header)
                     }
                 }
-                ReferenceBoardPanel(0, layout.boardOpen, layout::toggleBoard, requests.openBoard, Modifier.align(Alignment.BottomEnd).padding(16.dp))
             }
             RotaryDial(
                 names = state.tools.map { it.name },

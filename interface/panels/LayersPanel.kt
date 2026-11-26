@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.extemporecreare.app.ui.theme.EtcColors
 import org.json.JSONArray
+
+/**
+ * What the Layers panel shows that outlives it while Export Settings takes its place (§9.1): its
+ * scroll position and which folders are collapsed.
+ */
+class LayersViewState(val scroll: ScrollState, val folders: SnapshotStateMap<Long, Boolean>)
 
 /** What the Layers panel can ask of the document. */
 class LayersActions(
@@ -52,8 +59,16 @@ class LayersActions(
  * disabled.
  */
 @Composable
-fun LayersPanel(rows: JSONArray, expanded: Boolean, onToggle: () -> Unit, actions: LayersActions, modifier: Modifier = Modifier) {
-    FloatingPanel("Layers", "%02d".format(count(rows)), expanded, onToggle, modifier) {
+fun LayersPanel(
+    rows: JSONArray,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    actions: LayersActions,
+    view: LayersViewState,
+    modifier: Modifier = Modifier,
+    headerModifier: Modifier = Modifier,
+) {
+    FloatingPanel("Layers", "%02d".format(count(rows)), expanded, onToggle, modifier, headerModifier) {
         Row(Modifier.padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Create(Icons.Outlined.Category, "Vector", Modifier.weight(1f), actions.newVector)
             Create(Icons.Outlined.Layers, "Raster", Modifier.weight(1f), actions.newRaster)
@@ -81,10 +96,10 @@ fun LayersPanel(rows: JSONArray, expanded: Boolean, onToggle: () -> Unit, action
             hint = hint,
         )
         Column(
-            Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()).padding(horizontal = 10.dp),
+            Modifier.heightIn(max = 520.dp).verticalScroll(view.scroll).padding(horizontal = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            for (i in 0 until rows.length()) rows.optJSONObject(i)?.let { LayerCard(it, 0, actions.card, drag) }
+            for (i in 0 until rows.length()) rows.optJSONObject(i)?.let { LayerCard(it, 0, actions.card, drag, view.folders) }
         }
         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             FooterButton(Icons.Outlined.Delete, "Delete", actions.deleteCurrent)
@@ -144,7 +159,8 @@ private fun FooterButton(icon: ImageVector, description: String, onClick: () -> 
 
 // GLOSSARY
 // - LayersActions: what the panel asks of the document (cards, new vector/raster layer, folder, delete, move).
-// - LayersPanel(rows, expanded, onToggle, actions, modifier): the Layers panel.
+// - LayersViewState: the panel's scroll and collapsed folders, kept while Export Settings shows.
+// - LayersPanel(rows, expanded, onToggle, actions, view, modifier, headerModifier): the Layers panel.
 // - dropAt(bounds, dragged, y): where a dragged card would go.
 // - count(rows): the rows, folders' included.
 // - Create(icon, label, modifier, onClick): a creation row button.

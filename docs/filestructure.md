@@ -143,6 +143,7 @@ EXTEMPORECREARE
 |   |-- editor/
 |   |   |-- EditorScreen.kt
 |   |   |-- EditorState.kt
+|   |   |-- MovablePanel.kt
 |   |   |-- PanelLayout.kt
 |   |   |-- ToolSettingsHost.kt
 |   |-- panels/
