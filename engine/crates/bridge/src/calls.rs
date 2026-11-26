@@ -269,6 +269,51 @@ mod tests {
         sessions::destroy(h);
     }
 
+    /// Pencil grain on a black square leaves the paper showing through in places, at the view's
+    /// resolution: some pixels stay dark, some lighten, zoomed out and zoomed in.
+    #[test]
+    fn pencil_grain_lets_the_paper_show_at_any_zoom() {
+        let h = sessions::create();
+        ok(&execute(h, "file.new", r#"{"width": 200, "height": 200}"#));
+        let id = ok(&execute(h, "shape.rectangle", r#"{"x": 20, "y": 20, "width": 100, "height": 100}"#))["id"].clone();
+        ok(&execute(h, "paint.setFill", &json!({"ids": [id], "color": "#000000"}).to_string()));
+        ok(&execute(h, "paint.setStroke", &json!({"ids": [id], "none": true}).to_string()));
+        ok(&execute(h, "effect.apply", &json!({"ids": [id], "effect": "stylize.pencilGrain", "params": {"scale": 2, "strength": 100}}).to_string()));
+        for scale in [1.0, 8.0] {
+            let px = render(h, 40.0, 40.0, 64, 64, scale).expect("pixels");
+            let dark = px.chunks(4).filter(|p| p[0] < 64).count();
+            let light = px.chunks(4).filter(|p| p[0] > 192).count();
+            assert!(dark > 200 && light > 200, "scale {scale}: dark {dark}, light {light}");
+        }
+        sessions::destroy(h);
+    }
+
+    /// The Pencil's cone tip on the Paintbrush: a pen leaning across a level stroke draws it wider
+    /// than one held upright.
+    #[test]
+    fn a_cone_tip_widens_as_the_pen_leans() {
+        let h = sessions::create();
+        ok(&execute(h, "file.new", r#"{"width": 400, "height": 400}"#));
+        let params = json!({"size": 1, "cone": 20});
+        ok(&execute(h, "brush.new", &json!({"type": "calligraphic", "name": "Pencil Tip", "params": params}).to_string()));
+        ok(&execute(h, "brush.setCurrent", r#"{"name": "Pencil Tip"}"#));
+        ok(&select_tool(h, "paintbrush", "{}"));
+        let stroke = |y: f64, tilt: [f64; 2]| {
+            let mut created = Vec::new();
+            for (kind, x) in [("down", 50.0), ("drag", 100.0), ("drag", 150.0), ("drag", 200.0), ("up", 200.0)] {
+                let ev = json!({"kind": kind, "pos": {"x": x, "y": y}, "pen": {"tilt": tilt}}).to_string();
+                created = ok(&pointer(h, &ev, "{}"))["created"].as_array().unwrap().clone();
+            }
+            ok(&execute(h, "stroke.set", &json!({"ids": created, "weight": 8}).to_string()));
+            let px = render(h, 125.0, y - 30.0, 1, 60, 1.0).expect("pixels");
+            px.chunks(4).filter(|p| p[3] > 127 && p[0] < 128).count()
+        };
+        let upright = stroke(100.0, [0.0, 0.0]);
+        let leaning = stroke(300.0, [0.0, -60.0]);
+        assert!((7..=9).contains(&upright) && leaning > upright + 4, "upright {upright}, leaning {leaning}");
+        sessions::destroy(h);
+    }
+
     #[test]
     fn a_session_runs_commands_takes_pointer_input_and_renders() {
         let h = sessions::create();

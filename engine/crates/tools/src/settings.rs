@@ -65,7 +65,7 @@ const ROWS: &[Row] = &[
     (&["pencil"], None, &["altSmooth", "livePreview", "liveFit"]),
     (&["smooth"], None, &["fidelity"]),
     (&["blobBrush", "eraser"], None, &["size", "sizeMode", "sizeVariation"]),
-    (&["blobBrush"], None, &["fidelity", "keepSelected", "mergeOnlySelection", "shape", "angleFrom"]),
+    (&["blobBrush"], None, &["fidelity", "keepSelected", "mergeOnlySelection", "shape", "angleFrom", "cone"]),
     // Eraser Tool Options' tip shape.
     (&["blobBrush", "eraser"], None, &["angle", "roundness"]),
     // Eraser Tool Options' Angle and Roundness variation menus and fields.

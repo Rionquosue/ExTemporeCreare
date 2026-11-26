@@ -22,6 +22,7 @@ mod distort;
 mod edges;
 mod loaded;
 mod paint;
+mod pencil;
 mod pixelate;
 mod sharpen;
 mod sketch;
@@ -46,7 +47,7 @@ pub use sketch::{HALFTONE_TYPES, HalftonePattern};
 pub use texture::{GRAIN_TYPES, Grain, LIGHT_DIRECTIONS, Light, TEXTURES, TEXTURES_LOADED, Texture};
 
 /// The Photoshop-style effect ids (all raster effects, see [`crate::is_raster`]).
-pub const PIXEL_EFFECTS: [&str; 56] = [
+pub const PIXEL_EFFECTS: [&str; 57] = [
     "artistic.coloredPencil",
     "artistic.cutout",
     "artistic.dryBrush",
@@ -95,6 +96,7 @@ pub const PIXEL_EFFECTS: [&str; 56] = [
     "sketch.tornEdges",
     "sketch.waterPaper",
     "stylize.glowingEdges",
+    "stylize.pencilGrain",
     "texture.craquelure",
     "texture.grain",
     "texture.mosaicTiles",
@@ -271,6 +273,9 @@ pub enum PixelFx {
     /// Texture › Craquelure: cracked relief plaster, plates about `spacing` apart, cracks as deep
     /// as `depth` (0..10), lit as brightly as `brightness` (0..10).
     Craquelure { spacing: f64, depth: f64, brightness: f64 },
+    /// Pencil grain: the paper's tooth, `scale` document units across (0.05..50), taking away as much
+    /// of the object as `strength` (0..100) says where it is hollow; fixed to the canvas.
+    PencilGrain { scale: f64, strength: f64 },
     /// Texture › Grain: noise of `kind` as strong as `intensity` (0..100), the image's contrast
     /// set by `contrast` (0..100, 50 leaves it).
     Grain { intensity: f64, contrast: f64, kind: Grain },
@@ -580,6 +585,10 @@ pub(crate) fn parse(id: &str, p: &Value) -> Option<PixelFx> {
             depth: num(p, "crackDepth", 6.0).clamp(0.0, 10.0),
             brightness: num(p, "crackBrightness", 9.0).clamp(0.0, 10.0),
         },
+        "stylize.pencilGrain" => PixelFx::PencilGrain {
+            scale: num(p, "scale", 0.6).clamp(0.05, 50.0),
+            strength: num(p, "strength", 60.0).clamp(0.0, 100.0),
+        },
         "texture.grain" => PixelFx::Grain {
             intensity: num(p, "intensity", 40.0).clamp(0.0, 100.0),
             contrast: num(p, "contrast", 50.0).clamp(0.0, 100.0),
@@ -671,6 +680,7 @@ impl PixelFx {
             | PixelFx::Mezzotint { .. }
             | PixelFx::Craquelure { .. }
             | PixelFx::Grain { .. }
+            | PixelFx::PencilGrain { .. }
             | PixelFx::MosaicTiles { .. }
             | PixelFx::Texturizer { .. }
             | PixelFx::DeInterlace { .. }
@@ -752,7 +762,7 @@ impl PixelFx {
             PixelFx::Pointillize { cell } => Some(2.5 * cell),
             // The softened tones around the pixel.
             PixelFx::Craquelure { spacing, .. } => Some(3.0 * texture::CONTOUR_SOFTNESS * spacing),
-            PixelFx::Grain { .. } | PixelFx::MosaicTiles { .. } | PixelFx::Texturizer { .. } => Some(0.0),
+            PixelFx::Grain { .. } | PixelFx::PencilGrain { .. } | PixelFx::MosaicTiles { .. } | PixelFx::Texturizer { .. } => Some(0.0),
             // The square's or pane's point, and the softened colour around it.
             PixelFx::Patchwork { square, .. } => Some(2.0 * square.max(1.0)),
             PixelFx::StainedGlass { cell, .. } => Some(2.5 * cell),
@@ -840,6 +850,7 @@ impl PixelFx {
             PixelFx::Pointillize { cell } => pixelate::pointillize(px, w, h, space, cell),
             PixelFx::Craquelure { spacing, depth, brightness } => texture::craquelure(px, w, h, space, spacing, depth, brightness),
             PixelFx::Grain { intensity, contrast, kind } => texture::grain(px, w, h, space, intensity, contrast, kind),
+            PixelFx::PencilGrain { scale, strength } => pencil::pencil_grain(px, w, h, space, scale, strength),
             PixelFx::MosaicTiles { tile, grout, lighten } => texture::mosaic_tiles(px, w, h, space, tile, grout, lighten),
             PixelFx::Patchwork { square, relief } => texture::patchwork(px, w, h, space, square, relief),
             PixelFx::StainedGlass { cell, border, light } => texture::stained_glass(px, w, h, space, cell, border, light),

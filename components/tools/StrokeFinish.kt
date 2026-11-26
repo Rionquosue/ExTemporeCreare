@@ -15,10 +15,10 @@ object StrokeFinish {
     fun featherRadius(size: Double, hardness: Double): Double = size / 2 * (1 - hardness.coerceIn(0.0, 100.0) / 100)
 
     /**
-     * Give [created] the stroke [weight] (when not `null`) and a feather of [radius] points (when
-     * above 0) → an error message, or `null`.
+     * Give [created] the stroke [weight] (when not `null`), a feather of [radius] points (when above
+     * 0), then each of [effects] (`effect id` to its parameters) → an error message, or `null`.
      */
-    fun apply(engine: EngineBridge, created: JSONArray, weight: Double?, radius: Double): String? {
+    fun apply(engine: EngineBridge, created: JSONArray, weight: Double?, radius: Double, effects: List<Pair<String, JSONObject>> = emptyList()): String? {
         if (created.length() == 0) return null
         if (weight != null) {
             val params = JSONObject().put("ids", created).put("weight", weight)
@@ -29,6 +29,10 @@ object StrokeFinish {
                 .put("params", JSONObject().put("radius", radius))
             EngineAnswer(engine.execute("effect.apply", params.toString())).error?.let { return it }
         }
+        for ((effect, values) in effects) {
+            val params = JSONObject().put("ids", created).put("effect", effect).put("params", values)
+            EngineAnswer(engine.execute("effect.apply", params.toString())).error?.let { return it }
+        }
         return null
     }
 }
@@ -36,4 +40,4 @@ object StrokeFinish {
 // GLOSSARY
 // - StrokeFinish: stroke weight and feather (hardness) for what a stroke tool drew.
 // - featherRadius(size, hardness): the feather radius for a size and hardness.
-// - apply(engine, created, weight, radius): set the weight and feather of the created objects.
+// - apply(engine, created, weight, radius, effects): set the weight, feather and further effects of the created objects.

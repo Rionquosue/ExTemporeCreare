@@ -718,6 +718,13 @@ pub fn effect_catalog() -> Vec<EffectInfo> {
             json!({"crackSpacing": 15.0, "crackDepth": 6.0, "crackBrightness": 9.0}),
         ),
         r(
+            "stylize.pencilGrain",
+            "Pencil Grain…",
+            STYLIZE,
+            "{scale: pt 0.05..50 (0.6; how wide the paper's grains are), strength: 0..100 (60; how much of the object the paper's hollows take away)} the paper's tooth showing through, fixed to the canvas and as fine at any zoom",
+            json!({"scale": 0.6, "strength": 60.0}),
+        ),
+        r(
             "texture.grain",
             "Grain…",
             TEXTURE,

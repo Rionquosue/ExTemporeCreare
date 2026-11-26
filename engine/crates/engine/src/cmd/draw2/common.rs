@@ -37,6 +37,11 @@ impl Sample {
         let [x, y] = self.tilt?;
         (x.hypot(y) >= 0.5).then(|| (-y).atan2(x).to_degrees())
     }
+    /// How far the pen leans from upright here, degrees.
+    pub(super) fn tilt_angle(&self) -> Option<f64> {
+        let [x, y] = self.tilt?;
+        Some(x.hypot(y).min(90.0))
+    }
     /// The barrel rotation here, degrees clockwise.
     pub(super) fn rotation(&self) -> Option<f64> {
         self.rotation

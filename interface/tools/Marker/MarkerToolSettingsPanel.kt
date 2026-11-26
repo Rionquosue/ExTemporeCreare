@@ -11,8 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.extemporecreare.app.components.engine.EngineBridge
 import com.extemporecreare.app.components.tools.EngineAnswer
+import com.extemporecreare.app.components.tools.StrokeMode
 import com.extemporecreare.app.components.tools.ToolResult
-import com.extemporecreare.app.tools.marker.MarkerMode
 import com.extemporecreare.app.tools.marker.MarkerTip
 import com.extemporecreare.app.tools.marker.MarkerTool
 import com.extemporecreare.app.tools.marker.MarkerToolSettings
@@ -39,11 +39,11 @@ fun MarkerToolSettingsPanel(tool: MarkerTool, engine: EngineBridge, onResult: (T
         onResult(tool.update(engine, changed))
     }
     ToolSettingsWindow(MarkerTool.NAME) {
-        SettingChoice("Mode", listOf(MarkerMode.PAINTBRUSH to "Paintbrush", MarkerMode.BLOB to "Blob Brush"), s.mode) { set(s.copy(mode = it)) }
+        SettingChoice("Mode", listOf(StrokeMode.PAINTBRUSH to "Paintbrush", StrokeMode.BLOB to "Blob Brush"), s.mode) { set(s.copy(mode = it)) }
         SettingSlider("Size", s.size, 0.1, 1000.0, "pt", { set(s.copy(size = it)) }, curve = 3.0)
         SettingSlider("Hardness", s.hardness, 0.0, 100.0, "%", { set(s.copy(hardness = it)) }, whole = true)
         TipControls(s, ::set)
-        if (s.mode == MarkerMode.PAINTBRUSH) {
+        if (s.mode == StrokeMode.PAINTBRUSH) {
             LibraryBrushPicker(engine, s) { library, name -> set(s.copy(brushLibrary = library, brushName = name)) }
         }
     }
@@ -61,7 +61,7 @@ private fun TipControls(s: MarkerToolSettings, set: (MarkerToolSettings) -> Unit
         listOf(TipOrientation.FIXED to "Fixed", TipOrientation.TILT to "Pen tilt", TipOrientation.ROTATION to "Rotation"),
         s.orientation,
     ) { set(s.copy(orientation = it)) }
-    if (s.mode == MarkerMode.PAINTBRUSH && s.brushName != null) SettingNote("The library brush draws in place of the tip")
+    if (s.mode == StrokeMode.PAINTBRUSH && s.brushName != null) SettingNote("The library brush draws in place of the tip")
 }
 
 /** A dropdown of the built-in library brushes (`brush.libraries`, `brush.library`), with "Plain stroke" first. */

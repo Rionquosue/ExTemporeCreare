@@ -25,7 +25,7 @@ use vectorcraft_color::Paint;
 use vectorcraft_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeId, NodeKind, StrokeLayer};
 use vectorcraft_geom::{BezPath, Rect};
 
-pub use calli::{NibSpec, nib_sweep};
+pub use calli::{CONE_ANGLES, NibSpec, cone_nib, nib_sweep};
 pub use colorize::{art_colors, colorize, instance_art, stain, tint_node};
 pub use defaults::defaults;
 pub use serde_json;
@@ -162,11 +162,17 @@ pub struct Calligraphic {
     /// is its thickness over its length either way.
     #[serde(skip_serializing_if = "NibShape::is_ellipse")]
     pub shape: NibShape,
+    /// A pencil cone's half-angle in degrees (1 to 80): the nib is where a cone that sharp, `size`
+    /// across where it meets the paper upright, meets the paper as the pen leans ([`cone_nib`]); its
+    /// angle and roundness then follow the pen and `angle`, `roundness` and `modes` are not used.
+    /// `None` (the default, left out when saved): no cone.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cone: Option<f64>,
 }
 
 impl Default for Calligraphic {
     fn default() -> Self {
-        Self { angle: 0.0, roundness: 100.0, size: 3.0, variation: [0.0; 3], modes: None, shape: NibShape::Ellipse }
+        Self { angle: 0.0, roundness: 100.0, size: 3.0, variation: [0.0; 3], modes: None, shape: NibShape::Ellipse, cone: None }
     }
 }
 
@@ -183,9 +189,10 @@ impl Calligraphic {
     pub fn uses_pressure(&self) -> bool {
         self.modes().contains(&Variation::Pressure)
     }
-    /// Does the pen (its pressure, tilt, bearing, rotation or wheel) change the nib?
+    /// Does the pen (its pressure, tilt, bearing, rotation or wheel) change the nib? A cone always
+    /// follows the pen's tilt and bearing.
     pub fn uses_pen(&self) -> bool {
-        self.modes().iter().any(|m| m.follows_pen())
+        self.cone.is_some() || self.modes().iter().any(|m| m.follows_pen())
     }
     /// Value `i` (0 angle, 1 roundness, 2 size) moved by `by`: the angle turns round past ±180°,
     /// roundness and size stay within their [`Self::RANGES`]. A result that is not a number is
@@ -764,6 +771,7 @@ impl Brush {
                 for (v, max) in c.variation.iter_mut().zip(Calligraphic::MAX_VARIATION) {
                     *v = within(*v, (0.0, max), 0.0);
                 }
+                c.cone = c.cone.map(|a| within(a, CONE_ANGLES, 20.0));
             }
             BrushKind::Scatter(s) => {
                 let d = Scatter::default();

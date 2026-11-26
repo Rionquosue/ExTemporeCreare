@@ -83,6 +83,33 @@ impl NibSpec {
     }
 }
 
+/// The half-angles a pencil cone takes, in degrees.
+pub const CONE_ANGLES: (f64, f64) = (1.0, 80.0);
+
+/// Where a pencil cone meets the paper: the cone's tip has `half_angle` degrees, and upright it
+/// meets the paper in a circle `diameter` across. Leaning `tilt` degrees from upright toward
+/// `bearing` (degrees counter-clockwise on the page from leaning right), the paper cuts the cone in
+/// an ellipse, longer toward the lean: this is that ellipse, its long axis along the bearing. The
+/// lean is kept short of the cone's side lying on the paper (`90° − half_angle`), where the cut
+/// stops being an ellipse.
+pub fn cone_nib(diameter: f64, half_angle: f64, tilt: f64, bearing: f64) -> NibSpec {
+    let alpha = half_angle.clamp(CONE_ANGLES.0, CONE_ANGLES.1).to_radians();
+    let phi = tilt.clamp(0.0, 89.0 - half_angle.clamp(CONE_ANGLES.0, CONE_ANGLES.1)).max(0.0).to_radians();
+    // The paper is the plane z = h above the cone's apex; its axis leans by phi in x.
+    let h = (diameter / 2.0).max(1e-6) / alpha.tan();
+    let (sp, cp, ca2) = (phi.sin(), phi.cos(), alpha.cos().powi(2));
+    // Where the cut crosses y = 0: a x² + b x + c = 0.
+    let (a, b, c) = (sp * sp - ca2, 2.0 * h * sp * cp, h * h * (cp * cp - ca2));
+    let root = (b * b - 4.0 * a * c).max(0.0).sqrt();
+    let (x1, x2) = ((-b + root) / (2.0 * a), (-b - root) / (2.0 * a));
+    let long = (x1 - x2).abs().max(1e-6);
+    // Half the short axis, at the ellipse's centre.
+    let xc = (x1 + x2) / 2.0;
+    let y2 = (xc * sp + h * cp).powi(2) / ca2 - xc * xc - h * h;
+    let short = 2.0 * y2.max(0.0).sqrt();
+    NibSpec { shape: NibShape::Ellipse, angle: bearing, roundness: (short / long).clamp(0.01, 1.0), size: long }
+}
+
 /// The area a nib covers swept along the polyline `pts`, the nib at each point `nibs[i]` and in
 /// between them part way from one to the next: closed outlines, to be filled with the nonzero
 /// rule. One point gives the nib's own outline. Empty when `pts` is empty or the lists differ in
@@ -222,7 +249,18 @@ fn pressured(c: &Calligraphic, base: [f64; 3], pen: PenAt) -> [f64; 3] {
 pub(crate) fn calligraphic(c: &Calligraphic, bp: &BezPath, weight: f64, stroke: &StrokeLayer, name: &str) -> Vec<Node> {
     let mut rng = Rng::new(seed_of(bp, name));
     let base = randomized(c, &mut rng);
-    let subs: Vec<SubPath> = if c.uses_pen() {
+    let subs: Vec<SubPath> = if let Some(cone) = c.cone {
+        // The paper's cut through the cone where the pen leaned: upright (and leaning right) where
+        // the stroke recorded no tilt (or no bearing).
+        let size = c.size * weight;
+        let nib = |f: f64| {
+            let tilt = stroke.tilt.as_ref().map_or(0.0, |p| p.at(f).clamp(0.0, 1.0) * 90.0);
+            let bearing = stroke.bearing.as_ref().map_or(0.0, |p| p.at(f));
+            cone_nib(size, cone, tilt, bearing).nib()
+        };
+        let widest = cone_nib(size, cone, 90.0, 0.0).size;
+        tracks(bp, tolerance(widest)).iter().flat_map(|t| sweep(t, &nib, Some((t.len() / MAX_STEPS).max(0.25)))).collect()
+    } else if c.uses_pen() {
         let nib = |f: f64| {
             let [angle, round, size] = pressured(c, base, PenAt::of(stroke, f));
             Nib::shaped(c.shape, angle, round / 100.0, size * weight)

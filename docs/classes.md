@@ -21,7 +21,11 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## engine/crates/brush (additions)
 
 - `src/lib.rs`: `NibShape` (`Ellipse`, `Rectangle`), the Calligraphic brush's new `shape` field.
-- `src/calli.rs`: `NibSpec` (shape, angle, roundness, size at one point), `nib_sweep` (the area a nib covers along a polyline); `Nib::shaped` (rectangle support).
+- `src/calli.rs`: `NibSpec` (shape, angle, roundness, size at one point), `nib_sweep` (the area a nib covers along a polyline), `cone_nib` (where a pencil cone meets the paper as the pen leans), `CONE_ANGLES`; `Nib::shaped` (rectangle support). The Calligraphic brush's new `cone` field draws the cone nib along the stroke's recorded tilt and bearing.
+
+## engine/crates/effects (additions)
+
+- `src/pixel/pencil.rs`: `stylize.pencilGrain` (`PixelFx::PencilGrain`): the paper's tooth, fixed to the canvas, evaluated at the view's resolution: `grain_at`, `pencil_grain`.
 
 ## engine/crates/engine (run-time presets, export slices)
 
@@ -56,12 +60,14 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `ToolSettings.kt`: `ToolSettings` (`toJson`); `NoToolSettings`.
 - `ToolSettingsStore.kt`: `ToolSettingsStore(context)`: `load`, `save` per tool name.
 - `ToolUndoGroup.kt`: `ToolUndoGroup`: `begin`, `end`, `isOpen` around `edit.undoGroup.begin` / `end`.
-- `StrokeFinish.kt`: `StrokeFinish`: `featherRadius`, `apply` (stroke weight and Feather on created objects).
+- `StrokeFinish.kt`: `StrokeFinish`: `featherRadius`, `apply` (stroke weight, Feather and further effects on created objects).
+- `StrokeMode.kt`: `StrokeMode` (`PAINTBRUSH`, `BLOB`), how Marker and Pencil draw.
+- `TipBrush.kt`: `TipBrush.use`: a stroke tool's tip as a document Calligraphic brush, set and made current.
 - `StrokeGesture.kt`: `StrokeGesture(label)`: a stroke tool's gesture as one undo step, finished on release: `pointer`, `close`.
 
 ## tools (dial tools)
 
-- `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerMode` (`PAINTBRUSH`, `BLOB`), `MarkerTip` (`ROUND`, `OVAL`, `CHISEL`), `TipOrientation` (`FIXED`, `TILT`, `ROTATION`), `MarkerToolSettings`. `MarkerTool.TIP_BRUSH` is the document Calligraphic brush that draws the Paintbrush's oval and chisel tips.
+- `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerTip` (`ROUND`, `OVAL`, `CHISEL`), `TipOrientation` (`FIXED`, `TILT`, `ROTATION`), `MarkerToolSettings`. `MarkerTool.TIP_BRUSH` is the document Calligraphic brush that draws the Paintbrush's oval and chisel tips.
 - `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
 - `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
 - `Fill/FillTool.kt`: `FillTool` (engine `fillArea`; infinite-canvas failsafe `fillScreen`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
@@ -69,6 +75,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `Shapes/ShapesTool.kt`: `ShapesTool` (engine `rectangle`, `ellipse`, `polygon`, `star`, `lineSegment`); `Shapes/ShapesToolSettings.kt`: `ShapeKind`, `ShapesToolSettings`.
 - `Crop/CropTool.kt`: `CropTool` (engine `cropImage` for one selected image; else a canvas box applied with `artboard.setProps`): `mode`, `canvasBox`, `apply`, `cancel`; `canvasIndex`; `Crop/CropMode.kt`: `CropMode` (`IMAGE`, `CANVAS`, `UNAVAILABLE`).
 - `Export/ExportTool.kt`: `ExportTool` (slice editing; engine `hand` chosen, no input): `slices`, `selectedId`, `editing`, `revealDimensions`, `autoSlice`, `refresh`, `select`, `dimensionsShown`, `setAspect`, `setDimensions`, `setOutput`, `duplicate`, `delete`, `setGrid`; `Export/ExportSlice.kt`: `ExportSlice`, `ExportGrid`, `ExportSliceList`; `Export/ExportSliceCommands.kt`: `ExportSliceCommands` (`list`, `add`, `move`, `update`, `delete`, `duplicate`, `setGrid`); `Export/ExportSliceWriter.kt`: `ExportSliceWriter(context)` (`Region`, `regions(list, scope, selectedId, artboards)`, `write`); `Export/ExportScope.kt`: `ExportScope` (`AUTO_CONTENT`, `WHOLE_DOCUMENT`, `SELECTED_SLICE`, `ALL_SLICES`); `Export/ExportUnits.kt`: `ExportUnits` (`PX`, `IN`, `CM`, `MM`; `fromPx`, `toPx`). `ExportTool` also has `scope`, `chooseScope`.
+- `Pencil/PencilTool.kt`: `PencilTool` (engine `paintbrush` / `blobBrush` with a cone or mechanical tip and `stylize.pencilGrain`); `Pencil/PencilToolSettings.kt`: `PencilTip` (`CONE`, `MECHANICAL`), `PencilToolSettings`.
 - `Move/MoveTool.kt`: `MoveTool` (`object.move` per drag step in one undo group; engine `selection` chosen for its frame).
 
 ## interface (package `com.extemporecreare.app.ui`)
@@ -76,6 +83,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
 - `tools/Marker/MarkerToolSettingsPanel.kt`: `MarkerToolSettingsPanel` (mode, size, hardness, tip shape, angle, thickness and what turns it, library brush dropdown).
+- `tools/Pencil/PencilToolSettingsPanel.kt`: `PencilToolSettingsPanel` (mode, size, hardness, tip, cone sharpness, grain size and strength).
 - `tools/Pen/PenToolSettingsPanel.kt`: `PenToolSettingsPanel` (size, hardness).
 - `tools/Eraser/EraserToolSettingsPanel.kt`: `EraserToolSettingsPanel` (size).
 - `tools/Fill/FillToolSettingsPanel.kt`: `FillToolSettingsPanel` (tolerance).

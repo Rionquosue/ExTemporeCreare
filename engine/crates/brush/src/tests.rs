@@ -2493,3 +2493,16 @@ fn a_chisel_nib_sweeps_a_rectangle() {
     assert_eq!(c.shape, NibShape::Rectangle);
     assert!(serde_json::to_value(Calligraphic::default()).unwrap().get("shape").is_none(), "an ellipse is left out");
 }
+
+/// A pencil cone upright meets the paper in a circle as wide as its size; leaning, in an ellipse
+/// longer toward the lean that grows with it.
+#[test]
+fn a_pencil_cone_meets_the_paper_in_an_ellipse_that_grows_with_the_lean() {
+    let upright = cone_nib(4.0, 20.0, 0.0, 30.0);
+    assert!((upright.size - 4.0).abs() < 1e-9 && (upright.roundness - 1.0).abs() < 1e-9, "{upright:?}");
+    let leaning = cone_nib(4.0, 20.0, 45.0, 30.0);
+    assert!(leaning.size > upright.size && leaning.roundness < 0.9 && leaning.angle == 30.0, "{leaning:?}");
+    let flatter = cone_nib(4.0, 20.0, 65.0, 30.0);
+    assert!(flatter.size > leaning.size, "{flatter:?}");
+    assert!(cone_nib(4.0, 20.0, 90.0, 0.0).size.is_finite(), "kept short of the side lying flat");
+}

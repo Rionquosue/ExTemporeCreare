@@ -500,11 +500,13 @@ fn adjacent_to_topmost(doc: &Document, touched: &[NodeId], paint: &Paint) -> Vec
     out
 }
 
-/// The area of a Blob Brush stroke whose tip `shape` is `"rectangle"` (a chisel) or whose
+/// The area of a Blob Brush stroke whose tip `shape` is `"rectangle"` (a chisel), whose
 /// `angleFrom` is `"tilt"` (the tip's long axis turns with the way the pen leans, `angle` added) or
-/// `"rotation"` (it turns with the pen's barrel): the tip swept along `samples` point by point,
-/// each as wide as the pen's pressure gives with `variation` (Size set to Pressure). `None` for a
-/// round or oval tip at a fixed angle, which the usual outline draws.
+/// `"rotation"` (it turns with the pen's barrel), or that has a pencil `cone` (half-angle in
+/// degrees: the tip is where the cone meets the paper as the pen leans, `size` across upright,
+/// [`vectorcraft_brush::cone_nib`]): the tip swept along `samples` point by point, each as wide as
+/// the pen's pressure gives with `variation` (Size set to Pressure). `None` for a round or oval tip
+/// at a fixed angle without a cone, which the usual outline draws.
 fn nib_region(p: &Value, samples: &[Sample], size: f64, angle: f64, roundness: f64, variation: Option<f64>, cmd: &str) -> Result<Option<PathData>> {
     use vectorcraft_brush::{NibShape, NibSpec};
     let shape = match p.get("shape").filter(|v| !v.is_null()).map(|v| v.as_str()) {
@@ -517,7 +519,14 @@ fn nib_region(p: &Value, samples: &[Sample], size: f64, angle: f64, roundness: f
         Some(Some(f @ ("fixed" | "tilt" | "rotation"))) => f,
         _ => return Err(bad(cmd, "`angleFrom` is \"fixed\", \"tilt\" or \"rotation\"")),
     };
-    if shape == NibShape::Ellipse && from == "fixed" {
+    let cone = match p.get("cone").filter(|v| !v.is_null()) {
+        None => None,
+        Some(v) => match v.as_f64().filter(|a| (vectorcraft_brush::CONE_ANGLES.0..=vectorcraft_brush::CONE_ANGLES.1).contains(a)) {
+            Some(a) => Some(a),
+            None => return Err(bad(cmd, "`cone` must be a half-angle from 1 to 80 degrees")),
+        },
+    };
+    if shape == NibShape::Ellipse && from == "fixed" && cone.is_none() {
         return Ok(None);
     }
     let mut turn = angle;
@@ -534,6 +543,9 @@ fn nib_region(p: &Value, samples: &[Sample], size: f64, angle: f64, roundness: f
                 Some(v) => vectorcraft_tools::draw2::pressure_size(size, v, s.pressure().unwrap_or(0.5)),
                 None => size,
             };
+            if let Some(cone) = cone {
+                return vectorcraft_brush::cone_nib(width, cone, s.tilt_angle().unwrap_or(0.0), s.bearing().unwrap_or(0.0));
+            }
             NibSpec { shape, angle: turn, roundness: (roundness / 100.0).max(0.001), size: width }
         })
         .collect();

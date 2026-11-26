@@ -1,16 +1,8 @@
 package com.extemporecreare.app.tools.marker
 
+import com.extemporecreare.app.components.tools.StrokeMode
 import com.extemporecreare.app.components.tools.ToolSettings
 import org.json.JSONObject
-
-/** The engine tool each Marker mode uses. */
-enum class MarkerMode(val engineToolId: String) {
-    /** Stroked paths, painted with the chosen library brush (none: a plain stroke). */
-    PAINTBRUSH("paintbrush"),
-
-    /** Filled shapes that merge as they are painted. */
-    BLOB("blobBrush"),
-}
 
 /** The Marker's tip shapes, with the nib shape the engine draws each with. */
 enum class MarkerTip(val nibShape: String) {
@@ -45,7 +37,7 @@ enum class TipOrientation(val angleFrom: String, val calligraphicMode: String) {
  * place of the tip when chosen.
  */
 data class MarkerToolSettings(
-    val mode: MarkerMode = MarkerMode.PAINTBRUSH,
+    val mode: StrokeMode = StrokeMode.PAINTBRUSH,
     val size: Double = 5.0,
     val hardness: Double = 100.0,
     val brushLibrary: String? = null,
@@ -75,7 +67,7 @@ data class MarkerToolSettings(
         fun fromJson(json: JSONObject): MarkerToolSettings {
             val d = MarkerToolSettings()
             return MarkerToolSettings(
-                mode = MarkerMode.entries.firstOrNull { it.name == json.optString("mode") } ?: d.mode,
+                mode = StrokeMode.entries.firstOrNull { it.name == json.optString("mode") } ?: d.mode,
                 size = json.optDouble("size", d.size).coerceIn(0.1, 1000.0),
                 hardness = json.optDouble("hardness", d.hardness).coerceIn(0.0, 100.0),
                 brushLibrary = json.optString("brushLibrary").takeIf { it.isNotEmpty() && !json.isNull("brushLibrary") },
@@ -90,7 +82,6 @@ data class MarkerToolSettings(
 }
 
 // GLOSSARY
-// - MarkerMode: PAINTBRUSH ("paintbrush") or BLOB ("blobBrush"), with the engine tool each uses.
 // - MarkerTip: ROUND, OVAL, CHISEL, with the engine nib shape of each.
 // - TipOrientation: FIXED, TILT, ROTATION, with the engine's angleFrom and calligraphic mode names.
 // - MarkerToolSettings: mode, size (pt), hardness (%), brushLibrary, brushName, tip, tipAngle, tipThickness and orientation of the Marker tool.

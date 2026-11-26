@@ -194,6 +194,8 @@ pub struct GestureTool {
     /// What turns the Blob Brush tip: `"fixed"` (its angle), `"tilt"` or `"rotation"` of the pen,
     /// as `path.blob`'s `angleFrom`.
     pub angle_from: &'static str,
+    /// A pencil cone's half-angle for the Blob Brush tip, degrees (`path.blob`'s `cone`); `None`: no cone.
+    pub cone: Option<f64>,
     /// "Edit selected paths within N pixels".
     pub edit_within: f64,
     /// "Close paths when ends are within N pixels".
@@ -908,6 +910,7 @@ impl GestureTool {
             merge_only_selection: false,
             tip_shape: "ellipse",
             angle_from: "fixed",
+            cone: None,
             edit_within: 12.0,
             close_within: 15.0,
             snap: DrawSnap::default(),
@@ -1608,7 +1611,8 @@ impl GestureTool {
                     "keepSelected": self.keep_selected,
                     "mergeOnlySelection": self.merge_only_selection,
                     "shape": self.tip_shape,
-                    "angleFrom": self.angle_from
+                    "angleFrom": self.angle_from,
+                    "cone": self.cone
                 }),
             )],
             "eraser" => vec![Action::Exec(
@@ -2075,7 +2079,8 @@ impl Tool for GestureTool {
                     "keepSelected": self.keep_selected,
                     "mergeOnlySelection": self.merge_only_selection,
                     "shape": self.tip_shape,
-                    "angleFrom": self.angle_from
+                    "angleFrom": self.angle_from,
+                    "cone": self.cone
                 })
             }
             "eraser" => json!({
@@ -2127,6 +2132,9 @@ impl Tool for GestureTool {
                     _ => self.tip_shape,
                 }
             }
+            "cone" if self.id == "blobBrush" => {
+                self.cone = if v.is_null() { None } else { v.as_f64().map(|a| a.clamp(1.0, 80.0)).or(self.cone) }
+            }
             "angleFrom" if self.id == "blobBrush" => {
                 self.angle_from = match v.as_str() {
                     Some("fixed") => "fixed",
@@ -2157,6 +2165,8 @@ impl Tool for GestureTool {
             "roundness" => c::number(key, v, if self.id == "blobBrush" { 0.0 } else { 1.0 }, 100.0),
             "shape" => c::one_of(key, v, &["ellipse", "rectangle"]),
             "angleFrom" => c::one_of(key, v, &["fixed", "tilt", "rotation"]),
+            "cone" if v.is_null() => Ok(()),
+            "cone" => c::number(key, v, 1.0, 80.0),
             "editWithin" | "closeWithin" => c::number(key, v, 0.0, 100.0),
             "angleVariation" => c::number(key, v, 0.0, 180.0),
             "roundnessVariation" => c::number(key, v, 0.0, 100.0),

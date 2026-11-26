@@ -44,6 +44,8 @@ EXTEMPORECREARE
 |       |-- EngineTool.kt
 |       |-- StrokeFinish.kt
 |       |-- StrokeGesture.kt
+|       |-- StrokeMode.kt
+|       |-- TipBrush.kt
 |       |-- ToolPointer.kt
 |       |-- ToolResult.kt
 |       |-- ToolSettings.kt
@@ -125,6 +127,8 @@ EXTEMPORECREARE
 |       |   |-- MarkerToolSettingsPanel.kt
 |       |-- Pen/
 |       |   |-- PenToolSettingsPanel.kt
+|       |-- Pencil/
+|       |   |-- PencilToolSettingsPanel.kt
 |       |-- Shapes/
 |           |-- ShapesToolSettingsPanel.kt
 |-- tools/
@@ -153,6 +157,9 @@ EXTEMPORECREARE
     |-- Pen/
     |   |-- PenTool.kt
     |   |-- PenToolSettings.kt
+    |-- Pencil/
+    |   |-- PencilTool.kt
+    |   |-- PencilToolSettings.kt
     |-- Selection/
     |   |-- SelectionTool.kt
     |-- Shapes/
