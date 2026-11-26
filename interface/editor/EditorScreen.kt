@@ -35,6 +35,8 @@ import com.extemporecreare.app.ui.common.ConfirmDialog
 import com.extemporecreare.app.ui.common.Confirmation
 import com.extemporecreare.app.ui.debug.DebugOverlay
 import com.extemporecreare.app.ui.dial.ColorControl
+import com.extemporecreare.app.ui.dial.DialGrip
+import com.extemporecreare.app.ui.dial.DialStepper
 import com.extemporecreare.app.ui.dial.RotaryDial
 import com.extemporecreare.app.ui.dial.ToolReadout
 import com.extemporecreare.app.ui.dial.setSize
@@ -72,6 +74,13 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
     // The Layers panel's scroll and collapsed folders, kept while Export Settings takes its place.
     val layersView = remember { LayersViewState(ScrollState(0), mutableStateMapOf()) }
     val revision = state.revision
+    // A recovery copy of unsaved work every few minutes (§5.1).
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(EditorState.RECOVERY_EVERY_MS)
+            state.saveRecovery()
+        }
+    }
     // Debug mode follows its ADB switch (DebugMode), checked every second.
     LaunchedEffect(Unit) {
         while (true) {
@@ -137,27 +146,31 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
                     }
                 }
             }
+            val dx = layout.dialX.dp
+            val dy = layout.dialY.dp
             RotaryDial(
                 names = state.tools.map { it.name },
                 active = state.activeIndex,
                 onChoose = { state.chooseTool(it) },
                 onActiveTap = { state.settingsOpen = !state.settingsOpen },
-                modifier = Modifier.align(Alignment.BottomStart).offset((-110).dp, 110.dp),
+                modifier = Modifier.align(Alignment.BottomStart).offset((-110).dp + dx, 110.dp + dy),
             ) {
                 ColorControl(state.primary, state.alternate, { state.swapColors() }, { state.colorWorkspaceOpen = !state.colorWorkspaceOpen })
             }
+            DialGrip(layout, Modifier.align(Alignment.BottomStart).offset(18.dp + dx, (-250).dp + dy))
+            DialStepper({ state.stepTool(-1) }, { state.stepTool(1) }, Modifier.align(Alignment.BottomStart).offset(206.dp + dx, (-16).dp + dy))
             ToolReadout(
                 name = state.activeTool.name,
                 size = remember(revision, state.activeIndex, state.settingsOpen) { sizeOf(state.activeTool) },
                 onSize = { state.show(setSize(state.engine, state.activeTool, it)); state.touched() },
                 onTap = { state.settingsOpen = !state.settingsOpen },
-                modifier = Modifier.align(Alignment.BottomStart).padding(start = 210.dp, bottom = 60.dp),
+                modifier = Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-64).dp + dy),
             )
             if (state.colorWorkspaceOpen) {
-                ColorWorkspace(state.primary, state.alternate, state.colors, state::setColor, { state.colorWorkspaceOpen = false }, Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 190.dp))
+                ColorWorkspace(state.primary, state.alternate, state.colors, state::setColor, { state.colorWorkspaceOpen = false }, Modifier.align(Alignment.BottomStart).offset(16.dp + dx, (-190).dp + dy))
             }
             if (state.settingsOpen) {
-                Box(Modifier.align(Alignment.BottomStart).padding(start = 210.dp, bottom = 130.dp)) { ToolSettingsHost(state) { requests.saveAs() } }
+                Box(Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-130).dp + dy)) { ToolSettingsHost(state) { requests.saveAs() } }
             }
             if (state.debugOn) {
                 DebugOverlay(state.penReading, state.activeTool.name, state.camera.zoom, state.renderMs, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))

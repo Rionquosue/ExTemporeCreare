@@ -134,6 +134,7 @@ EXTEMPORECREARE
 |   |   |-- DebugOverlay.kt
 |   |-- dial/
 |   |   |-- ColorControl.kt
+|   |   |-- DialGrip.kt
 |   |   |-- DialTools.kt
 |   |   |-- RotaryDial.kt
 |   |   |-- ToolReadout.kt

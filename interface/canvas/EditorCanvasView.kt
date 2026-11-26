@@ -154,14 +154,40 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         canvas.drawBitmap(target, null, cam.toScreen(live.x, live.y, live.width, live.height, width, height), bitmapPaint)
     }
 
-    /** The Export tool's slices, the automatic content slice, and the box being drawn or edited. */
+    /** The Export tool's slices, the automatic content slice, and the box being drawn or edited, over its dotted grid when shown. */
     private fun drawSlices(canvas: Canvas, cam: Camera, tool: ExportTool) {
+        if (tool.slices.grid.visible) drawGrid(canvas, cam, tool.slices.grid.spacingPx)
         for (s in tool.slices.slices) {
             if (!s.visible) continue
             overlays.box(canvas, cam.toScreen(s.x, s.y, s.width, s.height, width, height), s.id == tool.selectedId)
         }
         tool.autoSlice?.let { b -> overlays.box(canvas, cam.toScreen(b.left, b.top, b.width, b.height, width, height), false, dashed = true) }
         tool.editing?.let { b -> overlays.box(canvas, cam.toScreen(b.left, b.top, b.width, b.height, width, height), true) }
+    }
+
+    /**
+     * The export grid as dots (`uistandards.md` §9.2) every [spacing] document points, fixed in the
+     * document so it stays put under pan and zoom; when the dots would come closer than
+     * [MIN_DOT_GAP] screen pixels, every second (fourth…) one is drawn.
+     */
+    private fun drawGrid(canvas: Canvas, cam: Camera, spacing: Double) {
+        if (spacing <= 0) return
+        var step = spacing
+        while (step * cam.zoom < MIN_DOT_GAP) step *= 2
+        val v = cam.viewport(width, height)
+        val m = cam.matrix(width, height)
+        val pt = FloatArray(2)
+        var y = kotlin.math.floor(v[1] / step) * step
+        while (y <= v[1] + v[3]) {
+            var x = kotlin.math.floor(v[0] / step) * step
+            while (x <= v[0] + v[2]) {
+                pt[0] = x.toFloat(); pt[1] = y.toFloat()
+                m.mapPoints(pt)
+                canvas.drawCircle(pt[0], pt[1], 1.5f, GRID_DOT)
+                x += step
+            }
+            y += step
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -260,6 +286,10 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         /** The workspace round the artwork (`--bg`). */
         val SURROUND = Color.parseColor("#0C131B")
 
+        /** The export grid's dots, and the closest they are drawn in screen pixels. */
+        private val GRID_DOT = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#A4AEB7") }
+        const val MIN_DOT_GAP = 10.0
+
         /** Copies pixels as they are. */
         private val REPLACE = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC) }
     }
@@ -276,7 +306,8 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
 // - render(): render the document on the worker thread.
 // - onDraw: the render moved to the camera, the live stroke, the Crop box, Export slices, overlays.
 // - drawLiveStroke(canvas, cam): copy the stroke's dirty pixels in and draw its splotch.
-// - drawSlices(canvas, cam, tool): the Export tool's slices and boxes.
+// - drawSlices(canvas, cam, tool): the Export tool's slices and boxes, over its grid.
+// - drawGrid(canvas, cam, spacing): the export grid's dots. GRID_DOT, MIN_DOT_GAP: their paint and closest gap, 10 px.
 // - onTouchEvent: draw with one finger or a stylus; navigate with two fingers.
 // - onHoverEvent(e): debug mode's hovering pen readings.
 // - centreAndSpan(e), sendHistory(e, i), send(kind, e, i), sendAt(...): touch to tool events.

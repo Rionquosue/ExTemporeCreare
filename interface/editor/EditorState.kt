@@ -44,6 +44,12 @@ import org.json.JSONObject
  */
 class EditorState(private val context: Context) {
 
+    companion object {
+        /** The recovery copies' folder in the app's files, and how often a copy is written (ms). */
+        const val RECOVERY_FOLDER = "recovery"
+        const val RECOVERY_EVERY_MS = 120_000L
+    }
+
     /** Which screen shows: the opening splash or the editor (`uistandards.md` §5.1). */
     enum class Screen { SPLASH, EDITOR }
 
@@ -119,9 +125,43 @@ class EditorState(private val context: Context) {
     private var viewW = 0
     private var viewH = 0
 
-    /** Install the presets; the splash shows first (a cold launch, §5.1). */
+    /**
+     * Install the presets and set up data recovery; a cold launch shows the splash (§5.1), unless a
+     * session was interrupted: its recovery copies are opened and the editor shows them.
+     */
     fun start() {
         EngineBridge.setPresetsRoot(EnginePresets.install(context).path)
+        val folder = java.io.File(context.filesDir, RECOVERY_FOLDER).apply { mkdirs() }
+        show(EngineAnswer(engine.execute("prefs.set", JSONObject().put("values", JSONObject().put("recoveryFolder", folder.path).put("autosaveRecovery", true)).toString())).error)
+        recoverInterrupted()
+    }
+
+    /** Open the recovery copies an interrupted session left, if any (§5.1); a failure is shown. */
+    private fun recoverInterrupted() {
+        val copies = EngineAnswer(engine.execute("file.recovery.list", "{}")).okObject?.optJSONArray("copies") ?: return
+        val left = (0 until copies.length()).mapNotNull { copies.optJSONObject(it) }.filter { !it.optBoolean("open") && !it.optBoolean("running") }
+        if (left.isEmpty()) return
+        val restored = EngineAnswer(engine.execute("file.recovery.restore", "{}"))
+        val ok = restored.okObject
+        if (ok == null) {
+            message = "Couldn't recover the interrupted session: ${restored.error}"
+            return
+        }
+        val failed = ok.optJSONArray("failed")?.length() ?: 0
+        if ((ok.optJSONArray("restored")?.length() ?: 0) == 0) {
+            message = "Couldn't recover the interrupted session"
+            return
+        }
+        documentUri = null
+        afterDocumentChange()
+        message = if (failed > 0) "Recovered the session; $failed recovery copies were damaged" else "Recovered your unsaved work: save it to keep it"
+    }
+
+    /** Write a recovery copy of the document's unsaved changes (the app does this every few minutes and when it goes to the background). */
+    fun saveRecovery() {
+        if (screen != Screen.EDITOR) return
+        val error = EngineAnswer(engine.execute("file.recovery.save", "{}")).error
+        DebugMode.log("engine", "file.recovery.save → ${error ?: "ok"}")
     }
 
     /** A new document from [settings] in place of the open one, the settings kept as the defaults. */
@@ -346,6 +386,9 @@ class EditorState(private val context: Context) {
         revision++
     }
 
+    /** Step the dial one tool on ([by] 1) or back (−1), the stepped alternative to turning it (§13.2). */
+    fun stepTool(by: Int) = chooseTool((activeIndex + by).mod(tools.size))
+
     /** Show [r]'s error, if any. */
     fun show(r: ToolResult) = show(r.error)
 
@@ -364,7 +407,9 @@ class EditorState(private val context: Context) {
 // - documentUri: the open document's URI. viewW, viewH: the canvas size.
 // - debugOn, penReading, renderMs: debug mode's state for the readout.
 // - Screen, screen: the splash or the editor. recents, recentsRevision: the recent files. layout: the panels' layout.
-// - start(): presets. newDocument(settings): a new finite or infinite document. home(): back to the splash.
+// - RECOVERY_FOLDER, RECOVERY_EVERY_MS: the recovery folder and interval (2 min).
+// - start(): presets, recovery setup, an interrupted session recovered. recoverInterrupted(): open its copies. saveRecovery(): write a copy.
+// - stepTool(by): step the dial. newDocument(settings): a new finite or infinite document. home(): back to the splash.
 // - forget(uri), clearRecents(): change the recent files.
 // - zoomBy(factor), actualSize(): view controls. keepCamera(), restoreCamera(): the camera kept with the document.
 // - displayName(uri): a document's name.

@@ -92,6 +92,12 @@ class MainActivity : ComponentActivity() {
     private fun summary(s: DocumentSettings): String =
         if (s.infinite) "Infinite canvas, ${s.ppi.toInt()} ppi, ${s.colorMode.uppercase()}" else "${s.width} × ${s.height} ${s.units}, ${s.ppi.toInt()} ppi, ${s.colorMode.uppercase()}, ${s.background}"
 
+    /** Going to the background: a recovery copy of unsaved work (§5.1). */
+    override fun onPause() {
+        super.onPause()
+        state.saveRecovery()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (isFinishing) state.engine.close()
@@ -107,6 +113,7 @@ class MainActivity : ComponentActivity() {
 // - MainActivity: the app's activity: splash or editor, the pickers and the dialogs.
 // - state: the editor's state. DialogShown, dialog: the dialog showing. locating: the recent file a Locate replaces.
 // - saveAs, open, locate, exportFolder: the pickers' launchers.
+// - onPause(): a recovery copy when going to the background.
 // - relocated(uri): a located file replaces its missing entry and opens.
 // - summary(s): the New Document defaults in a line.
 // - ETC_MIME: the .etc MIME type.

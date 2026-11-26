@@ -102,7 +102,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## interface (package `com.extemporecreare.app.ui`)
 
 - `MainActivity.kt`: `MainActivity`, the app's activity: splash or editor, the system pickers (Save As, Open, Locate, Export folder) and the New Document and Settings dialogs.
-- `editor/EditorState.kt`: `EditorState`: screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `setColor`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
+- `editor/EditorState.kt`: `EditorState`: screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `setColor`, `stepTool`, `saveRecovery`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
 - `editor/PanelLayout.kt`: `PanelLayout` (`Place`, `places`, `place`, toggles, `toggleFocus`, `reset`): the panels' docks or floating positions and expanded states, kept in the preferences; focus mode.
 - `editor/MovablePanel.kt`: `MovablePanel`: hold a panel's header and drag to move it; edge dock targets with a placement preview; kept inside the workspace.
 - `document/NewDocumentDialog.kt`: `NewDocumentDialog`; `document/DocumentPresets.kt`: `DOCUMENT_PRESETS`.
@@ -116,6 +116,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `dial/RotaryDial.kt`: `RotaryDial`: the ring of tools turning beneath the 45° active sight.
 - `dial/ColorControl.kt`: `ColorControl`: primary and alternate colours; tap swaps, double tap opens the colour workspace.
 - `dial/ToolReadout.kt`: `ToolReadout`: the active tool's name and size, drag to adjust.
+- `dial/DialGrip.kt`: `DialGrip` (hold and drag to move the dial), `DialStepper` (step the dial by one tool).
 - `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
 - `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity with slider popover, Fill and mask shown disabled, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`.

@@ -29,6 +29,19 @@ class PanelLayout(context: Context) {
     var boardOpen by mutableStateOf(prefs.getBoolean("boardOpen", false))
         private set
 
+    /** How far the dial has been moved from its corner by its grip, in dp. */
+    var dialX by mutableStateOf(prefs.getFloat("dialX", 0f))
+        private set
+    var dialY by mutableStateOf(prefs.getFloat("dialY", 0f))
+        private set
+
+    /** Move the dial by ([dx], [dy]) dp, kept within [maxX], [maxY] dp of its corner. */
+    fun moveDial(dx: Float, dy: Float, maxX: Float, maxY: Float) {
+        dialX = (dialX + dx).coerceIn(0f, maxX)
+        dialY = (dialY + dy).coerceIn(-maxY, 0f)
+        keep()
+    }
+
     /** Canvas focus mode: the floating panels hidden, the dial and essential actions kept (§4). */
     var focus by mutableStateOf(false)
         private set
@@ -57,6 +70,8 @@ class PanelLayout(context: Context) {
     /** The default layout. */
     fun reset() {
         for ((key, dock) in DEFAULT_DOCKS) places[key] = Place(dock)
+        dialX = 0f
+        dialY = 0f
         layersOpen = true
         texturesOpen = false
         boardOpen = false
@@ -66,6 +81,7 @@ class PanelLayout(context: Context) {
 
     private fun keep() {
         val e = prefs.edit().putBoolean("layersOpen", layersOpen).putBoolean("texturesOpen", texturesOpen).putBoolean("boardOpen", boardOpen)
+            .putFloat("dialX", dialX).putFloat("dialY", dialY)
         for ((key, p) in places) e.putString("$key.dock", p.dock).putFloat("$key.x", p.x).putFloat("$key.y", p.y)
         e.apply()
     }
@@ -89,5 +105,6 @@ class PanelLayout(context: Context) {
 // - Place: docked at an edge or floating at a point. places: each panel's place. place(key, place): move a panel.
 // - layersOpen, texturesOpen, boardOpen: whether each panel is expanded. focus: canvas focus mode.
 // - toggleLayers(), toggleTextures(), toggleBoard(), toggleFocus(): change them.
+// - dialX, dialY, moveDial(dx, dy, maxX, maxY): the dial's offset from its corner, moved by its grip.
 // - reset(): the default layout. keep(): save it.
 // - FILE: "panel-layout". TEXTURES, LAYERS, BOARD: the panels' keys. DEFAULT_DOCKS: their default docks.
