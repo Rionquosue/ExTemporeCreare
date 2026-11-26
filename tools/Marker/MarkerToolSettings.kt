@@ -24,7 +24,10 @@ enum class TipOrientation(val angleFrom: String, val calligraphicMode: String) {
     /** The tip turns with the way the pen leans, [MarkerToolSettings.tipAngle] added. */
     TILT("tilt", "bearing"),
 
-    /** The tip turns with the pen's barrel rotation, [MarkerToolSettings.tipAngle] added. */
+    /**
+     * The tip turns with the pen's barrel rotation, [MarkerToolSettings.tipAngle] added; a pen that
+     * reports no barrel rotation turns it with its tilt instead (as [TILT]).
+     */
     ROTATION("rotation", "rotation"),
 }
 

@@ -19,7 +19,9 @@ import org.json.JSONObject
  * hardness below 100 % feathers it ([StrokeFinish]).
  *
  * The tip ([MarkerTip]): round, oval or chisel, turned by its angle, the pen's tilt or its barrel
- * rotation ([TipOrientation]). With the Paintbrush an oval or chisel tip is the document's
+ * rotation ([TipOrientation]); with Rotation, a stroke whose pen reports no barrel rotation at its
+ * press turns with the pen's tilt instead ([orientationFor]), and with neither, keeps the tip's
+ * angle. With the Paintbrush an oval or chisel tip is the document's
  * Calligraphic brush [TIP_BRUSH], kept to the settings; with the Blob Brush it is the tool's own tip
  * (`angle`, `roundness`, `shape`, `angleFrom`).
  */
@@ -42,7 +44,8 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
 
     override fun pointer(engine: EngineBridge, event: ToolPointer, viewJson: String): ToolResult {
         val s = settings
-        return gesture.pointer(engine, event, viewJson, beforeDraw = { usePaintbrushTip(engine, s) }) { created ->
+        val orientation = orientationFor(s, event)
+        return gesture.pointer(engine, event, viewJson, beforeDraw = { prepareTip(engine, s, orientation) }) { created ->
             val weight = if (s.mode == StrokeMode.PAINTBRUSH) s.size else null
             StrokeFinish.apply(engine, created, weight, StrokeFinish.featherRadius(s.size, s.hardness))
         }
@@ -58,7 +61,20 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
      * once; the engine skips a brush it has), else for an oval or chisel tip the document's
      * [TIP_BRUSH] set to the tip, else a plain stroke → an error message, or `null`.
      */
-    private fun usePaintbrushTip(engine: EngineBridge, s: MarkerToolSettings): String? {
+    /**
+     * What turns the tip for a stroke pressed with [event]: the settings' [TipOrientation], except
+     * that Rotation falls back to the pen's tilt when the pen reports no barrel rotation.
+     */
+    private fun orientationFor(s: MarkerToolSettings, event: ToolPointer): TipOrientation =
+        if (s.orientation == TipOrientation.ROTATION && event.rotation == null) TipOrientation.TILT else s.orientation
+
+    /** Before the stroke draws: the Paintbrush's brush ([usePaintbrushTip]), or the Blob Brush's tip turned by [orientation]. */
+    private fun prepareTip(engine: EngineBridge, s: MarkerToolSettings, orientation: TipOrientation): String? = when (s.mode) {
+        StrokeMode.PAINTBRUSH -> usePaintbrushTip(engine, s, orientation)
+        StrokeMode.BLOB -> setOption(engine, "angleFrom", if (s.tip == MarkerTip.ROUND) TipOrientation.FIXED.angleFrom else orientation.angleFrom)
+    }
+
+    private fun usePaintbrushTip(engine: EngineBridge, s: MarkerToolSettings, orientation: TipOrientation): String? {
         if (s.mode != StrokeMode.PAINTBRUSH) return null
         val library = s.brushLibrary
         val name = when {
@@ -68,7 +84,7 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
                 s.brushName
             }
             s.tip == MarkerTip.ROUND -> null
-            else -> return tipBrush(engine, s)
+            else -> return tipBrush(engine, s, orientation)
         }
         val current = JSONObject().put("name", name ?: JSONObject.NULL)
         return EngineAnswer(engine.execute("brush.setCurrent", current.toString())).error
@@ -80,15 +96,15 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
      * its angle follows the pen's bearing or barrel rotation, [MarkerToolSettings.tipAngle] added →
      * an error message, or `null`.
      */
-    private fun tipBrush(engine: EngineBridge, s: MarkerToolSettings): String? {
-        val turns = s.orientation != TipOrientation.FIXED
+    private fun tipBrush(engine: EngineBridge, s: MarkerToolSettings, orientation: TipOrientation): String? {
+        val turns = orientation != TipOrientation.FIXED
         val params = JSONObject()
             .put("angle", s.tipAngle)
             .put("roundness", s.tipRoundness)
             .put("size", 1.0)
             .put("shape", s.tip.nibShape)
             .put("variation", JSONArray().put(if (turns) 180.0 else 0.0).put(0.0).put(0.0))
-            .put("modes", JSONArray().put(s.orientation.calligraphicMode).put("fixed").put("fixed"))
+            .put("modes", JSONArray().put(orientation.calligraphicMode).put("fixed").put("fixed"))
         return TipBrush.use(engine, TIP_BRUSH, params)
     }
 
@@ -108,7 +124,9 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
 // - pushSettings(engine): the Blob Brush's size and tip (angle, roundness, shape, angleFrom).
 // - pointer(engine, event, viewJson): draw with the Paintbrush's brush set first, then set the stroke weight and feather on release.
 // - deactivate(engine): close a stroke left open.
-// - usePaintbrushTip(engine, s): make the library brush, the tip brush or a plain stroke the Paintbrush's.
-// - tipBrush(engine, s): make the document's Marker Tip Calligraphic brush the tip and current.
+// - orientationFor(s, event): what turns the tip for a stroke: Rotation falls back to tilt without barrel rotation.
+// - prepareTip(engine, s, orientation): the Paintbrush's brush or the Blob Brush's angle source before a stroke.
+// - usePaintbrushTip(engine, s, orientation): make the library brush, the tip brush or a plain stroke the Paintbrush's.
+// - tipBrush(engine, s, orientation): make the document's Marker Tip Calligraphic brush the tip and current.
 // - TIP_BRUSH: "Marker Tip".
 // - NAME: "Marker".

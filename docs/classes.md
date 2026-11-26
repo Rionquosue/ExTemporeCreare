@@ -77,7 +77,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## tools (dial tools)
 
 - `Brush/BrushTool.kt`: `BrushTool` (live raster strokes into splotches; engine `hand` chosen, no input): `LiveStroke`, `live`, `locked`, `setLocked`, `livePixels`, `drawn`; `Brush/BrushToolSettings.kt`: `BrushToolSettings`.
-- `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerTip` (`ROUND`, `OVAL`, `CHISEL`), `TipOrientation` (`FIXED`, `TILT`, `ROTATION`), `MarkerToolSettings`. `MarkerTool.TIP_BRUSH` is the document Calligraphic brush that draws the Paintbrush's oval and chisel tips.
+- `Marker/MarkerTool.kt`: `MarkerTool` (engine `paintbrush` / `blobBrush`; was the Brush tool); `Marker/MarkerToolSettings.kt`: `MarkerTip` (`ROUND`, `OVAL`, `CHISEL`), `TipOrientation` (`FIXED`, `TILT`, `ROTATION`, falling back to tilt without barrel rotation), `MarkerToolSettings`. `MarkerTool.TIP_BRUSH` is the document Calligraphic brush that draws the Paintbrush's oval and chisel tips.
 - `Pen/PenTool.kt`: `PenTool` (engine `pen`); `Pen/PenToolSettings.kt`: `PenToolSettings`.
 - `Eraser/EraserTool.kt`: `EraserTool` (engine `eraser`); `Eraser/EraserToolSettings.kt`: `EraserToolSettings`.
 - `Fill/FillTool.kt`: `FillTool` (engine `fillArea`; infinite-canvas failsafe `fillScreen`); `Fill/FillToolSettings.kt`: `FillToolSettings`.
