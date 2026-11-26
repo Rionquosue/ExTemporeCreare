@@ -142,7 +142,7 @@ Infinite mode disables irrelevant outer-dimension fields and explains that slice
 - Dragging the ring rotates tools. Mouse-wheel and keyboard stepping may supplement this interaction.
 - Repositioning uses the dial grip; ring rotation, colour input and node dragging must not conflict.
 
-The current inventory is **Brush, Pen, Eraser, Fill, Selection, Shapes, Move, Crop and Export**. This inventory does not imply that all tools are functional in the HTML prototype. Slot spacing must accommodate the actual inventory; do not hard-code an eight-slot geometry.
+The current inventory is **Brush, Marker, Pencil, Pen, Eraser, Fill, Selection, Shapes, Move, Crop and Export**. This inventory does not imply that all tools are functional in the HTML prototype. Slot spacing must accommodate the actual inventory; do not hard-code an eight-slot geometry.
 
 ### 6.2 Tool settings
 
