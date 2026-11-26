@@ -45,6 +45,7 @@ import com.extemporecreare.app.ui.panels.LayerCardActions
 import com.extemporecreare.app.ui.panels.LayersActions
 import com.extemporecreare.app.ui.panels.LayersPanel
 import com.extemporecreare.app.ui.panels.LayersViewState
+import com.extemporecreare.app.ui.panels.BoardActions
 import com.extemporecreare.app.ui.panels.ReferenceBoardPanel
 import com.extemporecreare.app.ui.panels.TextureLibraryPanel
 import com.extemporecreare.app.ui.theme.EtcColors
@@ -57,7 +58,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** What the editor asks of the activity: the system pickers. */
-class EditorRequests(val newDocument: () -> Unit, val saveAs: () -> Unit, val open: () -> Unit, val exportFolder: () -> Unit, val openBoard: () -> Unit)
+class EditorRequests(val newDocument: () -> Unit, val saveAs: () -> Unit, val open: () -> Unit, val exportFolder: () -> Unit)
 
 /**
  * The editor workspace (`uistandards.md` §4): the artwork canvas filling the screen under the top
@@ -69,7 +70,7 @@ class EditorRequests(val newDocument: () -> Unit, val saveAs: () -> Unit, val op
  * [DebugMode]) its readout shows at the top.
  */
 @Composable
-fun EditorScreen(state: EditorState, requests: EditorRequests) {
+fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActions) {
     val layout = state.layout
     // The Layers panel's scroll and collapsed folders, kept while Export Settings takes its place.
     val layersView = remember { LayersViewState(ScrollState(0), mutableStateMapOf()) }
@@ -142,7 +143,7 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
                         }
                     }
                     MovablePanel(PanelLayout.BOARD, layout) { header ->
-                        ReferenceBoardPanel(0, layout.boardOpen, layout::toggleBoard, requests.openBoard, headerModifier = header)
+                        ReferenceBoardPanel(state.board, state.boardRevision, state.boardSelected, layout.boardOpen, layout::toggleBoard, board, headerModifier = header)
                     }
                 }
             }
@@ -238,6 +239,6 @@ private fun findCurrent(rows: JSONArray): JSONObject? {
 
 // GLOSSARY
 // - EditorRequests: the system pickers the editor asks the activity for.
-// - EditorScreen(state, requests): the editor workspace.
+// - EditorScreen(state, requests, board): the editor workspace; board: the Reference board panel's actions.
 // - layersActions(state): the Layers panel's engine commands.
 // - findCurrent(rows): the current row.

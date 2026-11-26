@@ -31,6 +31,8 @@ EXTEMPORECREARE
 |           |-- AndroidManifest.xml
 |-- components/
 |   |-- readme.md
+|   |-- boards/
+|   |   |-- ReferenceBoard.kt
 |   |-- color/
 |   |   |-- ColorLibrary.kt
 |   |   |-- ColorMath.kt
@@ -121,6 +123,8 @@ EXTEMPORECREARE
 |-- interface/
 |   |-- MainActivity.kt
 |   |-- readme.md
+|   |-- board/
+|   |   |-- BoardCanvas.kt
 |   |-- canvas/
 |   |   |-- Camera.kt
 |   |   |-- EditorCanvasView.kt

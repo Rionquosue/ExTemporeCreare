@@ -12,6 +12,7 @@ import com.extemporecreare.app.components.documents.DocumentSettings
 import com.extemporecreare.app.components.documents.RecentFiles
 import com.extemporecreare.app.ui.document.NewDocumentDialog
 import com.extemporecreare.app.ui.editor.EditorRequests
+import com.extemporecreare.app.ui.panels.BoardActions
 import com.extemporecreare.app.ui.editor.EditorScreen
 import com.extemporecreare.app.ui.editor.EditorState
 import com.extemporecreare.app.ui.splash.SettingsDialog
@@ -22,8 +23,8 @@ import com.extemporecreare.app.ui.splash.SplashScreen
  * The app's activity (`uistandards.md` §5.1): a cold launch shows the opening splash; returning
  * from another app, sleep or a configuration change keeps the editor as it was (the activity
  * isn't recreated for configuration changes). It holds the system pickers for Save As (a new `.etc`
- * file), Open, Locate (a missing recent file) and the folder Export writes into, and the New
- * Document and Settings dialogs.
+ * file), Open, Locate (a missing recent file), the folder Export writes into and the reference
+ * board (add an image, open, save, relink), and the New Document and Settings dialogs.
  */
 class MainActivity : ComponentActivity() {
 
@@ -42,6 +43,15 @@ class MainActivity : ComponentActivity() {
     private val locate = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { relocated(it) } }
     private val exportFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let { state.exportTo(it) } }
 
+    /** The reference board's pickers: add an image, open or save a `.etcr`, relink a missing image. */
+    private val boardAdd = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { state.boardDone(state.board.addImage(it)) } }
+    private val boardOpen = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { state.boardSelected = null; state.boardDone(state.board.open(it)) } }
+    private val boardSave = registerForActivityResult(ActivityResultContracts.CreateDocument(ETCR_MIME)) { uri -> uri?.let { state.boardDone(state.board.save(it)) } }
+    private val boardRelink = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { file -> relinking?.let { state.boardDone(state.board.relink(it, file)) } }; relinking = null }
+
+    /** The board image a Relink replaces. */
+    private var relinking: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         state = EditorState(applicationContext)
@@ -51,7 +61,15 @@ class MainActivity : ComponentActivity() {
             saveAs = { saveAs.launch("Untitled.etc") },
             open = { open.launch(arrayOf("*/*")) },
             exportFolder = { exportFolder.launch(null) },
-            openBoard = { state.message = "The reference board's view is not built yet" },
+        )
+        val board = BoardActions(
+            add = { boardAdd.launch(arrayOf("image/*")) },
+            newBoard = { state.boardSelected = null; state.board.newBoard(); state.boardChanged() },
+            open = { boardOpen.launch(arrayOf("*/*")) },
+            save = { state.board.uri?.let { state.boardDone(state.board.save(it)) } ?: boardSave.launch("References.etcr") },
+            relink = { relinking = it; boardRelink.launch(arrayOf("image/*")) },
+            select = { state.boardSelected = it },
+            changed = { state.boardChanged() },
         )
         val splash = SplashActions(
             newDocument = { dialog = DialogShown.NEW_DOCUMENT },
@@ -64,7 +82,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             when (state.screen) {
                 EditorState.Screen.SPLASH -> SplashScreen(state.recents, state.recentsRevision, splash)
-                EditorState.Screen.EDITOR -> EditorScreen(state, requests)
+                EditorState.Screen.EDITOR -> EditorScreen(state, requests, board)
             }
             when (dialog) {
                 DialogShown.NEW_DOCUMENT -> NewDocumentDialog(DocumentSettings.defaults(this), { dialog = DialogShown.NONE; state.newDocument(it) }, { dialog = DialogShown.NONE })
@@ -96,6 +114,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         state.saveRecovery()
+        state.backgroundBoard()
     }
 
     override fun onDestroy() {
@@ -106,6 +125,9 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** The `.etc` MIME type (`filestandard.md`). */
         const val ETC_MIME = "application/x-ex-tempore-creare"
+
+        /** The `.etcr` MIME type (`filestandard.md` §7.1). */
+        const val ETCR_MIME = "application/x-ex-tempore-creare-reference"
     }
 }
 
@@ -113,7 +135,8 @@ class MainActivity : ComponentActivity() {
 // - MainActivity: the app's activity: splash or editor, the pickers and the dialogs.
 // - state: the editor's state. DialogShown, dialog: the dialog showing. locating: the recent file a Locate replaces.
 // - saveAs, open, locate, exportFolder: the pickers' launchers.
-// - onPause(): a recovery copy when going to the background.
+// - boardAdd, boardOpen, boardSave, boardRelink: the reference board's pickers. relinking: the image a Relink replaces.
+// - onPause(): a recovery copy, and the reference board kept or saved, when going to the background.
 // - relocated(uri): a located file replaces its missing entry and opens.
 // - summary(s): the New Document defaults in a line.
-// - ETC_MIME: the .etc MIME type.
+// - ETC_MIME, ETCR_MIME: the .etc and .etcr MIME types.

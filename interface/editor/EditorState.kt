@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.extemporecreare.app.components.color.ColorLibrary
+import com.extemporecreare.app.components.boards.ReferenceBoard
 import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.components.documents.DocumentSettings
 import com.extemporecreare.app.components.documents.RecentFiles
@@ -89,6 +90,12 @@ class EditorState(private val context: Context) {
     /** The artwork camera. */
     var camera by mutableStateOf(Camera())
 
+    /** The reference board (`.etcr`, apart from the document), what changed in it, and its selected image. */
+    val board by lazy { ReferenceBoard(context) }
+    var boardRevision by mutableIntStateOf(0)
+        private set
+    var boardSelected by mutableStateOf<String?>(null)
+
     /** Goes up whenever the document may have changed: the canvas renders again and panels read again. */
     var revision by mutableIntStateOf(0)
         private set
@@ -134,6 +141,7 @@ class EditorState(private val context: Context) {
         val folder = java.io.File(context.filesDir, RECOVERY_FOLDER).apply { mkdirs() }
         show(EngineAnswer(engine.execute("prefs.set", JSONObject().put("values", JSONObject().put("recoveryFolder", folder.path).put("autosaveRecovery", true)).toString())).error)
         recoverInterrupted()
+        board.restore()
     }
 
     /** Open the recovery copies an interrupted session left, if any (§5.1); a failure is shown. */
@@ -162,6 +170,24 @@ class EditorState(private val context: Context) {
         if (screen != Screen.EDITOR) return
         val error = EngineAnswer(engine.execute("file.recovery.save", "{}")).error
         DebugMode.log("engine", "file.recovery.save → ${error ?: "ok"}")
+    }
+
+    /** Going to the background: the reference board's unsaved state is kept, and saved to its file when it has one (`filestandard.md` §7.3). */
+    fun backgroundBoard() {
+        board.saveIfChanged()?.let { message = "Couldn't save the reference board: $it" }
+        boardChanged()
+    }
+
+    /** The reference board changed: its panel reads it again. */
+    fun boardChanged() {
+        boardRevision++
+    }
+
+    /** A reference board file call's result: [error] is shown; the panel reads the board again. */
+    fun boardDone(error: String?) {
+        if (error != null) message = error
+        if (boardSelected != null && board.images().none { it.optString("id") == boardSelected }) boardSelected = null
+        boardChanged()
     }
 
     /** A new document from [settings] in place of the open one, the settings kept as the defaults. */
@@ -409,6 +435,8 @@ class EditorState(private val context: Context) {
 // - Screen, screen: the splash or the editor. recents, recentsRevision: the recent files. layout: the panels' layout.
 // - RECOVERY_FOLDER, RECOVERY_EVERY_MS: the recovery folder and interval (2 min).
 // - start(): presets, recovery setup, an interrupted session recovered. recoverInterrupted(): open its copies. saveRecovery(): write a copy.
+// - board, boardRevision, boardSelected: the reference board, what changed in it, its selected image.
+// - backgroundBoard(): keep or save the board going to the background. boardChanged(), boardDone(error): the board panel reads it again.
 // - stepTool(by): step the dial. newDocument(settings): a new finite or infinite document. home(): back to the splash.
 // - forget(uri), clearRecents(): change the recent files.
 // - zoomBy(factor), actualSize(): view controls. keepCamera(), restoreCamera(): the camera kept with the document.

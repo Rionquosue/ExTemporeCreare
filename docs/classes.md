@@ -64,6 +64,10 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `DebugMode.kt`: `DebugMode` (`TAG`, `isOn`, `log`): debug mode switched from ADB with the `log.tag.ETCDebug` property.
 - `PenReading.kt`: `PenReading` (`line`, `of`): what one pointer reported (tool type, pressure, tilt, orientation, hover distance, buttons, the tools' tilt).
 
+## components/boards
+
+- `ReferenceBoard.kt`: `ReferenceBoard(context)` (`board`, `uri`, `fileName`, `modified`, `pictures`; `images`, `isMissing`, `fileOf`, `camera`, `setCamera`, `newBoard`, `open`, `save`, `saveIfChanged`, `checkpoint`, `restore`, `addImage`, `move`, `scale`, `toFront`, `remove`, `relink`; `decode`): the open `.etcr` board, apart from the artwork document, with app-local recovery of its unsaved state and camera.
+
 ## components/documents
 
 - `RecentFiles.kt`: `RecentFiles` (`Recent`; `list`, `add`, `remove`, `clear`, `exists`, `thumbnail`): up to ten recent documents with persisted access and each `.etc`'s thumbnail.
@@ -121,7 +125,8 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
 - `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity with slider popover, Fill and mask shown disabled, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`.
 - `common/ConfirmDialog.kt`: `Confirmation`, `ConfirmDialog`: ask before a destructive action.
-- `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`.
+- `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`, `BoardActions` (add, New, Open, Save, Relink, select, changed).
+- `board/BoardCanvas.kt`: `BoardCanvas`: the reference board's view through its own camera (move, resize the selected image, pan, zoom, select; missing images as placeholders).
 - `color/ColorWorkspace.kt`: `ColorWorkspace`: saturation/value square, hue bar, hex and R, G, B entry, swatches, recent colours, mixing pad; `color/MixingPad.kt`: `MixingPad` (paint primary or alternate, sample, reset).
 - `debug/DebugOverlay.kt`: `DebugOverlay`: debug mode's on-screen readout.
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.

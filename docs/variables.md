@@ -56,6 +56,8 @@ Stored keys, paths, constants and identifiers.
 - Link statuses: `found`, `changed` (SHA-256 differs), `uri` (only a content URI locates it), `missing`.
 - Find-missing limits: 6 folders deep, 20 000 files.
 - Temporary board copies on Android: `<cacheDir>/engine-boards/`.
+- Board panel: pictures decoded at most 1024 px a side (`ReferenceBoard.MAX_SIDE`); a new image placed 280 px across at the board's zoom (`PLACED_SIZE`), centred on the camera, ids `ref-` + 8 characters; board zoom 0.01–64; view 240 dp high.
+- Board recovery: SharedPreferences `reference-board` (`PREFS`), key `current` (`{uri, modified, board}`), and `camera:<boardId>` for a camera not saved since; written at the end of each board gesture and on file changes. Going to the background saves a board with a file and unsaved changes to that file. Save As name `References.etcr`; picker MIME `ETCR_MIME`.
 
 ## Dial tools
 
@@ -107,7 +109,7 @@ Stored keys, paths, constants and identifiers.
 - Artwork camera: kept with the document (`setView {x, y, zoom}`, saved as the document's view, named `Artwork`) before each save and on Home; restored on open. View Flip is not saved.
 - Panel layout: SharedPreferences `panel-layout` (`layersOpen`, `texturesOpen`, `boardOpen`, and per panel `<key>.dock` topStart|topEnd|bottomEnd|float, `<key>.x`, `<key>.y`); keys `textures`, `layers`, `board`; default docks textures topStart, layers topEnd, board bottomEnd; dock reach 70 dp (5 × the 14 dp margin); focus mode is not kept.
 - Dial order: Brush, Marker, Pencil, Pen, Eraser, Fill, Selection, Shapes, Move, Crop, Export. Active sight 45° (`SIGHT`); ring radius 0.74 of the dial (`RING`); dial 340 dp, offset −110 dp, +110 dp into the lower-left corner.
-- Top bar height `BAR_HEIGHT` 52 dp; Layers panel width 368 dp; Texture library 260 dp; Reference board 270 dp.
+- Top bar height `BAR_HEIGHT` 52 dp; Layers panel width 368 dp; Texture library 260 dp; Reference board 320 dp.
 - Camera zoom range `MIN_ZOOM` 0.01 – `MAX_ZOOM` 64; Fit artwork leaves 18 % margin.
 - Workspace surround colour `#0C131B` (`EditorCanvasView.SURROUND`); overlay accents `#EFC98C`, `#83C5BB`.
 - Messages show 3.5 s.
