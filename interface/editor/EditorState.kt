@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.extemporecreare.app.components.color.ColorLibrary
 import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.components.documents.DocumentSettings
 import com.extemporecreare.app.components.documents.RecentFiles
@@ -90,6 +91,10 @@ class EditorState(private val context: Context) {
         private set
     var alternate by mutableStateOf<String?>("#ffffff")
         private set
+
+    /** The colour workspace's swatches and history, and whether it is open. */
+    val colors = ColorLibrary(context)
+    var colorWorkspaceOpen by mutableStateOf(false)
 
     /** A message to show (an error or a result), or null. */
     var message by mutableStateOf<String?>(null)
@@ -239,6 +244,13 @@ class EditorState(private val context: Context) {
         readColors(engine.setPaintDefaults(values.toString()))
     }
 
+    /** Set the [which] colour ("primary" or "alternate") to [hex], noted in the colour history. */
+    fun setColor(which: String, hex: String) {
+        val key = if (which == "primary") "stroke" else "fill"
+        readColors(engine.setPaintDefaults(JSONObject().put(key, hex).toString()))
+        colors.used(hex)
+    }
+
     /** Read the colours from an answer of the paint defaults (else ask the engine). */
     private fun readColors(answer: String = engine.paintDefaults()) {
         val c = EngineAnswer(answer).okObject ?: return
@@ -356,6 +368,7 @@ class EditorState(private val context: Context) {
 // - viewJson(): the zoom and view frame for the tools.
 // - chooseTool(index): make a tool active. pointer(event): feed a canvas event to the active tool.
 // - undo(), redo(), step(command): one step back or forward.
+// - colors, colorWorkspaceOpen: the colour workspace's library and whether it is open. setColor(which, hex): set primary or alternate.
 // - flip(): mirror the view. swapColors(): swap primary and alternate. readColors(answer): read the defaults.
 // - run(command, params): a panel's engine command.
 // - save(uri), open(uri): the document's file. exportTo(tree): write the export regions into a folder.

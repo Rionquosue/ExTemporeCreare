@@ -20,6 +20,7 @@ import com.extemporecreare.app.components.tools.EngineAnswer
 import com.extemporecreare.app.tools.export.ExportTool
 import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.ui.canvas.EditorCanvasView
+import com.extemporecreare.app.ui.color.ColorWorkspace
 import com.extemporecreare.app.ui.debug.DebugOverlay
 import com.extemporecreare.app.ui.dial.ColorControl
 import com.extemporecreare.app.ui.dial.RotaryDial
@@ -113,7 +114,7 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
                 onActiveTap = { state.settingsOpen = !state.settingsOpen },
                 modifier = Modifier.align(Alignment.BottomStart).offset((-110).dp, 110.dp),
             ) {
-                ColorControl(state.primary, state.alternate, { state.swapColors() }, { state.message = "The colour workspace is not built yet" })
+                ColorControl(state.primary, state.alternate, { state.swapColors() }, { state.colorWorkspaceOpen = !state.colorWorkspaceOpen })
             }
             ToolReadout(
                 name = state.activeTool.name,
@@ -122,6 +123,9 @@ fun EditorScreen(state: EditorState, requests: EditorRequests) {
                 onTap = { state.settingsOpen = !state.settingsOpen },
                 modifier = Modifier.align(Alignment.BottomStart).padding(start = 210.dp, bottom = 60.dp),
             )
+            if (state.colorWorkspaceOpen) {
+                ColorWorkspace(state.primary, state.alternate, state.colors, state::setColor, { state.colorWorkspaceOpen = false }, Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 190.dp))
+            }
             if (state.settingsOpen) {
                 Box(Modifier.align(Alignment.BottomStart).padding(start = 210.dp, bottom = 130.dp)) { ToolSettingsHost(state) { requests.saveAs() } }
             }

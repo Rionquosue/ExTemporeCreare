@@ -31,6 +31,9 @@ EXTEMPORECREARE
 |           |-- AndroidManifest.xml
 |-- components/
 |   |-- readme.md
+|   |-- color/
+|   |   |-- ColorLibrary.kt
+|   |   |-- ColorMath.kt
 |   |-- debug/
 |   |   |-- DebugMode.kt
 |   |   |-- PenReading.kt
@@ -122,6 +125,9 @@ EXTEMPORECREARE
 |   |   |-- Camera.kt
 |   |   |-- EditorCanvasView.kt
 |   |   |-- OverlayPainter.kt
+|   |-- color/
+|   |   |-- ColorWorkspace.kt
+|   |   |-- MixingPad.kt
 |   |-- debug/
 |   |   |-- DebugOverlay.kt
 |   |-- dial/

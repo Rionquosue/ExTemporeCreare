@@ -54,6 +54,11 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.
 - `EnginePresets.kt`: `EnginePresets.install(context)`: copies the bundled presets (assets `presets/`) into `filesDir/presets` when the app version changed and sets the engine's presets folder.
 
+## components/color
+
+- `ColorMath.kt`: `ColorMath` (`parse`, `hex`, `toHsv`, `fromHsv`, `mixPigment`): colour conversions and the mixing pad's provisional pigment-like mix.
+- `ColorLibrary.kt`: `ColorLibrary` (`swatches`, `history`, `addSwatch`, `removeSwatch`, `used`): saved swatches and recent colours, app-wide.
+
 ## components/debug
 
 - `DebugMode.kt`: `DebugMode` (`TAG`, `isOn`, `log`): debug mode switched from ADB with the `log.tag.ETCDebug` property.
@@ -97,7 +102,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## interface (package `com.extemporecreare.app.ui`)
 
 - `MainActivity.kt`: `MainActivity`, the app's activity: splash or editor, the system pickers (Save As, Open, Locate, Export folder) and the New Document and Settings dialogs.
-- `editor/EditorState.kt`: `EditorState`: screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
+- `editor/EditorState.kt`: `EditorState`: screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `setColor`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
 - `editor/PanelLayout.kt`: `PanelLayout`: the panels' expanded states (kept in the preferences), focus mode, `reset`.
 - `document/NewDocumentDialog.kt`: `NewDocumentDialog`; `document/DocumentPresets.kt`: `DOCUMENT_PRESETS`.
 - `splash/SplashScreen.kt`: `SplashScreen`, `SplashActions`; `splash/SettingsDialog.kt`: `SettingsDialog` (New Document defaults, clear recents, reset panel layout).
@@ -114,6 +119,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
 - `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions`; `panels/LayerCard.kt`: `LayerCard`, `LayerCardActions`, `BLEND_MODES`.
 - `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel`; `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`.
+- `color/ColorWorkspace.kt`: `ColorWorkspace`: saturation/value square, hue bar, hex and R, G, B entry, swatches, recent colours, mixing pad; `color/MixingPad.kt`: `MixingPad` (paint primary or alternate, sample, reset).
 - `debug/DebugOverlay.kt`: `DebugOverlay`: debug mode's on-screen readout.
 - `theme/EtcColors.kt`: `EtcColors`, the `uistandards.md` §3.1 colour tokens.
 - `tools/ToolSettingsControls.kt`: `ToolSettingsWindow`, `SettingNote`, `SettingSlider`, `SettingChoice`, `SettingSwitch`, `SettingNumberField`, `SettingButton`, `formatNumber`: the controls of the tools' settings windows.
