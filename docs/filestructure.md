@@ -70,7 +70,9 @@ EXTEMPORECREARE
 |-- docs/
 |   |-- Ex-Tempore-Creare_UI_Mockup_v10.html
 |   |-- classes.md
+|   |-- featurelist.md
 |   |-- filestructure.md
+|   |-- planned.md
 |   |-- variables.md
 |   |-- research/
 |   |   |-- adf_study_notes.md
