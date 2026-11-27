@@ -130,7 +130,8 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `dial/RotaryDial.kt`: `RotaryDial`: the ring of tools turning beneath the 45° active sight.
 - `dial/ColorControl.kt`: `ColorControl`: primary and alternate colours; tap swaps, double tap opens the colour workspace.
 - `dial/ToolReadout.kt`: `ToolReadout`: the active tool's name and size, drag to adjust.
-- `dial/DialGrip.kt`: `DialGrip` (hold and drag to move the dial), `DialStepper` (step the dial by one tool).
+- `dial/DialGrip.kt`: `DialGrip` (hold and drag to move the dial; dragged to an edge it docks the dial there as a toolbar, dragged away from it the rotary dial returns), `edgeNear`, `DOCK_REACH`, `DialStepper` (step the dial by one tool).
+- `dial/DialToolbar.kt`: `DialToolbar`: the dial docked to an edge as a toolbar (grip, colour control, tools; tap to choose, tap the active one for its settings); `TOOLBAR_REACH`.
 - `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
 - `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
 - `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`, `newTexture` opening the Texture library, `filters` and `newFilter` for the Filter menu), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity and Fill with slider popovers, mask button and mask sublayer, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`; `panels/MaskRow.kt`: `MaskButton`, `MaskRow`, `MaskActions`, `MaskContext` (a layer's mask as its sublayer and its quick operations).

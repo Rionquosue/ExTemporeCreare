@@ -29,6 +29,17 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.extemporecreare.app.ui.dial.TOOLBAR_REACH
+import com.extemporecreare.app.ui.dial.DialToolbar
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -73,7 +84,8 @@ class EditorRequests(val newDocument: () -> Unit, val saveAs: () -> Unit, val op
  * bar; the Texture library upper left; Layers (or, while the Export tool is active, Export
  * Settings in its place) upper right; the Reference board lower right; and the rotary dial cropped
  * into the lower-left corner with its colour control, the tool readout beside it and the active
- * tool's settings window above the readout. The panels move by holding their headers and dock at
+ * tool's settings window above the readout; its grip dragged to an edge docks it there as a toolbar
+ * ([DialToolbar]), with the readout, settings and colour workspace beside it. The panels move by holding their headers and dock at
  * the workspace's edges ([MovablePanel]); focus mode hides them. While debug mode is on (switched from ADB,
  * [DebugMode]) its readout shows at the top.
  */
@@ -83,6 +95,9 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
     // The Layers panel's scroll and collapsed folders, kept while Export Settings takes its place.
     val layersView = remember { LayersViewState(ScrollState(0), mutableStateMapOf()) }
     val revision = state.revision
+    // The workspace under the top bar: its place in the root and its size, in pixels (for the dial's grip).
+    var workspaceOrigin by remember { mutableStateOf(Offset.Zero) }
+    var workspaceSize by remember { mutableStateOf(IntSize.Zero) }
     // A recovery copy of unsaved work every few minutes (§5.1).
     LaunchedEffect(Unit) {
         while (true) {
@@ -127,7 +142,12 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
             onRedo = { state.redo() },
             onExport = { requests.exportFolder() },
         )
-        Box(Modifier.fillMaxSize().padding(top = BAR_HEIGHT)) {
+        Box(
+            Modifier.fillMaxSize().padding(top = BAR_HEIGHT).onGloballyPositioned {
+                workspaceOrigin = it.boundsInRoot().topLeft
+                workspaceSize = it.size
+            },
+        ) {
             if (!layout.focus) {
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     MovablePanel(PanelLayout.TEXTURES, layout) { header ->
@@ -157,37 +177,83 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
                     }
                 }
             }
-            val dx = layout.dialX.dp
-            val dy = layout.dialY.dp
-            RotaryDial(
-                names = state.tools.map { it.name },
-                active = state.activeIndex,
-                onChoose = { state.chooseTool(it) },
-                onActiveTap = { state.settingsOpen = !state.settingsOpen },
-                modifier = Modifier.align(Alignment.BottomStart).offset((-110).dp + dx, 110.dp + dy),
-            ) {
-                ColorControl(state.primary, state.alternate, { state.swapColors() }, { state.colorWorkspaceOpen = !state.colorWorkspaceOpen })
+            val dock = layout.toolbarDock
+            val readout = @Composable { m: Modifier ->
+                ToolReadout(
+                    name = state.activeTool.name,
+                    size = remember(revision, state.activeIndex, state.settingsOpen) { sizeOf(state.activeTool) },
+                    onSize = { state.show(setSize(state.engine, state.activeTool, it)); state.touched() },
+                    onTap = { state.settingsOpen = !state.settingsOpen },
+                    modifier = m,
+                )
             }
-            DialGrip(layout, Modifier.align(Alignment.BottomStart).offset(18.dp + dx, (-250).dp + dy))
-            DialStepper({ state.stepTool(-1) }, { state.stepTool(1) }, Modifier.align(Alignment.BottomStart).offset(206.dp + dx, (-16).dp + dy))
-            ToolReadout(
-                name = state.activeTool.name,
-                size = remember(revision, state.activeIndex, state.settingsOpen) { sizeOf(state.activeTool) },
-                onSize = { state.show(setSize(state.engine, state.activeTool, it)); state.touched() },
-                onTap = { state.settingsOpen = !state.settingsOpen },
-                modifier = Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-64).dp + dy),
-            )
-            if (state.colorWorkspaceOpen) {
-                ColorWorkspace(state.primary, state.alternate, state.colors, state::setColor, { state.colorWorkspaceOpen = false }, Modifier.align(Alignment.BottomStart).offset(16.dp + dx, (-190).dp + dy))
+            val colors = @Composable { m: Modifier ->
+                ColorControl(state.primary, state.alternate, { state.swapColors() }, { state.colorWorkspaceOpen = !state.colorWorkspaceOpen }, m)
             }
-            if (state.settingsOpen) {
-                Box(Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-130).dp + dy)) { ToolSettingsHost(state) { requests.saveAs() } }
+            val workspace = @Composable { m: Modifier ->
+                ColorWorkspace(state.primary, state.alternate, state.colors, state::setColor, { state.colorWorkspaceOpen = false }, m)
+            }
+            val settings = @Composable { m: Modifier -> Box(m) { ToolSettingsHost(state) { requests.saveAs() } } }
+            // While the grip is dragged near an edge: where the toolbar would dock.
+            layout.toolbarPreview?.takeIf { it != dock }?.let { edge ->
+                val band = when (edge) {
+                    "left" -> Modifier.align(Alignment.CenterStart).fillMaxHeight().width(TOOLBAR_REACH)
+                    "right" -> Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(TOOLBAR_REACH)
+                    "top" -> Modifier.align(Alignment.TopCenter).fillMaxWidth().height(TOOLBAR_REACH)
+                    else -> Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(TOOLBAR_REACH)
+                }
+                Box(band.padding(8.dp).background(EtcColors.Gold.copy(alpha = 0.18f), RoundedCornerShape(16.dp)).border(2.dp, EtcColors.Gold, RoundedCornerShape(16.dp)))
+            }
+            if (dock == null) {
+                val dx = layout.dialX.dp
+                val dy = layout.dialY.dp
+                RotaryDial(
+                    names = state.tools.map { it.name },
+                    active = state.activeIndex,
+                    onChoose = { state.chooseTool(it) },
+                    onActiveTap = { state.settingsOpen = !state.settingsOpen },
+                    modifier = Modifier.align(Alignment.BottomStart).offset((-110).dp + dx, 110.dp + dy),
+                ) { colors(Modifier) }
+                DialGrip(layout, workspaceOrigin, workspaceSize, Modifier.align(Alignment.BottomStart).offset(18.dp + dx, (-250).dp + dy))
+                DialStepper({ state.stepTool(-1) }, { state.stepTool(1) }, Modifier.align(Alignment.BottomStart).offset(206.dp + dx, (-16).dp + dy))
+                readout(Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-64).dp + dy))
+                if (state.colorWorkspaceOpen) workspace(Modifier.align(Alignment.BottomStart).offset(16.dp + dx, (-190).dp + dy))
+                if (state.settingsOpen) settings(Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-130).dp + dy))
+            } else {
+                // The dial docked as a toolbar: its readout, colour workspace and settings beside it.
+                val (bar, beside, above) = when (dock) {
+                    "left" -> Triple(Alignment.CenterStart, Alignment.BottomStart, Alignment.TopStart)
+                    "right" -> Triple(Alignment.CenterEnd, Alignment.BottomEnd, Alignment.TopEnd)
+                    "top" -> Triple(Alignment.TopCenter, Alignment.TopStart, Alignment.TopStart)
+                    else -> Triple(Alignment.BottomCenter, Alignment.BottomStart, Alignment.BottomStart)
+                }
+                val inward = when (dock) {
+                    "left" -> DpOffset(TOOLBAR_REACH, 0.dp)
+                    "right" -> DpOffset(-TOOLBAR_REACH, 0.dp)
+                    "top" -> DpOffset(0.dp, TOOLBAR_REACH)
+                    else -> DpOffset(0.dp, -TOOLBAR_REACH)
+                }
+                val along = if (dock == "top") 1 else -1
+                DialToolbar(
+                    edge = dock,
+                    names = state.tools.map { it.name },
+                    active = state.activeIndex,
+                    onChoose = { state.chooseTool(it) },
+                    onActiveTap = { state.settingsOpen = !state.settingsOpen },
+                    grip = { DialGrip(layout, workspaceOrigin, workspaceSize) },
+                    colors = colors,
+                    modifier = Modifier.align(bar).padding(8.dp),
+                )
+                val side = if (dock == "top" || dock == "bottom") 16.dp else 0.dp
+                readout(Modifier.align(beside).offset(inward.x + side, inward.y + (16 * along).dp))
+                if (state.settingsOpen) settings(Modifier.align(beside).offset(inward.x + side, inward.y + (72 * along).dp))
+                if (state.colorWorkspaceOpen) workspace(Modifier.align(above).offset(inward.x + if (dock == "top" || dock == "bottom") 240.dp else 0.dp, inward.y + if (dock == "left" || dock == "right") 16.dp else 0.dp))
             }
             if (state.debugOn) {
                 DebugOverlay(state.penReading, state.activeTool.name, state.camera.zoom, state.renderMs, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
             }
             state.confirm?.let { c -> ConfirmDialog(c) { state.confirm = null } }
-            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = if (layout.toolbarDock == "bottom") 24.dp + TOOLBAR_REACH else 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 state.error?.let { text ->
                     Row(
                         Modifier.widthIn(max = 520.dp).background(EtcColors.Panel2, RoundedCornerShape(10.dp)).border(1.dp, EtcColors.Gold2, RoundedCornerShape(10.dp))
