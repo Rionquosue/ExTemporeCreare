@@ -35,9 +35,10 @@ Ex-Tempore Creare: a tablet-first Android art app.
 
 ## State (2026-11-27)
 
-Everything is pushed to `beta`; the latest commit is the dial toolbar (`5173c19`). In order, the most recent work:
+Everything is pushed to `beta`. In order, the most recent work:
 
-1. Dial grip docks the dial to any edge as a toolbar (`5173c19`).
+1. The debug APK builds on the owner's VM (`assembleDebug`, about 17 minutes from clean) and runs on the `Medium_Tablet_API_35` emulator to the start screen. This needed the text crate's `build/web_fonts.rs`, which `.gitignore`'s `build/` had kept out of the repository (`0c1882b`).
+2. Dial grip docks the dial to any edge as a toolbar (`5173c19`).
 2. `docs/featurelist.md` and `docs/planned.md` (`72a04f5`).
 3. Reference board Embed stores images inside the `.etcr` (`5612780`).
 4. Texture library and texture layers, filter layers, Fill and masks on object rows (`9ce6d50`).
@@ -46,7 +47,7 @@ Everything is pushed to `beta`; the latest commit is the dial toolbar (`5173c19`
 7. Reference board handles, view twist, image menu (`5c35261`).
 8. `uistandards.md` §6 lists 11 tools (`c1fd51b`).
 
-The full feature set is in `docs/featurelist.md`. None of the UI has been tried on a device: the cloud container had no emulator. The first job on a machine with one is to install the debug APK and go through `featurelist.md`.
+The full feature set is in `docs/featurelist.md`. Beyond the start screen, none of the UI has been tried on a device yet. The next job is to go through `featurelist.md` on the emulator and on a real tablet.
 
 ## Waiting on the owner
 
@@ -95,6 +96,12 @@ The full feature set is in `docs/featurelist.md`. None of the UI has been tried 
 
 ## The VM
 
+- **Set up (2026-11-27):** Debian 13 with XFCE on Unraid, with a fixed 10 GB of memory (ballooning had held it at 545 MB, too little to build the engine).
+  - Android Studio is in `/opt/android-studio`, and the SDK is in `~/Android/Sdk` (API 35, build-tools 34, NDK 27.0.12077973).
+  - Gradle 8.10.2 and JDK 21 are in `~/.local/opt`. Android Studio's bundled JDK is Java 25, which Gradle 8.10 can't run on. There is no Gradle wrapper.
+  - Rust and cargo-ndk are installed with rustup. `~/.profile` puts cargo and `ANDROID_HOME` on the path.
+  - Build with `JAVA_HOME=~/.local/opt/jdk-21 gradle assembleDebug` from a login shell.
+  - The emulator is `Medium_Tablet_API_35`.
 - **Emulator:** needs KVM inside the VM, so enable nested virtualisation on the host. Otherwise use a real tablet with `adb` (Wi-Fi debugging, or USB passed through).
 - **Network:** with restricted outbound access, these hosts are needed:
   - Gradle and Android: `dl.google.com`, `maven.google.com`, `repo.maven.apache.org`, `plugins.gradle.org`, `services.gradle.org`
