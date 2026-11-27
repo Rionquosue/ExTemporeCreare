@@ -73,6 +73,7 @@ EXTEMPORECREARE
 |   |-- featurelist.md
 |   |-- filestructure.md
 |   |-- planned.md
+|   |-- resume.md
 |   |-- variables.md
 |   |-- research/
 |   |   |-- adf_study_notes.md
