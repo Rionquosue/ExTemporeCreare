@@ -4,7 +4,6 @@
 //! filtered picture with the unfiltered one. The renderer draws the page in passes at the filter
 //! layers ([`vectorcraft_render`]'s `draw_frame`).
 
-use std::sync::Arc;
 
 use serde_json::{Value, json};
 use vectorcraft_doc::{FilterSpec, Node, NodeId};
@@ -27,7 +26,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "New Filter Layer",
             [],
             None,
-            "{effect (one of filter.list), params? (merged over the filter's defaults), name? (default: the filter's label)} insert a filter layer at the top of the current layer: an empty folder that filters everything below it on the page; one undo step → {id}",
+            "{effect (one of filter.list), params? (merged over the filter's defaults), name? (default: the filter's label)} insert a filter layer directly above the current layer, at its level: an empty layer that filters everything below it on the page; one undo step → {id}",
             has_doc,
             new_filter
         ),
@@ -76,13 +75,12 @@ fn new_filter(s: &mut Session, p: &Value) -> Result<Value> {
     let defaults = vectorcraft_render::effects::effect_info(&effect).map(|i| i.defaults).unwrap_or_else(|| json!({}));
     let params = merged(&defaults, p.get("params"));
     let name = p.get("name").and_then(Value::as_str).map(str::to_string).or_else(|| label_of(&effect)).unwrap_or_else(|| effect.clone());
-    let parent = s.doc()?.target_parent()?;
+    let (parent, index) = super::texturelayer::beside_current_layer(s.doc()?);
     let id = s.edit("New Filter Layer", move |d, sel| {
         let id = d.alloc_id();
-        let mut n = Node::group(id, Vec::<Arc<Node>>::new());
-        n.name = Some(name);
+        let mut n = Node::layer(id, &name, vectorcraft_doc::LayerColor::Preset(0));
         n.extras_mut().filter = Some(Box::new(FilterSpec { effect, params }));
-        d.insert(parent, usize::MAX, n)?;
+        d.insert(parent, index, n)?;
         sel.clear();
         Ok(id)
     })?;

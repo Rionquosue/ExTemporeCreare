@@ -24,6 +24,7 @@ The mockup demonstrates interaction and appearance; it does not establish that e
 - **Contextual detail:** reveal settings near the relevant control instead of adding permanent inspectors.
 - **Non-destructive editing:** distinguish document changes, view changes and output-region changes.
 - **Consistent state:** active tools, selected items, disabled controls and save results must be intelligible.
+- **Live feedback:** every drawing tool (Brush, Marker, Pencil, Pen, Eraser, Shapes and any later tool that makes or changes artwork) MUST show what it is making on the canvas in real time, as the stroke or gesture happens. Showing the result only after the pen or finger is released is not acceptable. A finished stroke MUST stay visible until the committed artwork replaces it, with no flicker or gap.
 
 ## 3. Visual language
 
@@ -331,6 +332,7 @@ These recommendations are additions for review, not measurements claimed from th
 - [ ] Finite and infinite document setup clearly distinguish dimensions and export bounds.
 - [ ] Rotating the dial changes tools at the fixed 45° sight; tapping inactive slots does not.
 - [ ] Colour single/double taps do not conflict; quick size adjustment does not rotate or move the dial.
+- [ ] Every drawing tool shows its stroke in real time while drawing, and the finished stroke never blinks out before the committed artwork appears.
 - [ ] Layer cards expose blend, Opacity and Fill directly; percentage entry and slider popovers stay synchronized.
 - [ ] Reordering and folder operations preserve the intended hierarchy and global downward filter scope.
 - [ ] Export Settings replaces Layers in place and restores its state on exit.

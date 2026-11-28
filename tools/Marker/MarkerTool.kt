@@ -2,7 +2,10 @@ package com.extemporecreare.app.tools.marker
 
 import com.extemporecreare.app.components.engine.EngineBridge
 import com.extemporecreare.app.components.tools.EngineAnswer
+import com.extemporecreare.app.components.tools.DrawsLive
 import com.extemporecreare.app.components.tools.EngineTool
+import com.extemporecreare.app.components.tools.LivePath
+import com.extemporecreare.app.components.tools.LivePathRecorder
 import com.extemporecreare.app.components.tools.StrokeFinish
 import com.extemporecreare.app.components.tools.StrokeGesture
 import com.extemporecreare.app.components.tools.StrokeMode
@@ -25,7 +28,11 @@ import org.json.JSONObject
  * Calligraphic brush [TIP_BRUSH], kept to the settings; with the Blob Brush it is the tool's own tip
  * (`angle`, `roundness`, `shape`, `angleFrom`).
  */
-class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME, store, MarkerToolSettings::fromJson) {
+class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME, store, MarkerToolSettings::fromJson), DrawsLive {
+
+    /** The stroke in progress as it shows on the canvas. */
+    private val live = LivePathRecorder()
+    override val livePath: LivePath? get() = live.path
 
     /** The stroke in progress, as one undo step. */
     private val gesture = StrokeGesture(NAME)
@@ -45,6 +52,7 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
     override fun pointer(engine: EngineBridge, event: ToolPointer, viewJson: String): ToolResult {
         val s = settings
         val orientation = orientationFor(s, event)
+        live.follow(event, s.size)
         return gesture.pointer(engine, event, viewJson, beforeDraw = { prepareTip(engine, s, orientation) }) { created ->
             val weight = if (s.mode == StrokeMode.PAINTBRUSH) s.size else null
             StrokeFinish.apply(engine, created, weight, StrokeFinish.featherRadius(s.size, s.hardness))
@@ -53,6 +61,7 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
 
     override fun deactivate(engine: EngineBridge): ToolResult {
         gesture.close(engine)
+        live.clear()
         return super.deactivate(engine)
     }
 
@@ -119,7 +128,7 @@ class MarkerTool(store: ToolSettingsStore) : EngineTool<MarkerToolSettings>(NAME
 
 // GLOSSARY
 // - MarkerTool: the Marker tool (engine Paintbrush or Blob Brush), one undo step per stroke.
-// - gesture: the stroke in progress.
+// - gesture: the stroke in progress. live, livePath: the stroke as it shows while drawn.
 // - engineToolId(): the engine tool of the current mode.
 // - pushSettings(engine): the Blob Brush's size and tip (angle, roundness, shape, angleFrom).
 // - pointer(engine, event, viewJson): draw with the Paintbrush's brush set first, then set the stroke weight and feather on release.

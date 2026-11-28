@@ -30,7 +30,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "New Layer…",
             ["Window", "Layers"],
             Some("Cmd+L"),
-            "{name?, top?: bool, below?: bool, color?, template?, locked?, visible?, printable?, preview?, dimImages?} a layer directly above the current layer, at its level (a sublayer beside a current sublayer), or directly below it in Draw Behind; `top`: above all layers (Ctrl/Cmd-click the button); `below`: directly below the current layer, at its level (Ctrl/Cmd+Alt-click the button), not with `top`. Options as layer.setProps; refused while an opacity mask is edited (the Layers panel lists only the mask) → {id}",
+            "{name?, role?: vector|raster|folder (what the layer is to the app's Layers panel), top?: bool, below?: bool, color?, template?, locked?, visible?, printable?, preview?, dimImages?} a layer directly above the current layer, at its level (a sublayer beside a current sublayer), or directly below it in Draw Behind; `top`: above all layers (Ctrl/Cmd-click the button); `below`: directly below the current layer, at its level (Ctrl/Cmd+Alt-click the button), not with `top`. Options as layer.setProps; refused while an opacity mask is edited (the Layers panel lists only the mask) → {id}",
             super::maskedit::outside_mask_editing,
             new_layer
         ),
@@ -536,6 +536,10 @@ fn add_layer(s: &mut Session, p: &Value, cmd: &str, label: &str, place: impl FnO
     let xml_id = s.prefs.identify_objects_by == "xmlId";
     check_options(cmd, p, xml_id)?;
     let name = str_param(p, "name").filter(|n| !n.trim().is_empty()).map(str::to_string);
+    let role = match p.get("role").filter(|v| !v.is_null()) {
+        Some(v) => Some(serde_json::from_value::<vectorcraft_doc::LayerRole>(v.clone()).map_err(|_| bad(cmd, "`role` is vector, raster or folder"))?),
+        None => None,
+    };
     let id = s.edit(label, |d, _| {
         let (parent, mut index) = place(d)?;
         // The clipping path stays at the bottom of a clipping layer.
@@ -544,6 +548,9 @@ fn add_layer(s: &mut Session, p: &Value, cmd: &str, label: &str, place: impl FnO
         }
         let mut n = make_layer(d, name.as_deref());
         apply_options(&mut n, p, xml_id);
+        if role.is_some() {
+            n.extras_mut().layer_role = role;
+        }
         Ok(d.insert(parent, index, n)?)
     })?;
     let st = s.doc_mut()?;

@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use serde_json::{Value, json};
 use vectorcraft_doc::color::Paint;
-use vectorcraft_doc::{Appearance, AppearanceItem, FillLayer, ImageBlob, ImageObject, Node, NodeId, NodeKind, PatternDef, TextureSpec};
+use vectorcraft_doc::{Appearance, AppearanceItem, FillLayer, ImageBlob, ImageObject, LayerColor, Node, NodeId, NodeKind, PatternDef, TextureSpec};
 use vectorcraft_geom::{Affine, Rect};
 
 use super::{CommandSpec, Result, Session, bad, cmd, has_doc};
@@ -30,7 +30,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "New Texture Layer",
             [],
             None,
-            "{path (a PNG, JPEG, WebP, GIF or BMP image), name (the texture's name), scale?: above 0 (1: one image pixel a point)} insert a texture layer at the top of the current layer: a locked rectangle over the artboards (an infinite canvas: 100 000 pt each way) filled with the image as a live pattern; one undo step → {id}",
+            "{path (a PNG, JPEG, WebP, GIF or BMP image), name (the texture's name), scale?: above 0 (1: one image pixel a point)} insert a texture layer directly above the current layer, at its level: a locked layer holding a rectangle over the artboards (an infinite canvas: 100 000 pt each way) filled with the image as a live pattern; one undo step → {id}",
             has_doc,
             new_texture
         ),
@@ -84,7 +84,7 @@ fn new_texture(s: &mut Session, p: &Value) -> Result<Value> {
     let (w, h) = image_size(&bytes).ok_or_else(|| bad(C, "the image can't be read"))?;
     let key = format!("{TEXTURE_KEY_PREFIX}{}", &etcfile::sha256_hex(&bytes)[..16]);
     let st = s.doc()?;
-    let parent = st.target_parent()?;
+    let place = beside_current_layer(st);
     let area = st.doc.artboards.iter().map(|a| a.rect).reduce(|a, b| a.union(b)).unwrap_or(Rect::new(-INFINITE_EXTENT, -INFINITE_EXTENT, INFINITE_EXTENT, INFINITE_EXTENT));
     let id = s.edit("New Texture Layer", move |d, sel| {
         d.images.entry(key.clone()).or_insert_with(|| ImageBlob { mime, bytes: Arc::new(bytes), proxy: None });
@@ -102,12 +102,20 @@ fn new_texture(s: &mut Session, p: &Value) -> Result<Value> {
         d.patterns.push(def);
         let mut appearance = Appearance::default();
         appearance.items.push(AppearanceItem::Fill(FillLayer::new(Paint::Pattern { pattern: pattern_name.clone(), xf: Affine::scale(scale) })));
-        let id = d.alloc_id();
-        let mut rect = Node::path(id, vectorcraft_geom::shapes::rectangle(area), appearance);
+        let rect_id = d.alloc_id();
+        let mut rect = Node::path(rect_id, vectorcraft_geom::shapes::rectangle(area), appearance);
         rect.name = Some(name.clone());
         rect.locked = true;
-        rect.extras_mut().texture = Some(Box::new(TextureSpec { asset: key, pattern: pattern_name, name, scale }));
-        d.insert(parent, usize::MAX, rect)?;
+        // The layer holding it is the texture layer: its row, its opacity and blend.
+        let id = d.alloc_id();
+        let mut layer = Node::layer(id, &name, LayerColor::Preset(0));
+        layer.locked = true;
+        layer.extras_mut().texture = Some(Box::new(TextureSpec { asset: key, pattern: pattern_name, name, scale }));
+        if let Some(c) = layer.children_mut() {
+            c.push(Arc::new(rect));
+        }
+        let (parent, index) = place;
+        d.insert(parent, index, layer)?;
         sel.clear();
         Ok(id)
     })?;
@@ -124,12 +132,22 @@ fn set_texture(s: &mut Session, p: &Value) -> Result<Value> {
     }
     s.edit("Texture Options", move |d, _| {
         let n = d.node_mut(id).ok_or(crate::EngineError::NoNode(id))?;
-        for item in &mut n.appearance.items {
-            if let AppearanceItem::Fill(f) = item
-                && let Paint::Pattern { pattern, xf } = &mut f.paint
-                && *pattern == spec.pattern
-            {
-                *xf = Affine::scale(scale);
+        // The pattern fill: on the texture layer's rectangle (or, in a document from before texture
+        // layers were layers, on the object itself).
+        let rescale = |n: &mut Node| {
+            for item in &mut n.appearance.items {
+                if let AppearanceItem::Fill(f) = item
+                    && let Paint::Pattern { pattern, xf } = &mut f.paint
+                    && *pattern == spec.pattern
+                {
+                    *xf = Affine::scale(scale);
+                }
+            }
+        };
+        rescale(n);
+        if let Some(children) = n.children_mut() {
+            for c in children {
+                rescale(Arc::make_mut(c));
             }
         }
         n.extras_mut().texture = Some(Box::new(TextureSpec { scale, ..spec }));
@@ -138,8 +156,18 @@ fn set_texture(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({ "id": id.0, "scale": scale }))
 }
 
+/// Where a new layer beside the current one goes: directly above it, at its level (inside its
+/// folder), else on top of every layer → (parent, index).
+pub(crate) fn beside_current_layer(st: &crate::DocState) -> (Option<NodeId>, usize) {
+    match st.current_layer().and_then(|c| st.doc.position(c)) {
+        Some((parent, i, _)) => (parent, i + 1),
+        None => (None, usize::MAX),
+    }
+}
+
 // GLOSSARY
 // - INFINITE_EXTENT: how far a texture reaches on an infinite canvas. TEXTURE_KEY_PREFIX, MAX_TEXTURE_BYTES: its image's key prefix and largest size.
 // - specs: texture.new, texture.set.
 // - sniff_mime(bytes): an image's MIME type from its signature. image_size(bytes): its width and height.
 // - new_texture, set_texture: the commands.
+// - beside_current_layer(st): where a texture or filter layer goes: above the current layer, at its level.

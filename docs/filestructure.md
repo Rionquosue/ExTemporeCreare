@@ -62,6 +62,7 @@ EXTEMPORECREARE
 |       |-- DragBox.kt
 |       |-- EngineAnswer.kt
 |       |-- EngineTool.kt
+|       |-- LivePath.kt
 |       |-- StrokeFinish.kt
 |       |-- StrokeGesture.kt
 |       |-- StrokeMode.kt

@@ -16,6 +16,8 @@ import android.view.View
 import com.extemporecreare.app.components.debug.DebugMode
 import com.extemporecreare.app.components.debug.PenReading
 import com.extemporecreare.app.components.engine.EngineBridge
+import com.extemporecreare.app.components.tools.DrawsLive
+import com.extemporecreare.app.components.tools.LivePath
 import com.extemporecreare.app.components.tools.ToolPointer
 import com.extemporecreare.app.tools.brush.BrushTool
 import com.extemporecreare.app.tools.crop.CropTool
@@ -29,8 +31,10 @@ import kotlin.math.sin
 /**
  * The artwork canvas: the document rendered by the engine at the camera's zoom (on a worker thread;
  * while a render is pending the last one is drawn moved to the camera), with the active tool's
- * overlays, the Brush's live stroke, the Crop tool's canvas box and the Export tool's slices on
- * top. A stylus or one finger draws with the active tool; two fingers pan, pinch-zoom and twist-rotate the view.
+ * overlays, the stroke being drawn (the Brush's pixels, or a path tool's [LivePath]), the Crop
+ * tool's canvas box and the Export tool's slices on top. A finished stroke stays drawn until a
+ * render that includes it arrives, so it never blinks out. A stylus or one finger draws with the
+ * active tool; two fingers pan, pinch-zoom and twist-rotate the view.
  */
 @SuppressLint("ViewConstructor")
 class EditorCanvasView(context: Context, private val state: EditorState) : View(context) {
@@ -50,6 +54,24 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
     /** The Brush's live stroke as a bitmap of its splotch, and the stroke it belongs to. */
     private var liveBitmap: Bitmap? = null
     private var liveFor: BrushTool.LiveStroke? = null
+
+    /** A path tool's stroke in progress, as last drawn. */
+    private var livePath: LivePath? = null
+
+    /**
+     * A finished stroke still drawn until a render of document revision [heldUntil] or later
+     * arrives: the Brush's splotch bitmap with where it goes, or a path tool's path.
+     */
+    private var heldBitmap: Bitmap? = null
+    private var heldPlace: DoubleArray? = null
+    private var heldPath: LivePath? = null
+    private var heldUntil = 0
+
+    private val pathPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
 
     /** What the current touch does: draw (pointer id) or navigate (two fingers' last centre and span). */
     private var drawing: Int? = null
@@ -127,17 +149,76 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         canvas.save()
         canvas.rotate(cam.screenTurn, width / 2f, height / 2f)
         val upright = cam.upright()
+        drawHeld(canvas, upright)
         drawLiveStroke(canvas, upright)
         (state.activeTool as? CropTool)?.canvasBox?.let { b -> overlays.box(canvas, upright.toScreen(b.left, b.top, b.width, b.height, width, height), true) }
         (state.activeTool as? ExportTool)?.let { drawSlices(canvas, upright, it, cam) }
         canvas.restore()
-        overlays.draw(canvas, state.engine.overlays(state.viewJson()), cam.matrix(width, height))
+        // A path tool's stroke as it is drawn, in place of the engine's thin outline of it.
+        val drawingPath = followLivePath()
+        if (drawingPath != null) drawPath(canvas, drawingPath, cam) else overlays.draw(canvas, state.engine.overlays(state.viewJson()), cam.matrix(width, height))
+        heldPath?.let { drawPath(canvas, it, cam) }
+    }
+
+    /**
+     * The active tool's stroke in progress; when one has just ended, it is held ([heldPath]) until
+     * the render that includes it arrives.
+     */
+    private fun followLivePath(): LivePath? {
+        val now = (state.activeTool as? DrawsLive)?.livePath
+        val ended = livePath
+        if (now == null && ended != null) {
+            heldPath = ended
+            heldUntil = state.revision
+        }
+        livePath = now
+        return now
+    }
+
+    /** [path] drawn [LivePath.width] points wide at the camera's zoom, in the primary colour (an eraser's in translucent grey). */
+    private fun drawPath(canvas: Canvas, path: LivePath, cam: Camera) {
+        if (path.count == 0) return
+        val m = cam.matrix(width, height)
+        val pts = FloatArray(path.count * 2) { path.points[it].toFloat() }
+        m.mapPoints(pts)
+        pathPaint.strokeWidth = (path.width * cam.zoom).toFloat().coerceAtLeast(1f)
+        pathPaint.color = if (path.erases) ERASER_TRAIL else state.primary?.let { runCatching { Color.parseColor(it) }.getOrNull() } ?: Color.BLACK
+        if (path.count == 1) {
+            pathPaint.style = Paint.Style.FILL
+            canvas.drawCircle(pts[0], pts[1], pathPaint.strokeWidth / 2, pathPaint)
+            pathPaint.style = Paint.Style.STROKE
+            return
+        }
+        val p = android.graphics.Path()
+        p.moveTo(pts[0], pts[1])
+        for (i in 1 until path.count) p.lineTo(pts[i * 2], pts[i * 2 + 1])
+        canvas.drawPath(p, pathPaint)
+    }
+
+    /** A finished stroke held until a render includes it ([heldUntil]), then let go. */
+    private fun drawHeld(canvas: Canvas, cam: Camera) {
+        if (renderedRevision >= heldUntil) {
+            heldBitmap = null
+            heldPlace = null
+            heldPath = null
+            return
+        }
+        val b = heldBitmap ?: return
+        val r = heldPlace ?: return
+        canvas.drawBitmap(b, null, cam.toScreen(r[0], r[1], r[2], r[3], width, height), bitmapPaint)
     }
 
     /** The Brush's live stroke: its splotch's dirty pixels copied in, the splotch drawn in place. */
     private fun drawLiveStroke(canvas: Canvas, cam: Camera) {
-        val brush = state.activeTool as? BrushTool ?: return
-        val live = brush.live ?: run {
+        val brush = state.activeTool as? BrushTool
+        val live = brush?.live ?: run {
+            // A stroke that just ended stays drawn until the render that includes it arrives.
+            val ended = liveFor
+            if (ended != null && liveBitmap != null) {
+                heldBitmap = liveBitmap
+                heldPlace = doubleArrayOf(ended.x, ended.y, ended.width, ended.height)
+                heldUntil = state.revision
+            }
             liveBitmap = null
             liveFor = null
             return
@@ -310,6 +391,9 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
         private val GRID_DOT = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#A4AEB7") }
         const val MIN_DOT_GAP = 10.0
 
+        /** An eraser's stroke as it is drawn: translucent grey. */
+        private val ERASER_TRAIL = Color.argb(128, 128, 128, 128)
+
         /** Copies pixels as they are. */
         private val REPLACE = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC) }
     }
@@ -319,17 +403,19 @@ class EditorCanvasView(context: Context, private val state: EditorState) : View(
 // - EditorCanvasView: the artwork canvas view: renders, draws tool feedback, routes touch to the tool or navigation.
 // - rendered, renderedCamera, renderedRevision, rendering: the last render and whether one is under way.
 // - worker, main: the render thread and the main thread's handler.
-// - liveBitmap, liveFor: the Brush's live stroke bitmap and its stroke.
+// - liveBitmap, liveFor: the Brush's live stroke bitmap and its stroke. livePath: a path tool's stroke in progress.
+// - heldBitmap, heldPlace, heldPath, heldUntil: a finished stroke drawn until a render of revision heldUntil arrives. pathPaint: a live path's paint.
 // - drawing, navigating: what the current touch does.
 // - follow(revision, camera): refresh when the editor moved on.
 // - refresh(): render again if needed and redraw.
 // - render(): render the document on the worker thread.
 // - onDraw: the render moved to the camera, the live stroke, the Crop box, Export slices, overlays.
-// - drawLiveStroke(canvas, cam): copy the stroke's dirty pixels in and draw its splotch.
+// - drawLiveStroke(canvas, cam): copy the stroke's dirty pixels in and draw its splotch; hold it when it ends.
+// - followLivePath(): the active tool's stroke in progress; hold one that just ended. drawPath(canvas, path, cam): a live path in the primary colour. drawHeld(canvas, cam): a held stroke until its render arrives.
 // - drawSlices(canvas, cam, tool): the Export tool's slices and boxes, over its grid.
 // - drawGrid(canvas, cam, spacing): the export grid's dots. GRID_DOT, MIN_DOT_GAP: their paint and closest gap, 10 px.
 // - onTouchEvent: draw with one finger or a stylus; navigate with two fingers.
 // - onHoverEvent(e): debug mode's hovering pen readings.
 // - Fingers: two fingers' centre, span and angle. centreAndSpan(e), sendHistory(e, i), send(kind, e, i), sendAt(...): touch to tool events.
 // - Quad: a render's size, camera and revision.
-// - SURROUND: the workspace colour. REPLACE: a copy-as-is paint.
+// - SURROUND: the workspace colour. ERASER_TRAIL: an eraser's live stroke. REPLACE: a copy-as-is paint.

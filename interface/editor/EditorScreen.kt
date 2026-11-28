@@ -310,12 +310,12 @@ private fun layersActions(state: EditorState, layout: PanelLayout): LayersAction
             },
         ),
         move = { id, target, place -> state.run("layer.move", JSONObject().put("ids", ids(id)).put("target", target).put("place", place)) },
-        newVector = { state.run("layer.new", JSONObject().put("name", "Vector layer")) },
-        newRaster = { state.run("layer.new", JSONObject().put("name", "Raster layer")) },
+        newVector = { state.run("layer.new", JSONObject().put("name", "Vector layer").put("role", "vector")) },
+        newRaster = { state.run("layer.new", JSONObject().put("name", "Raster layer").put("role", "raster")) },
         newTexture = { if (!layout.texturesOpen) layout.toggleTextures() },
         filters = { state.filters },
         newFilter = { effect -> state.run("filter.new", JSONObject().put("effect", effect)) },
-        newFolder = { state.run("layer.newSublayer", JSONObject().put("name", "Folder")) },
+        newFolder = { state.run("layer.new", JSONObject().put("name", "Folder").put("role", "folder")) },
         deleteCurrent = {
             val rows = EngineAnswer(state.engine.layers()).okObject?.optJSONArray("rows")
             val current = rows?.let { findCurrent(it) }

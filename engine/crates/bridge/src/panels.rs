@@ -3,13 +3,16 @@
 //! `transparency.set`, `layer.new`, `layer.delete`, `layer.setCurrent`).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Node, NodeKind};
+use vectorcraft_doc::{LayerRole, Node, NodeKind};
 
 use crate::calls::guarded;
 use crate::sessions::Bridge;
 
-/// A row's type as the panel names it: `folder` (a layer or group, which holds rows), `raster`
-/// (an image, the Brush's splotches included), `guide` (a ruler guide) or `vector` (any other art).
+/// A row's type as the panel names it (`uistandards.md` §7.1): `texture` or `filter` (a texture or
+/// filter layer), `folder` (a folder of layers), `raster` or `vector` (a layer, whose objects the
+/// panel doesn't list), or for a node that isn't a layer, its own kind (`raster` for an image,
+/// `guide`, `vector`). A layer made before layer roles is a folder when it holds layers, a raster
+/// layer when it holds only images, else a vector layer.
 fn kind_of(n: &Node) -> &'static str {
     if n.extras().texture.is_some() {
         return "texture";
@@ -17,12 +20,24 @@ fn kind_of(n: &Node) -> &'static str {
     if n.extras().filter.is_some() {
         return "filter";
     }
-    match &n.kind {
-        NodeKind::Layer { .. } | NodeKind::Group { .. } => "folder",
-        NodeKind::Image(_) => "raster",
-        NodeKind::RulerGuide { .. } => "guide",
+    match (&n.kind, n.extras().layer_role) {
+        (NodeKind::Layer { .. }, Some(LayerRole::Folder)) => "folder",
+        (NodeKind::Layer { .. }, Some(LayerRole::Raster)) => "raster",
+        (NodeKind::Layer { .. }, Some(LayerRole::Vector)) => "vector",
+        (NodeKind::Layer { children, .. }, None) if children.iter().any(|c| c.is_layer()) => "folder",
+        (NodeKind::Layer { children, .. }, None) if !children.is_empty() && children.iter().all(|c| matches!(c.kind, NodeKind::Image(_))) => "raster",
+        (NodeKind::Layer { .. }, None) => "vector",
+        (NodeKind::Group { .. }, _) => "folder",
+        (NodeKind::Image(_), _) => "raster",
+        (NodeKind::RulerGuide { .. }, _) => "guide",
         _ => "vector",
     }
+}
+
+/// Whether `n` is a row: a layer of any kind, or a texture or filter layer from a document made
+/// before those were layers. Objects (paths, images, the Brush's splotches, groups) are not rows.
+fn is_row(n: &Node) -> bool {
+    n.is_layer() || n.extras().texture.is_some() || n.extras().filter.is_some()
 }
 
 /// The name a row shows: its own, else its kind's.
@@ -63,16 +78,20 @@ fn row(n: &Node, current: Option<u64>) -> Value {
     if let Some(fl) = n.extras().filter.as_deref() {
         v["effect"] = json!(fl.effect);
     }
-    if kind == "folder"
+    // A folder's rows, and the texture or filter layers an older document keeps inside a layer.
+    if !matches!(kind, "texture" | "filter")
         && let Some(children) = n.children()
     {
-        v["children"] = Value::Array(children.iter().rev().map(|c| row(c, current)).collect());
+        let rows: Vec<Value> = children.iter().rev().filter(|c| is_row(c)).map(|c| row(c, current)).collect();
+        if kind == "folder" || !rows.is_empty() {
+            v["children"] = Value::Array(rows);
+        }
     }
     v
 }
 
-/// The active document's rows, topmost first → `{"rows": [{"id", "name", "kind":
-/// "folder"|"raster"|"vector"|"guide", "visible", "locked", "opacity" (0–100), "blend" (engine
+/// The active document's rows, topmost first: its layers, not their objects → `{"rows": [{"id", "name", "kind":
+/// "folder"|"raster"|"vector"|"texture"|"filter", "visible", "locked", "opacity" (0–100), "blend" (engine
 /// blend mode name), "fill" (0–100, Photoshop's Fill), "mask" (null or {"enabled", "inverted", "background": white|black}), "current" (the layer new art goes into), "children"? (a folder's rows)}], "selected" (how many objects are
 /// selected), "editingMask" (the id of the layer whose mask is being painted, or null)}`;
 /// `{"rows": []}` with no document open.
@@ -102,16 +121,45 @@ mod tests {
         let v: Value = serde_json::from_str(&layers(h)).unwrap();
         let rows = &v["ok"]["rows"];
         assert_eq!(rows[0]["name"], "Top");
-        assert_eq!(rows[1]["kind"], "folder");
-        assert_eq!(rows[1]["children"][0]["kind"], "vector");
-        assert_eq!(rows[1]["children"][0]["opacity"], 100.0);
-        assert_eq!(rows[1]["children"][0]["blend"], "Normal");
-        assert_eq!(rows[1]["children"][0]["fill"], 100.0);
+        // A layer's objects are not rows.
+        assert_eq!(rows[1]["kind"], "vector");
+        assert!(rows[1].get("children").is_none(), "{}", rows[1]);
+        assert_eq!(rows[1]["opacity"], 100.0);
+        assert_eq!(rows[1]["blend"], "Normal");
+        assert_eq!(rows[1]["fill"], 100.0);
         sessions::destroy(h);
     }
 
     /// Fill (as in Photoshop) fades a layer's content and leaves its styles: at Fill 0 the shape
     /// is gone and its drop shadow stays, knocked out under the shape.
+    #[test]
+    fn layers_are_rows_by_role_and_their_strokes_are_not() {
+        let h = sessions::create();
+        calls::execute(h, "file.new", r#"{"width": 100, "height": 100}"#);
+        let folder = id(&calls::execute(h, "layer.new", r#"{"name": "Folder", "role": "folder", "top": true}"#));
+        let raster = id(&calls::execute(h, "layer.new", r#"{"name": "Paint", "role": "raster", "top": true}"#));
+        let vector = id(&calls::execute(h, "layer.new", r#"{"name": "Ink", "role": "vector", "top": true}"#));
+        for _ in 0..3 {
+            calls::execute(h, "shape.rectangle", r#"{"x": 0, "y": 0, "width": 10, "height": 10}"#);
+        }
+        calls::execute(h, "layer.move", &format!(r#"{{"ids": [{raster}], "target": {folder}, "place": "inside"}}"#));
+        let v: Value = serde_json::from_str(&layers(h)).unwrap();
+        let rows = v["ok"]["rows"].as_array().unwrap().clone();
+        let ink = rows.iter().find(|r| r["id"] == vector).unwrap();
+        assert_eq!((ink["kind"].as_str(), ink.get("children")), (Some("vector"), None));
+        let f = rows.iter().find(|r| r["id"] == folder).unwrap();
+        assert_eq!(f["kind"], "folder");
+        assert_eq!(f["children"].as_array().map(|c| c.iter().map(|r| (r["id"].as_u64(), r["kind"].as_str())).collect::<Vec<_>>()), Some(vec![(Some(raster), Some("raster"))]));
+        // A folder takes no strokes.
+        calls::execute(h, "layer.setCurrent", &format!(r#"{{"id": {folder}}}"#));
+        let refused: Value = serde_json::from_str(&calls::execute(h, "shape.rectangle", r#"{"x": 0, "y": 0, "width": 10, "height": 10}"#)).unwrap();
+        assert!(refused.get("error").is_some(), "{refused}");
+    }
+
+    fn id(answer: &str) -> u64 {
+        serde_json::from_str::<Value>(answer).unwrap()["ok"]["id"].as_u64().unwrap_or_else(|| panic!("{answer}"))
+    }
+
     #[test]
     fn fill_fades_content_but_not_styles() {
         let h = sessions::create();
@@ -136,11 +184,9 @@ mod tests {
         let grey = |p: Vec<u8>| p[0] < 235 && p[0].abs_diff(p[1]) < 8;
         let shadow = (100..200).flat_map(|y| (100..200).map(move |x| (x, y))).filter(|(x, y)| *x > 134 || *y > 134).any(|(x, y)| grey(at(&faded, x, y)));
         assert!(shadow, "the drop shadow stays");
-        // An object row: Fill and a mask work on it too.
-        ok(calls::execute(h, "shape.rectangle", r#"{"x": 10, "y": 150, "width": 30, "height": 30}"#));
+        // An object (not a row): Fill works on it too.
+        let object = ok(calls::execute(h, "shape.rectangle", r#"{"x": 10, "y": 150, "width": 30, "height": 30}"#))["id"].as_u64().unwrap();
         ok(calls::execute(h, "paint.setFill", r##"{"color": "#0000ff"}"##));
-        let v: Value = serde_json::from_str(&layers(h)).unwrap();
-        let object = v["ok"]["rows"][0]["children"][0]["id"].as_u64().unwrap();
         ok(calls::execute(h, "layer.setFill", &json!({"ids": [object], "fill": 0}).to_string()));
         let px = calls::render(h, 0.0, 0.0, 200, 200, 1.0).unwrap();
         assert!(at(&px, 25, 165)[..3].iter().all(|c| *c > 245), "an object's Fill fades it: {:?}", at(&px, 25, 165));
@@ -251,7 +297,8 @@ mod tests {
         let blue = |p: Vec<u8>| p[2] > 200 && p[0] < 60;
         assert!(red(at(5, 5)) && blue(at(15, 5)) && red(at(25, 5)), "tiles at 10 pt a pixel: {:?} {:?} {:?}", at(5, 5), at(15, 5), at(25, 5));
         let v: Value = serde_json::from_str(&layers(h)).unwrap();
-        let row = &v["ok"]["rows"][0]["children"][0];
+        // The texture layer is a row of its own, beside the current layer.
+        let row = v["ok"]["rows"].as_array().unwrap().iter().find(|r| r["id"] == id).unwrap();
         assert_eq!((row["kind"].as_str(), row["scale"].as_f64(), row["id"].as_u64()), (Some("texture"), Some(10.0), Some(id)));
         assert!(ok(calls::execute(h, "export.slice.list", "{}"))["contentBounds"].is_null(), "a texture sets no export bounds");
         ok(calls::execute(h, "texture.set", &json!({"id": id, "scale": 20}).to_string()));
@@ -275,10 +322,12 @@ mod tests {
         let filters = ok(calls::execute(h, "filter.list", "{}"));
         assert!(filters["filters"].as_array().unwrap().iter().any(|f| f["effect"] == "pixelate.crystallize"));
         let made = ok(calls::execute(h, "filter.new", r#"{"effect": "sketch.photocopy"}"#));
+        // The filter layer goes above the current layer; a layer above it takes the second square.
+        ok(calls::execute(h, "layer.new", r#"{"name": "Above", "top": true}"#));
         ok(calls::execute(h, "shape.rectangle", r#"{"x": 120, "y": 120, "width": 60, "height": 60}"#));
         ok(calls::execute(h, "paint.setFill", r##"{"color": "#000000"}"##));
         let v: Value = serde_json::from_str(&layers(h)).unwrap();
-        let top = &v["ok"]["rows"][0]["children"];
+        let top = &v["ok"]["rows"];
         assert!(top.as_array().unwrap().iter().any(|r| r["kind"] == "filter" && r["effect"] == "sketch.photocopy"));
         let px = |p: &[u8], x: usize, y: usize| p[(y * 200 + x) * 4..(y * 200 + x) * 4 + 3].to_vec();
         let filtered = calls::render(h, 0.0, 0.0, 200, 200, 1.0).unwrap();
@@ -294,7 +343,8 @@ mod tests {
 
 
 // GLOSSARY
-// - `kind_of`: a row's type: folder, raster, guide, texture, filter or vector.
+// - `kind_of`: a row's type: texture, filter, folder, raster or vector (a layer by its role), or an object's kind.
+// - `is_row`: whether a node is a row: a layer, or an older document's texture or filter object.
 // - `name_of`: a row's name, else its kind's.
-// - `row`: one row with a folder's rows, topmost first.
+// - `row`: one row with a folder's rows (layers only), topmost first.
 // - `layers`: the active document's rows for the Layers panel.

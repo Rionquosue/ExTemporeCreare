@@ -3,7 +3,18 @@ package com.extemporecreare.app.ui
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.Modifier
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,6 +29,7 @@ import com.extemporecreare.app.ui.editor.EditorState
 import com.extemporecreare.app.ui.splash.SettingsDialog
 import com.extemporecreare.app.ui.splash.SplashActions
 import com.extemporecreare.app.ui.splash.SplashScreen
+import com.extemporecreare.app.ui.theme.EtcColors
 
 /**
  * The app's activity (`uistandards.md` §5.1): a cold launch shows the opening splash; returning
@@ -54,6 +66,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The system bars stay the system's: light icons over the app's dark shell, the app laid out between them.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         state = EditorState(applicationContext)
         state.start()
         val requests = EditorRequests(
@@ -82,9 +99,12 @@ class MainActivity : ComponentActivity() {
             settings = { dialog = DialogShown.SETTINGS },
         )
         setContent {
-            when (state.screen) {
-                EditorState.Screen.SPLASH -> SplashScreen(state.recents, state.recentsRevision, splash)
-                EditorState.Screen.EDITOR -> EditorScreen(state, requests, board)
+            // Laid out inside the status bar, navigation bar and any display cutout, never under them.
+            Box(Modifier.fillMaxSize().background(EtcColors.Shell).windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout))) {
+                when (state.screen) {
+                    EditorState.Screen.SPLASH -> SplashScreen(state.recents, state.recentsRevision, splash)
+                    EditorState.Screen.EDITOR -> EditorScreen(state, requests, board)
+                }
             }
             when (dialog) {
                 DialogShown.NEW_DOCUMENT -> NewDocumentDialog(DocumentSettings.defaults(this), { dialog = DialogShown.NONE; state.newDocument(it) }, { dialog = DialogShown.NONE })
@@ -134,7 +154,7 @@ class MainActivity : ComponentActivity() {
 }
 
 // GLOSSARY
-// - MainActivity: the app's activity: splash or editor, the pickers and the dialogs.
+// - MainActivity: the app's activity: splash or editor laid out between the system bars, the pickers and the dialogs.
 // - state: the editor's state. DialogShown, dialog: the dialog showing. locating: the recent file a Locate replaces.
 // - saveAs, open, locate, exportFolder: the pickers' launchers.
 // - boardAdd, boardOpen, boardSave, boardRelink: the reference board's pickers. relinking: the image a Relink replaces.

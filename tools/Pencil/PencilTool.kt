@@ -1,7 +1,10 @@
 package com.extemporecreare.app.tools.pencil
 
 import com.extemporecreare.app.components.engine.EngineBridge
+import com.extemporecreare.app.components.tools.DrawsLive
 import com.extemporecreare.app.components.tools.EngineTool
+import com.extemporecreare.app.components.tools.LivePath
+import com.extemporecreare.app.components.tools.LivePathRecorder
 import com.extemporecreare.app.components.tools.StrokeFinish
 import com.extemporecreare.app.components.tools.StrokeGesture
 import com.extemporecreare.app.components.tools.StrokeMode
@@ -20,7 +23,11 @@ import org.json.JSONObject
  * feathers it, and the grain is the engine's Pencil Grain effect (`stylize.pencilGrain`), fixed to
  * the canvas and sharp at any zoom.
  */
-class PencilTool(store: ToolSettingsStore) : EngineTool<PencilToolSettings>(NAME, store, PencilToolSettings::fromJson) {
+class PencilTool(store: ToolSettingsStore) : EngineTool<PencilToolSettings>(NAME, store, PencilToolSettings::fromJson), DrawsLive {
+
+    /** The stroke in progress as it shows on the canvas. */
+    private val live = LivePathRecorder()
+    override val livePath: LivePath? get() = live.path
 
     /** The stroke in progress, as one undo step. */
     private val gesture = StrokeGesture(NAME)
@@ -40,6 +47,7 @@ class PencilTool(store: ToolSettingsStore) : EngineTool<PencilToolSettings>(NAME
 
     override fun pointer(engine: EngineBridge, event: ToolPointer, viewJson: String): ToolResult {
         val s = settings
+        live.follow(event, s.size)
         return gesture.pointer(engine, event, viewJson, beforeDraw = { useTip(engine, s) }) { created ->
             val weight = if (s.mode == StrokeMode.PAINTBRUSH) s.size else null
             val grain = if (s.grainStrength > 0) {
@@ -53,6 +61,7 @@ class PencilTool(store: ToolSettingsStore) : EngineTool<PencilToolSettings>(NAME
 
     override fun deactivate(engine: EngineBridge): ToolResult {
         gesture.close(engine)
+        live.clear()
         return super.deactivate(engine)
     }
 
@@ -88,7 +97,7 @@ class PencilTool(store: ToolSettingsStore) : EngineTool<PencilToolSettings>(NAME
 
 // GLOSSARY
 // - PencilTool: the Pencil tool (engine Paintbrush or Blob Brush with a cone or mechanical tip and pencil grain), one undo step per stroke.
-// - gesture: the stroke in progress.
+// - gesture: the stroke in progress. live, livePath: the stroke as it shows while drawn.
 // - engineToolId(): the engine tool of the current mode.
 // - pushSettings(engine): the Blob Brush's size and round tip, with the cone for a cone tip.
 // - pointer(engine, event, viewJson): draw with the tip set first, then set the weight, feather and grain on release.

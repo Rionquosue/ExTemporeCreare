@@ -98,6 +98,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `StrokeMode.kt`: `StrokeMode` (`PAINTBRUSH`, `BLOB`), how Marker and Pencil draw.
 - `TipBrush.kt`: `TipBrush.use`: a stroke tool's tip as a document Calligraphic brush, set and made current.
 - `StrokeGesture.kt`: `StrokeGesture(label)`: a stroke tool's gesture as one undo step, finished on release: `pointer`, `close`.
+- `LivePath.kt`: `LivePath(width, erases)` (a stroke being drawn: `points`, `count`, `add`), `DrawsLive` (`livePath`), `LivePathRecorder` (`path`, `follow`, `clear`); Marker, Pencil and Eraser show their strokes live with it.
 
 ## tools (dial tools)
 

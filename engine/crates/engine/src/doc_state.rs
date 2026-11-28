@@ -645,6 +645,7 @@ impl DocState {
     fn target_parent_for(&self, for_path: bool) -> Result<Option<NodeId>> {
         match self.insertion_parent_for(for_path) {
             Some(p) if !self.doc.is_editable(p) => Err(EngineError::Other("the target layer is locked or hidden".into())),
+            Some(p) if self.doc.node(p).is_some_and(holds_no_art) => Err(EngineError::Other("folders, texture layers and filter layers can't be drawn on: choose a vector or raster layer".into())),
             parent => Ok(parent),
         }
     }
@@ -658,4 +659,11 @@ impl DocState {
     pub fn shown_mask(&self) -> Option<NodeId> {
         self.mask_view.filter(|id| self.doc.mask_edit.is_some_and(|m| m.object == *id))
     }
+}
+
+/// A layer new art never goes into (`uistandards.md` §7.1): a folder, whose rows are layers, or a
+/// texture or filter layer, which holds only its own texture or none.
+fn holds_no_art(n: &vectorcraft_doc::Node) -> bool {
+    let e = n.extras();
+    e.texture.is_some() || e.filter.is_some() || e.layer_role == Some(vectorcraft_doc::LayerRole::Folder)
 }

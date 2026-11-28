@@ -12,7 +12,8 @@ What the app does today, from its UI. The inherited engine can do more; what it 
 
 ## Workspace
 
-- **Canvas**: one finger or the pen uses the active tool; two fingers pan, pinch-zoom and twist-rotate the view. Rotation and flip turn the view only.
+- **Canvas**: one finger or the pen uses the active tool; two fingers pan, pinch-zoom and twist-rotate the view. Rotation and flip turn the view only. Marker, Pencil and Eraser strokes show as they are drawn (at the tool's size, in the primary colour; the Eraser's in translucent grey), and a finished stroke, the Brush's included, stays shown until the new render includes it.
+- **System bars**: the app is laid out between the status bar, the navigation bar and any display cutout.
 - **Top bar**: menu (Home, New document…, Open…, Save as…, Zoom in, Zoom out, Fit artwork, Actual size, Focus mode, Reset panel layout), Save, Flip, Undo, Redo, Export.
 - **Panels**: Layers (or Export Settings while the Export tool is active), Texture library and Reference board float over the canvas; tap a header to collapse it, hold it to move the panel, which docks at the workspace's edges; Focus mode hides them; Reset restores the layout.
 - **Rotary dial** in the lower-left corner: turn it to bring a tool to the 45° sight (tapping an inactive tool does nothing), tap the active tool for its settings, hold the grip to move the dial, step buttons as an alternative to turning; the tool's name and size show beside it, and a vertical drag on the size changes it.
@@ -38,7 +39,7 @@ What the app does today, from its UI. The inherited engine can do more; what it 
 
 ## Layers
 
-- **Rows**: folders, vector, raster, texture and filter rows, topmost first; drag a card's grip above, below or into a folder; collapse folders; a nonempty folder's deletion is confirmed.
+- **Rows**: folders, vector, raster, texture and filter layers, topmost first; a layer's strokes and objects are not listed; folders, texture and filter layers can't be drawn on; drag a card's grip above, below or into a folder; collapse folders; a nonempty folder's deletion is confirmed.
 - **Create**: Vector layer, Raster layer, Folder, Texture (opens the Texture library), Filter (a menu of filters).
 - **Per row**: visibility, blend mode (Normal, Multiply, Screen, Overlay, Soft Light, Hard Light, Color Dodge, Color Burn, Darken, Lighten, Difference, Hue, Saturation, Color, Luminosity), **Opacity** and **Fill** (typed or by slider; Fill fades the content but not its styles, and knocks a shadow out under it), current-layer selection.
 - **Layer styles** (modifier menu): Stroke (outside, inside or centre), Bevel & Emboss (inner, outer, emboss, pillow), Color Overlay, Gradient Overlay, Drop Shadow, Outer Glow. They apply with default settings and are drawn from the content at full Fill.

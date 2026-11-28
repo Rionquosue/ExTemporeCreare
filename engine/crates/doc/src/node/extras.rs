@@ -102,6 +102,19 @@ pub struct NodeExtras {
     /// A filter layer (`uistandards.md` §7.3): this empty folder applies a pixel filter to
     /// everything drawn below it on the page, across folders, at the folder's opacity.
     pub filter: Option<Box<FilterSpec>>,
+    /// What a layer is to the Layers panel (`uistandards.md` §7.1): a vector or raster layer, whose
+    /// objects the panel doesn't list, or a folder of layers. `None`: a layer made before roles
+    /// existed, which the panel treats by its content ([`LayerRole`]).
+    pub layer_role: Option<LayerRole>,
+}
+
+/// A layer's role in the Layers panel ([`NodeExtras::layer_role`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LayerRole {
+    Vector,
+    Raster,
+    Folder,
 }
 
 /// What makes an empty folder a filter layer: the pixel filter's effect id and parameters.
@@ -155,6 +168,7 @@ pub(super) static NO_EXTRAS: NodeExtras = NodeExtras {
     fill_opacity: None,
     texture: None,
     filter: None,
+    layer_role: None,
 };
 
 /// A node's [`NodeExtras`], if it has any ([`Node::extras`]). Extras that are all unset equal
