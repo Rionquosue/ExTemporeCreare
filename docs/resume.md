@@ -73,7 +73,7 @@ The full feature set is in `docs/featurelist.md`. Beyond the start screen, none 
 
 ## Building and testing
 
-- **Versions:** `compileSdk` and `targetSdk` 37, build-tools 37.0.0, Android Gradle plugin 9.5.3 (built-in Kotlin), Kotlin 2.4.21, Compose BOM 2026.11.01, Gradle 9.9.3 through the wrapper (`gradlew`), JDK 17 or newer, NDK 28.2.13676358 (AGP 9.5's default).
+- **Versions:** `compileSdk` 37.2 (Compose 1.13 needs 37.1 or later) and `targetSdk` 37, build-tools 37.0.0, Android Gradle plugin 9.5.3 (built-in Kotlin), Kotlin 2.4.21, Compose BOM 2026.11.01, Gradle 9.9.3 through the wrapper (`gradlew`), JDK 17 or newer, NDK 28.2.13676358 (AGP 9.5's default).
 - **Kotlin check:**
   ```bash
   ./gradlew --no-daemon -q compileDebugKotlin -x buildEngine

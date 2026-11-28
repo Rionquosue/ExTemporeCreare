@@ -10,7 +10,12 @@ plugins {
 
 android {
     namespace = "com.extemporecreare.app"
-    compileSdk = 37
+    // 37.2: Compose 1.13 (BOM 2026.11.01) requires compiling against 37.1 or later.
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
     buildToolsVersion = "37.0.0"
 
     defaultConfig {
@@ -89,7 +94,7 @@ tasks.named("preBuild") {
 
 // GLOSSARY
 // - android.namespace / applicationId: com.extemporecreare.app.
-// - minSdk 26, targetSdk 37, compileSdk 37, buildToolsVersion 37.0.0.
+// - minSdk 26, targetSdk 37, compileSdk 37.2, buildToolsVersion 37.0.0.
 // - abiFilters: arm64-v8a (tablets and phones) and x86_64 (emulators).
 // - sourceSets.main: Kotlin from interface/, components/, tools/; assets from tools/Libraries (presets/); jniLibs from build/engine/jniLibs.
 // - dependencies: Compose (BOM 2026.11.01), core-ktx 1.19.1, activity-compose 1.13.0, material3.
