@@ -71,9 +71,10 @@ The full feature set is in `docs/featurelist.md`. None of the UI has been tried 
 
 ## Building and testing
 
+- **Versions:** `compileSdk` and `targetSdk` 37, build-tools 37.0.0, Android Gradle plugin 9.5.3 (built-in Kotlin), Kotlin 2.4.21, Compose BOM 2026.11.01, Gradle 9.9.3 through the wrapper (`gradlew`), JDK 17 or newer, NDK 28.2.13676358 (AGP 9.5's default).
 - **Kotlin check:**
   ```bash
-  ANDROID_HOME=<sdk> gradle --no-daemon -q compileDebugKotlin -x buildEngine
+  ./gradlew --no-daemon -q compileDebugKotlin -x buildEngine
   ```
 - **Full APK:** the `assembleDebug` task. Gradle's `buildEngine` task builds the Rust bridge for Android, which needs the Android NDK.
 - **Engine tests:**

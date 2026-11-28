@@ -23,7 +23,13 @@ EXTEMPORECREARE
 |-- README.md
 |-- build.gradle.kts
 |-- gradle.properties
+|-- gradlew
+|-- gradlew.bat
 |-- settings.gradle.kts
+|-- gradle/
+|   |-- wrapper/
+|       |-- gradle-wrapper.jar
+|       |-- gradle-wrapper.properties
 |-- app/
 |   |-- build.gradle.kts
 |   |-- src/

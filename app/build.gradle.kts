@@ -5,19 +5,19 @@
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "com.extemporecreare.app"
-    compileSdk = 35
+    compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     defaultConfig {
         applicationId = "com.extemporecreare.app"
         // 26: DocumentsContract.findDocumentPath, which replacing a saved file by rename uses.
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
         ndk {
@@ -36,10 +36,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
     }
@@ -50,16 +46,16 @@ android {
             java.srcDirs("../interface", "../components", "../tools")
             // tools/Libraries/presets → assets/presets
             assets.srcDirs("../tools/Libraries")
-            jniLibs.srcDirs(layout.buildDirectory.dir("engine/jniLibs"))
+            jniLibs.srcDirs(layout.buildDirectory.dir("engine/jniLibs").get().asFile)
         }
     }
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    val composeBom = platform("androidx.compose:compose-bom:2026.11.01")
     implementation(composeBom)
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.core:core-ktx:1.19.1")
+    implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
@@ -93,8 +89,8 @@ tasks.named("preBuild") {
 
 // GLOSSARY
 // - android.namespace / applicationId: com.extemporecreare.app.
-// - minSdk 26, targetSdk 35, compileSdk 35.
+// - minSdk 26, targetSdk 37, compileSdk 37, buildToolsVersion 37.0.0.
 // - abiFilters: arm64-v8a (tablets and phones) and x86_64 (emulators).
 // - sourceSets.main: Kotlin from interface/, components/, tools/; assets from tools/Libraries (presets/); jniLibs from build/engine/jniLibs.
-// - dependencies: Compose (BOM 2024.12.01), core-ktx, activity-compose, material3.
+// - dependencies: Compose (BOM 2026.11.01), core-ktx 1.19.1, activity-compose 1.13.0, material3.
 // - buildEngine: builds libetcbridge.so with cargo-ndk before every build (preBuild).
