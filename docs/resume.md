@@ -90,7 +90,7 @@ The full feature set is in `docs/featurelist.md`. Beyond the start screen, none 
   ```
   The engine crate's own suite (`-p vectorcraft-engine`) is long and includes the known failures above.
 - **Where to run cargo:** from `engine/`, or with `--manifest-path engine/Cargo.toml`. Keep the target directory outside the repo; `.gitignore` has no `target/` entry.
-- **Ambiguous packages:** `cargo -p vectorcraft-geom` and `-p vectorcraft-pathops` are ambiguous (an old git copy is in the lockfile), so use `vectorcraft-geom@0.24.1`.
+- **Dependencies:** the crates from storytold/craft-libs are copied into `dependencies/craft-libs/` (its `README.md` lists them and what changed); no engine dependency comes from GitHub. crates.io crates and the Android libraries still download, pinned by `Cargo.lock` and the Gradle files.
 - **Debug mode on a device:**
   ```bash
   adb shell setprop log.tag.ETCDebug DEBUG

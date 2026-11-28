@@ -73,6 +73,12 @@ EXTEMPORECREARE
 |       |-- ToolUndoGroup.kt
 |-- dependencies/
 |   |-- readme.md
+|   |-- craft-libs/
+|       |-- LICENSE-APACHE
+|       |-- LICENSE-MIT
+|       |-- NOTICE
+|       |-- README.md
+|       |-- craft-affinity/ … linesweeper/ (28 crates, listed in its README.md)
 |-- docs/
 |   |-- Ex-Tempore-Creare_UI_Mockup_v10.html
 |   |-- classes.md

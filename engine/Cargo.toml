@@ -10,28 +10,28 @@ license = "MIT OR Apache-2.0"
 rust-version = "1.95"
 
 [workspace.dependencies]
-craft-cms = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0", default-features = false, features = ["interpret", "write"] }
-craft-docpath = { version = "0.1.0", git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-proof = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
+craft-cms = { path = "../dependencies/craft-libs/craft-cms" }
+craft-pdf = { path = "../dependencies/craft-libs/craft-pdf", default-features = false, features = ["interpret", "write"] }
+craft-docpath = { path = "../dependencies/craft-libs/craft-docpath" }
+craft-proof = { path = "../dependencies/craft-libs/craft-proof" }
 # Native Affinity documents (craft-libs#914).
-craft-affinity = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
+craft-affinity = { path = "../dependencies/craft-libs/craft-affinity" }
 # Bounded CDR (v1-v27) and CMX (32-bit) reader (craft-libs#778).
-craft-cdr = { git = "https://github.com/storytold/craft-libs", rev = "9b28b56bc7207ef7ce806f37df72cb94c0ad5c37" }
+craft-cdr = { path = "../dependencies/craft-libs/craft-cdr" }
 # SVG parsing, limits, SVGZ and writer (craft-libs#778).
-craft-svg = { git = "https://github.com/storytold/craft-libs", rev = "d20a82481b1f7b1d32c818b19c620338af9755d3", features = ["tree"] }
-craft-mime = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
+craft-svg = { path = "../dependencies/craft-libs/craft-svg", features = ["tree"] }
+craft-mime = { path = "../dependencies/craft-libs/craft-mime" }
 # EPS container, previews, ASCII85 and DSC comments (craft-libs#778).
-craft-eps = { git = "https://github.com/storytold/craft-libs", rev = "068e079c7be4b100a8a6b305b31ac881e069727e" }
+craft-eps = { path = "../dependencies/craft-libs/craft-eps" }
 # DXF tags, reader and writer (craft-libs#778, #926, #927).
 # WMF, EMF and EMF+ reader (craft-libs#778).
-craft-xml = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-image-codecs = { git = "https://github.com/storytold/craft-libs", rev = "ba25ccd233934d1b2f74e3c0f235168bf5f13ef3" }
-craft-gif = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-tiff = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-psd = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-stream-codecs = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-craft-jxl = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
+craft-xml = { path = "../dependencies/craft-libs/craft-xml" }
+craft-image-codecs = { path = "../dependencies/craft-libs/craft-image-codecs" }
+craft-gif = { path = "../dependencies/craft-libs/craft-gif" }
+craft-tiff = { path = "../dependencies/craft-libs/craft-tiff" }
+craft-psd = { path = "../dependencies/craft-libs/craft-psd" }
+craft-stream-codecs = { path = "../dependencies/craft-libs/craft-stream-codecs" }
+craft-jxl = { path = "../dependencies/craft-libs/craft-jxl" }
 # internal
 vectorcraft-geom = { path = "crates/geom" }
 vectorcraft-color = { path = "crates/color" }
@@ -151,10 +151,10 @@ lto = "thin"
 codegen-units = 1
 
 [patch.crates-io]
-hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-hayro-cmap = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-hayro-postscript = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-krilla = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
-linesweeper = { git = "https://github.com/storytold/craft-libs", rev = "d7c9632bfb3040cf45db394e7500cc93c81c49e0" }
+hayro-syntax = { path = "../dependencies/craft-libs/hayro-syntax" }
+hayro-interpret = { path = "../dependencies/craft-libs/hayro-interpret" }
+hayro-jbig2 = { path = "../dependencies/craft-libs/hayro-jbig2" }
+hayro-cmap = { path = "../dependencies/craft-libs/hayro-cmap" }
+hayro-postscript = { path = "../dependencies/craft-libs/hayro-postscript" }
+krilla = { path = "../dependencies/craft-libs/krilla" }
+linesweeper = { path = "../dependencies/craft-libs/linesweeper" }
