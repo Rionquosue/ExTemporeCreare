@@ -27,13 +27,10 @@ repository = "https://github.com/storytold/craft-libs"
 
 [features]
 avif = ["image/avif", "dep:ravif", "dep:rav1e", "dep:avif-serialize"]
-avif-decode = []
 corpus = []
 default = []
 heif = []
 jxl = ["dep:craft-jxl"]
-sgi = []
-sunraster = []
 threads = ["ravif?/threading", "rav1e?/threading"]
 
 [lib]

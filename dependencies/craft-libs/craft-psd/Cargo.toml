@@ -29,8 +29,7 @@ repository = "https://github.com/storytold/craft-libs"
 corpus = []
 default = []
 serde = ["dep:serde"]
-test-support = []
-testgen = ["test-support"]
+testgen = []
 
 [lib]
 name = "craft_psd"

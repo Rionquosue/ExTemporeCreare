@@ -8,7 +8,9 @@ The crates the engine uses from storytold/craft-libs, copied in so the engine bu
 
 ## Changes from the source
 
-1. Each crate's tests, benches, examples and dev-dependencies are left out.
+1. Only what the engine's build compiles is kept: each crate's tests, benches, examples, dev-dependencies, test modules, snapshots and proptest data, READMEs (except linesweeper's, which its docs include) and changelogs are left out.
+   - So are the modules of features the engine doesn't turn on, and those features with the optional dependencies only they used: craft-eps `paths`; craft-gif `frames`; craft-image-codecs `avif-decode`, `sgi`, `sunraster`; craft-mime `detect`; craft-pdf `cos`, `crypt`, `filters`, `fonts`, `paths`, `raster`, `write-svg`, `test-support`; craft-psd `test-support`; hayro-jbig2 `image`; krilla `pdf`; linesweeper `arbitrary`, `generators`.
+   - krilla's `patches/`, `SOURCE.json` and `README.craft.md` stay, as the record of craft-libs' changes to it.
 2. Dependencies between the crates are paths to each other (`../<crate>`).
 3. craft-svg uses the engine's own `vectorcraft-geom` and `vectorcraft-pathops` (`engine/crates/geom`, `engine/crates/pathops`) instead of an older copy of VectorCraft. Its clip-path union in `src/paths.rs` takes the engine's `try_boolean_n` predicate, which lists the paths a point is inside (`!inside.is_empty()`), instead of one flag per path.
 4. Optional dependencies outside this folder that the engine doesn't turn on are removed: craft-eps' `vectorcraft-doc` and `vectorcraft-eps`, and craft-image-codecs' `craft-heif` and `craft-video`.

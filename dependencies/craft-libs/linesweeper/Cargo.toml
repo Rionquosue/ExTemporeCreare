@@ -26,20 +26,13 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/jneem/linesweeper"
 
 [features]
-arbitrary = ["dep:arbitrary"]
 debug-svg = ["dep:svg"]
-generators = []
 slow-asserts = []
 
 [lib]
 name = "linesweeper"
 path = "src/lib.rs"
 bench = false
-
-[dependencies.arbitrary]
-version = "1.4.1"
-features = ["derive"]
-optional = true
 
 [dependencies.arrayvec]
 version = "0.7.6"

@@ -26,7 +26,6 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/storytold/craft-libs"
 
 [features]
-frames = ["dep:image"]
 
 [lib]
 name = "craft_gif"
@@ -34,12 +33,6 @@ path = "src/lib.rs"
 
 [dependencies]
 gif = "0.14"
-
-[dependencies.image]
-version = "0.25"
-features = ["gif"]
-optional = true
-default-features = false
 
 [lints.cargo]
 unused_workspace_dependencies = "allow"

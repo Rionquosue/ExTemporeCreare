@@ -27,19 +27,10 @@ repository = "https://github.com/storytold/craft-libs"
 
 [features]
 default = []
-paths = ["dep:kurbo", "dep:thiserror"]
 
 [lib]
 name = "craft_eps"
 path = "src/lib.rs"
-
-[dependencies.kurbo]
-version = "0.13"
-optional = true
-
-[dependencies.thiserror]
-version = "2"
-optional = true
 
 [lints.cargo]
 unused_workspace_dependencies = "allow"

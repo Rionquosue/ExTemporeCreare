@@ -35,7 +35,6 @@ repository = "https://github.com/LaurenzV/krilla"
 [features]
 comemo = ["dep:comemo"]
 default = ["raster-images", "simple-text"]
-pdf = ["dep:hayro-write"]
 raster-images = ["dep:png", "dep:zune-jpeg", "dep:gif", "dep:image-webp", "dep:imagesize"]
 rayon = ["dep:rayon"]
 simple-text = ["dep:rustybuzz"]
@@ -62,10 +61,6 @@ version = "0.9.0"
 
 [dependencies.gif]
 version = "0.14.2"
-optional = true
-
-[dependencies.hayro-write]
-version = "0.7.0"
 optional = true
 
 [dependencies.image-webp]

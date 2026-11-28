@@ -34,8 +34,7 @@ repository = "https://github.com/LaurenzV/hayro"
 resolver = "2"
 
 [features]
-default = ["std", "image", "simd"]
-image = ["dep:image", "std"]
+default = ["std", "simd"]
 simd = ["fearless_simd", "std"]
 std = []
 
@@ -49,11 +48,6 @@ optional = true
 
 [dependencies.hayro-ccitt]
 version = "0.3.0"
-default-features = false
-
-[dependencies.image]
-version = "0.25"
-optional = true
 default-features = false
 
 [lints.clippy]
