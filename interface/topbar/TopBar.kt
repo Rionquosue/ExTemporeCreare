@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Flip
 import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -35,7 +33,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.extemporecreare.app.ui.theme.EtcColors
@@ -45,8 +42,8 @@ data class MenuEntry(val label: String, val action: () -> Unit)
 
 /**
  * The top bar (`uistandards.md` §4): Menu at the far left (a rounded square opening [menu]), the
- * essential actions Save, Undo, Redo, Flip and Export as pills with an icon and a label, and the
- * brand at the right end in a restrained serif.
+ * essential actions Save, Undo, Redo, Flip and Export as pills with an icon and a label. No
+ * branding while the app is in use (the owner's decision; the splash keeps it).
  */
 @Composable
 fun TopBar(
@@ -82,9 +79,6 @@ fun TopBar(
         Pill(Icons.AutoMirrored.Outlined.Redo, "Redo", onRedo)
         Pill(Icons.Outlined.Flip, "Flip", onFlip, active = flipped)
         Pill(Icons.Outlined.IosShare, "Export", onExport)
-        Spacer(Modifier.weight(1f))
-        Icon(Icons.Outlined.Edit, null, tint = EtcColors.Gold, modifier = Modifier.size(22.dp))
-        Text("Ex-Tempore Creare", color = EtcColors.Text, fontFamily = FontFamily.Serif, fontSize = 20.sp, letterSpacing = 1.sp)
     }
 }
 

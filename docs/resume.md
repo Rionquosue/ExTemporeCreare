@@ -147,3 +147,5 @@ The full feature set is in `docs/featurelist.md`. Beyond the start screen, none 
   - Holding an image opens Delete, Embed, Flip (Horizontal or Vertical) and Crop.
   - Two-finger pinch and twist always move the view, never an image.
 - **Dial toolbar:** the dial's grip docks it to any of the four edges as a toolbar, where a tap chooses a tool.
+- **Branding:** none in the editor while the app is in use; the splash keeps it.
+- **Layers panel:** the new-layer buttons (Vector, Raster, Filter, Texture) run along the top of the list; the footer's folder-with-plus button adds a folder.

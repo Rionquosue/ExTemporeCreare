@@ -127,7 +127,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `canvas/Camera.kt`: `Camera` (centre, zoom, View Flip, rotation): `toDoc`, `toDocDirection`, `viewport`, `matrix`, `upright`, `screenTurn`, `toScreen`, `panned`, `zoomedAbout`, `navigated`, `fit`, `turn`, `normalized`.
 - `canvas/EditorCanvasView.kt`: `EditorCanvasView`: renders the document on a worker thread, draws the Brush's live stroke, Crop box, Export slices and tool overlays; stylus or one finger draws, two fingers pan and zoom; `follow`, `refresh`.
 - `canvas/OverlayPainter.kt`: `OverlayPainter`: tool overlays and canvas boxes.
-- `topbar/TopBar.kt`: `TopBar` (Menu, then Save, Undo, Redo, Flip, Export as labelled pills, brand at the right), `MenuEntry`, `BAR_HEIGHT`.
+- `topbar/TopBar.kt`: `TopBar` (Menu, then Save, Undo, Redo, Flip, Export as labelled pills; no branding), `MenuEntry`, `BAR_HEIGHT`.
 - `dial/RotaryDial.kt`: `RotaryDial`: the ring of tools turning beneath the 45° active sight, the active tool gold with a glow, a settings chevron beside it, an inner disc for the caller's controls; `DIAL_DIAMETER`, `INNER`.
 - `dial/DialSizeSlider.kt`: `DialSizeSlider`: the dial's vertical size slider (knob drag, up and down chevrons).
 - `dial/ColorControl.kt`: `ColorControl`: primary and alternate colours; tap swaps, double tap opens the colour workspace.
