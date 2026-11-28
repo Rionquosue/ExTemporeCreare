@@ -107,6 +107,56 @@ pub fn layers(handle: i64) -> String {
     })
 }
 
+/// How much room a thumbnail leaves round its art, as a share of the art's larger side.
+const THUMBNAIL_MARGIN: f64 = 0.08;
+
+/// The document area a texture layer's thumbnail shows, in points from the origin (its pattern
+/// covers the artboards or the whole canvas, so a corner of it shows the tiling).
+const TEXTURE_SAMPLE: f64 = 256.0;
+
+/// A row's art alone, square, [`size`] pixels a side, on transparency (RGBA, premultiplied, as
+/// `calls::render` gives it): the art fitted with a small margin, a texture layer's tiling, or
+/// `None` for a row with nothing to show (an empty layer, a filter layer) or no such row.
+pub fn thumbnail(handle: i64, id: u64, size: u32) -> Option<Vec<u8>> {
+    if size == 0 || size > 1024 {
+        return None;
+    }
+    let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        crate::sessions::with(handle, |b| {
+            let doc = &b.session.doc().ok()?.doc;
+            let node = find(&doc.layers, vectorcraft_doc::NodeId(id))?;
+            if node.extras().filter.is_some() {
+                return None;
+            }
+            let mut alone = vectorcraft_doc::Document::clone(doc);
+            let texture = node.extras().texture.is_some();
+            // The row as the document's only layer, shown even when hidden.
+            let mut shown = (*node).clone();
+            shown.visible = true;
+            alone.layers = vec![std::sync::Arc::new(shown)];
+            let region = if texture {
+                vectorcraft_geom::Rect::new(0.0, 0.0, TEXTURE_SAMPLE, TEXTURE_SAMPLE)
+            } else {
+                let b = vectorcraft_render::encode::art_bounds(&alone)?;
+                let side = b.width().max(b.height()).max(1.0) * (1.0 + 2.0 * THUMBNAIL_MARGIN);
+                let c = b.center();
+                vectorcraft_geom::Rect::new(c.x - side / 2.0, c.y - side / 2.0, c.x + side / 2.0, c.y + side / 2.0)
+            };
+            let scale = f64::from(size) / region.width();
+            let opts = vectorcraft_render::RenderOptions { artboards: false, ..vectorcraft_render::RenderOptions::default() };
+            let out = vectorcraft_render::Renderer::new().render_region_with(&alone, region, scale, &opts);
+            (out.width == size && out.height == size).then_some(out.pixels)
+        })
+        .flatten()
+    }));
+    run.ok().flatten()
+}
+
+/// The node `id` among `nodes` and their descendants.
+fn find(nodes: &[std::sync::Arc<Node>], id: vectorcraft_doc::NodeId) -> Option<std::sync::Arc<Node>> {
+    nodes.iter().find_map(|n| if n.id == id { Some(n.clone()) } else { n.children().and_then(|c| find(c, id)) })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,6 +204,23 @@ mod tests {
         calls::execute(h, "layer.setCurrent", &format!(r#"{{"id": {folder}}}"#));
         let refused: Value = serde_json::from_str(&calls::execute(h, "shape.rectangle", r#"{"x": 0, "y": 0, "width": 10, "height": 10}"#)).unwrap();
         assert!(refused.get("error").is_some(), "{refused}");
+    }
+
+    #[test]
+    fn a_thumbnail_shows_the_layers_art_alone() {
+        let h = sessions::create();
+        calls::execute(h, "file.new", r#"{"width": 400, "height": 400}"#);
+        let red = id(&calls::execute(h, "layer.new", r#"{"name": "Red", "role": "vector", "top": true}"#));
+        calls::execute(h, "shape.rectangle", r#"{"x": 10, "y": 10, "width": 100, "height": 50}"#);
+        calls::execute(h, "paint.setFill", r##"{"color": "#ff0000"}"##);
+        let empty = id(&calls::execute(h, "layer.new", r#"{"name": "Empty", "role": "vector", "top": true}"#));
+        let px = thumbnail(h, red, 64).expect("a thumbnail");
+        assert_eq!(px.len(), 64 * 64 * 4);
+        let at = |x: usize, y: usize| px[(y * 64 + x) * 4..(y * 64 + x) * 4 + 4].to_vec();
+        assert!(at(32, 32)[0] > 200 && at(32, 32)[2] < 60 && at(32, 32)[3] > 200, "the red art in the middle: {:?}", at(32, 32));
+        assert_eq!(at(32, 2)[3], 0, "transparent round the wide art");
+        assert!(thumbnail(h, empty, 64).is_none(), "nothing to show");
+        sessions::destroy(h);
     }
 
     fn id(answer: &str) -> u64 {
@@ -348,3 +415,5 @@ mod tests {
 // - `name_of`: a row's name, else its kind's.
 // - `row`: one row with a folder's rows (layers only), topmost first.
 // - `layers`: the active document's rows for the Layers panel.
+// - `thumbnail`: a row's art alone, square, on transparency (a texture layer's tiling; none for a filter or empty layer). `THUMBNAIL_MARGIN`, `TEXTURE_SAMPLE`: its margin and a texture's sample area.
+// - `find`: a node by id in a tree.

@@ -283,6 +283,30 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
     1
 }
 
+/// A Layers panel row's thumbnail (`panels::thumbnail`), `size` pixels square, into a direct byte
+/// buffer of at least `size` × `size` × 4 bytes → whether it was filled.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativeThumbnail(
+    env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    id: jlong,
+    size: jint,
+    out: JByteBuffer,
+) -> jboolean {
+    let (Ok(id), Ok(size)) = (u64::try_from(id), u32::try_from(size)) else { return 0 };
+    let Some(pixels) = crate::panels::thumbnail(handle, id, size) else { return 0 };
+    let (Ok(addr), Ok(cap)) = (env.get_direct_buffer_address(&out), env.get_direct_buffer_capacity(&out)) else { return 0 };
+    if addr.is_null() || cap < pixels.len() {
+        return 0;
+    }
+    // SAFETY: `addr` is the start of a direct buffer of `cap` bytes, at least `pixels.len()`, that
+    // the JVM keeps alive for this call; nothing else writes to it during the call.
+    let dest = unsafe { std::slice::from_raw_parts_mut(addr, pixels.len()) };
+    dest.copy_from_slice(&pixels);
+    1
+}
+
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBridge_nativePaintBegin(
     mut env: JNIEnv,
@@ -414,6 +438,7 @@ pub extern "system" fn Java_com_extemporecreare_app_components_engine_EngineBrid
 // - `..._nativePaintBegin`, `..._nativePaintAdd`, `..._nativePaintEnd`, `..._nativePaintCancel`: `paint::begin`, `add`, `end`, `cancel` → JSON answer.
 // - `..._nativeNewDocument`, `..._nativeView`, `..._nativeSetView`: `documents::new_document`, `view`, `set_view` → JSON answer.
 // - `..._nativeLayers`: `panels::layers` → JSON answer.
+// - `..._nativeThumbnail`: `panels::thumbnail` into a direct byte buffer.
 // - `..._nativePaintDefaults`, `..._nativeSetPaintDefaults`: `colors::paint_defaults`, `set_paint_defaults` → JSON answer.
 // - `..._nativePaintPixels`: the live Brush stroke's layer over a splotch region into a direct byte buffer.
 // - `..._nativeOpen`: open a copied file with its URI as the path → JSON answer.

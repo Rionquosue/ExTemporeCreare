@@ -48,12 +48,12 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `src/jni_exports.rs`: the JNI functions of `EngineBridge`.
 - `src/paint.rs`: the Brush tool's live strokes: `begin`, `add`, `pixels`, `end`, `cancel`.
 - `src/documents.rs`: `new_document` (finite, or infinite with no artboards), `view`, `set_view` (the artwork camera saved with the document).
-- `src/panels.rs`: `layers`: the Layers panel's rows (folder, raster, vector, guide), topmost first.
+- `src/panels.rs`: `layers`: the Layers panel's rows (layers only: folder, raster, vector, texture, filter), topmost first; `thumbnail`: a row's art alone, square, on transparency.
 - `src/colors.rs`: `paint_defaults`, `set_paint_defaults`: the primary (stroke) and alternate (fill) colours, without touching the selection.
 
 ## components/engine
 
-- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `newDocument`, `view`, `setView`, `layers`, `paintDefaults`, `setPaintDefaults`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
+- `EngineBridge.kt`: `com.extemporecreare.app.components.engine.EngineBridge`, one engine session for the UI: `execute`, `pointer`, `selectTool`, `toolOptions`, `setToolOption`, `state`, `overlays`, `newDocument`, `view`, `setView`, `layers`, `thumbnail`, `paintDefaults`, `setPaintDefaults`, `paintBegin`, `paintAdd`, `paintPixels`, `paintEnd`, `paintCancel`, `render`, `openCopied`, `saveToTemp`, `saveFinish`, `close`; `renderBuffer`, `validate`, `setPresetsRoot`.
 - `EngineFiles.kt`: `EngineFiles(context, engine)`: `open(uri)` and `save(uri, mode, options)` through content URIs, temporary files in `cacheDir/engine-files`, a check of each `.etc`, then the replace: renamed over the original where the provider allows (`replaceByRename`), else copied into the URI (`copyInto`).
 - `EngineBoards.kt`: `EngineBoards(context)`: reference boards through content URIs: `newBoard`, `open`, `save`, `links`, `relink`, `findMissing`, `embeddedFolder`, `embeddedFile` (embedded images kept in `embeddedDir` while open); `EMBEDDED_KIND`, `ASSET_FOLDER`.
 - `UriReplace.kt`: `UriReplace(context)`: puts finished files in place of content URIs (`replace`: rename over the original where the provider allows, else `copyInto`), `supports`, `displayName`.
@@ -117,7 +117,7 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 ## interface (package `com.extemporecreare.app.ui`)
 
 - `MainActivity.kt`: `MainActivity`, the app's activity: splash or editor, the system pickers (Save As, Open, Locate, Export folder) and the New Document and Settings dialogs.
-- `editor/EditorState.kt`: `EditorState`: screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `setColor`, `stepTool`, `saveRecovery`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
+- `editor/EditorState.kt`: `EditorState`: Layers panel thumbnails (`thumbnail`, made once per revision), screen (splash or editor), recent files, panel layout, engine session, dial tools, active tool, camera, revision, colours, document URI, message; `start`, `newDocument`, `home`, `forget`, `clearRecents`, `zoomBy`, `actualSize`, `setColor`, `stepTool`, `saveRecovery`, `chooseTool`, `pointer`, `undo`, `redo`, `flip`, `swapColors`, `run`, `save`, `open`, `exportTo`, `fitArtwork`, `viewJson`, `touched`, `show`.
 - `editor/PanelLayout.kt`: `PanelLayout` (`Place`, `places`, `place`, toggles, `toggleFocus`, `reset`): the panels' docks or floating positions and expanded states, kept in the preferences; focus mode.
 - `editor/MovablePanel.kt`: `MovablePanel`: hold a panel's header and drag to move it; edge dock targets with a placement preview; kept inside the workspace.
 - `document/NewDocumentDialog.kt`: `NewDocumentDialog`; `document/DocumentPresets.kt`: `DOCUMENT_PRESETS`.
@@ -127,14 +127,15 @@ Index of the project's own classes and types, by file. Copied VectorCraft code i
 - `canvas/Camera.kt`: `Camera` (centre, zoom, View Flip, rotation): `toDoc`, `toDocDirection`, `viewport`, `matrix`, `upright`, `screenTurn`, `toScreen`, `panned`, `zoomedAbout`, `navigated`, `fit`, `turn`, `normalized`.
 - `canvas/EditorCanvasView.kt`: `EditorCanvasView`: renders the document on a worker thread, draws the Brush's live stroke, Crop box, Export slices and tool overlays; stylus or one finger draws, two fingers pan and zoom; `follow`, `refresh`.
 - `canvas/OverlayPainter.kt`: `OverlayPainter`: tool overlays and canvas boxes.
-- `topbar/TopBar.kt`: `TopBar` (Menu, Save, Flip, Undo, Redo, Export, brand), `MenuEntry`, `BAR_HEIGHT`.
-- `dial/RotaryDial.kt`: `RotaryDial`: the ring of tools turning beneath the 45° active sight.
+- `topbar/TopBar.kt`: `TopBar` (Menu, then Save, Undo, Redo, Flip, Export as labelled pills, brand at the right), `MenuEntry`, `BAR_HEIGHT`.
+- `dial/RotaryDial.kt`: `RotaryDial`: the ring of tools turning beneath the 45° active sight, the active tool gold with a glow, a settings chevron beside it, an inner disc for the caller's controls; `DIAL_DIAMETER`, `INNER`.
+- `dial/DialSizeSlider.kt`: `DialSizeSlider`: the dial's vertical size slider (knob drag, up and down chevrons).
 - `dial/ColorControl.kt`: `ColorControl`: primary and alternate colours; tap swaps, double tap opens the colour workspace.
 - `dial/ToolReadout.kt`: `ToolReadout`: the active tool's name and size, drag to adjust.
 - `dial/DialGrip.kt`: `DialGrip` (hold and drag to move the dial; dragged to an edge it docks the dial there as a toolbar, dragged away from it the rotary dial returns), `edgeNear`, `DOCK_REACH`, `DialStepper` (step the dial by one tool).
 - `dial/DialToolbar.kt`: `DialToolbar`: the dial docked to an edge as a toolbar (grip, colour control, tools; tap to choose, tap the active one for its settings); `TOOLBAR_REACH`.
 - `dial/DialTools.kt`: `iconOf`, `sizeOf`, `setSize`.
-- `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a collapsible header.
+- `panels/FloatingPanel.kt`: `FloatingPanel`: panel chrome with a header (title underlined in gold, count badge); collapsed, a pill with icon, title and count; `PANEL_RADIUS`.
 - `panels/LayersPanel.kt`: `LayersPanel`, `LayersActions` (with `move`, `newTexture` opening the Texture library, `filters` and `newFilter` for the Filter menu), `LayersViewState` (scroll and collapsed folders kept while Export Settings shows), `dropAt`; `panels/LayerCard.kt`: `LayerCard` (modifier menu, typed Opacity and Fill with slider popovers, mask button and mask sublayer, drag grip), `LayerCardActions`, `CardDrag`, `DropHint`, `BLEND_MODES`, `LAYER_STYLES`; `panels/MaskRow.kt`: `MaskButton`, `MaskRow`, `MaskActions`, `MaskContext` (a layer's mask as its sublayer and its quick operations).
 - `common/ConfirmDialog.kt`: `Confirmation`, `ConfirmDialog`: ask before a destructive action.
 - `panels/TextureLibraryPanel.kt`: `TextureLibraryPanel` (named preview tiles; tapping one inserts a texture layer); `panels/ReferenceBoardPanel.kt`: `ReferenceBoardPanel`, `BoardActions` (add, New, Open, Save, Relink, Embed, select, changed, picture); image menu Delete, Embed, Flip (Horizontal, Vertical), Crop.

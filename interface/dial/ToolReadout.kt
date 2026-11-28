@@ -29,11 +29,11 @@ fun ToolReadout(name: String, size: Pair<Double, String>?, onSize: (Double) -> U
             }
         }.pointerInput(Unit) { detectTapGestures { onTap() } },
     ) {
-        Text(name, color = EtcColors.Text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Text(name, color = EtcColors.Text, fontSize = 22.sp, fontWeight = FontWeight.Medium)
         if (size != null) {
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(formatNumber(size.first, 1), color = EtcColors.Text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(" ${size.second}", color = EtcColors.Muted, fontSize = 12.sp)
+                Text(formatNumber(size.first, 1), color = EtcColors.Text, fontSize = 20.sp)
+                Text(" ${size.second}", color = EtcColors.Muted, fontSize = 18.sp)
             }
         }
     }

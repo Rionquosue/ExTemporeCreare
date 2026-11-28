@@ -18,6 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf
@@ -51,7 +53,7 @@ fun TextureLibraryPanel(library: TextureLibrary, expanded: Boolean, onToggle: ()
             previews[t.asset] = withContext(Dispatchers.IO) { library.preview(t) }
         }
     }
-    FloatingPanel("Texture library", "%02d".format(textures.size), expanded, onToggle, modifier.width(260.dp), headerModifier) {
+    FloatingPanel("Texture library", Icons.Outlined.Texture, textures.size, expanded, onToggle, 260.dp, modifier, headerModifier) {
         if (textures.isEmpty()) {
             Box(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
                 SettingNote("No textures yet: add images to tools/Libraries/textures.")

@@ -42,16 +42,18 @@ Ex-Tempore Creare: a tablet-first Android art app.
 
 Everything is pushed to `beta`. In order, the most recent work:
 
-1. Build on API 37 with current build tools and a Gradle 9.9.3 wrapper (`6a61da2`); the Kotlin compiles against API 37, the full APK has not been built on it yet.
-2. The debug APK builds on the owner's VM (`assembleDebug`, about 17 minutes from clean) and runs on the `Medium_Tablet_API_35` emulator to the start screen. This needed the text crate's `build/web_fonts.rs`, which `.gitignore`'s `build/` had kept out of the repository (`0c1882b`).
-3. Dial grip docks the dial to any edge as a toolbar (`5173c19`).
-4. `docs/featurelist.md` and `docs/planned.md` (`72a04f5`).
-5. Reference board Embed stores images inside the `.etcr` (`5612780`).
-6. Texture library and texture layers, filter layers, Fill and masks on object rows (`9ce6d50`).
-7. Layer Fill, greyscale layer masks, layer styles: Stroke, Bevel & Emboss, Color Overlay, Gradient Overlay (`80c2a71`).
-8. Artwork view twist rotation; rotation and View Flip saved per document (`df0f8bf`).
-9. Reference board handles, view twist, image menu (`5c35261`).
-10. `uistandards.md` §6 lists 11 tools (`c1fd51b`).
+1. UI polish to the owner's mockup (layout only, `EtcColors`): labelled top bar pills, a 640 dp frosted dial centred on the bottom edge with a size slider, readout and colours inside it and a settings chevron, layer cards with thumbnails and lock, collapsed panels as pills, opaque panels (the §3.2 fallback), a restyled splash.
+2. Live strokes for Marker, Pencil and Eraser; no flicker after a stroke; the Layers panel lists layers only (layer roles); the app laid out between the system bars (`43b078c`).
+3. Build on API 37 with current build tools and a Gradle 9.9.3 wrapper (`6a61da2`); the Kotlin compiles against API 37, the full APK has not been built on it yet.
+4. The debug APK builds on the owner's VM (`assembleDebug`, about 17 minutes from clean) and runs on the `Medium_Tablet_API_35` emulator to the start screen. This needed the text crate's `build/web_fonts.rs`, which `.gitignore`'s `build/` had kept out of the repository (`0c1882b`).
+5. Dial grip docks the dial to any edge as a toolbar (`5173c19`).
+6. `docs/featurelist.md` and `docs/planned.md` (`72a04f5`).
+7. Reference board Embed stores images inside the `.etcr` (`5612780`).
+8. Texture library and texture layers, filter layers, Fill and masks on object rows (`9ce6d50`).
+9. Layer Fill, greyscale layer masks, layer styles: Stroke, Bevel & Emboss, Color Overlay, Gradient Overlay (`80c2a71`).
+10. Artwork view twist rotation; rotation and View Flip saved per document (`df0f8bf`).
+11. Reference board handles, view twist, image menu (`5c35261`).
+12. `uistandards.md` §6 lists 11 tools (`c1fd51b`).
 
 The full feature set is in `docs/featurelist.md`. Beyond the start screen, none of the UI has been tried on a device yet. The next job is to go through `featurelist.md` on the emulator and on a real tablet.
 

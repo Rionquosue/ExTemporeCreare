@@ -126,8 +126,8 @@ class PanelLayout(context: Context) {
         const val BOARD = "board"
 
         /** The rotary dial's grip centre before the dial is moved: dp from the left, and from the bottom. */
-        const val GRIP_X_DP = 40f
-        const val GRIP_FROM_BOTTOM_DP = 272f
+        const val GRIP_X_DP = 55f
+        const val GRIP_FROM_BOTTOM_DP = 372f
 
         /** The edges the dial docks to as a toolbar. */
         val EDGES = listOf("left", "right", "top", "bottom")

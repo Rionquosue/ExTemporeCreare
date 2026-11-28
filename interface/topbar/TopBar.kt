@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Redo
@@ -20,7 +18,7 @@ import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Flip
 import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,11 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.extemporecreare.app.ui.theme.EtcColors
@@ -47,8 +45,8 @@ data class MenuEntry(val label: String, val action: () -> Unit)
 
 /**
  * The top bar (`uistandards.md` §4): Menu at the far left (a rounded square opening [menu]), the
- * essential actions Save, Flip, Undo, Redo and Export as compact pills, and the brand at the
- * right end.
+ * essential actions Save, Undo, Redo, Flip and Export as pills with an icon and a label, and the
+ * brand at the right end in a restrained serif.
  */
 @Composable
 fun TopBar(
@@ -62,61 +60,60 @@ fun TopBar(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier.fillMaxWidth().height(BAR_HEIGHT).background(EtcColors.Shell).padding(horizontal = 12.dp),
+        modifier.fillMaxWidth().height(BAR_HEIGHT).background(EtcColors.Shell).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         var open by remember { mutableStateOf(false) }
         Box {
+            val shape = RoundedCornerShape(14.dp)
             Box(
-                Modifier.size(38.dp).background(EtcColors.Panel2, RoundedCornerShape(10.dp)).border(1.dp, EtcColors.Line, RoundedCornerShape(10.dp))
+                Modifier.size(48.dp).shadow(6.dp, shape, ambientColor = EtcColors.Bg, spotColor = EtcColors.Bg)
+                    .background(EtcColors.Panel2, shape).border(1.dp, EtcColors.Line, shape)
                     .clickable { open = true }.semantics { contentDescription = "Menu" },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Outlined.Menu, null, tint = EtcColors.Text, modifier = Modifier.size(19.dp)) }
+            ) { Icon(Icons.Outlined.Menu, null, tint = EtcColors.Text, modifier = Modifier.size(24.dp)) }
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                 for (entry in menu) DropdownMenuItem(text = { Text(entry.label) }, onClick = { open = false; entry.action() })
             }
         }
         Pill(Icons.Outlined.Save, "Save", onSave)
+        Pill(Icons.AutoMirrored.Outlined.Undo, "Undo", onUndo)
+        Pill(Icons.AutoMirrored.Outlined.Redo, "Redo", onRedo)
         Pill(Icons.Outlined.Flip, "Flip", onFlip, active = flipped)
-        Pill(Icons.AutoMirrored.Outlined.Undo, null, onUndo, description = "Undo")
-        Pill(Icons.AutoMirrored.Outlined.Redo, null, onRedo, description = "Redo")
-        Pill(Icons.Outlined.IosShare, "Export", onExport, active = true)
+        Pill(Icons.Outlined.IosShare, "Export", onExport)
         Spacer(Modifier.weight(1f))
-        Box(
-            Modifier.size(30.dp).border(1.dp, EtcColors.Gold2, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Outlined.Palette, null, tint = EtcColors.Gold, modifier = Modifier.size(16.dp)) }
-        Spacer(Modifier.width(2.dp))
-        Text("Ex-Tempore ", color = EtcColors.Text, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, fontSize = 15.sp)
-        Text("Creare", color = EtcColors.Gold, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, fontSize = 15.sp)
+        Icon(Icons.Outlined.Edit, null, tint = EtcColors.Gold, modifier = Modifier.size(22.dp))
+        Text("Ex-Tempore Creare", color = EtcColors.Text, fontFamily = FontFamily.Serif, fontSize = 20.sp, letterSpacing = 1.sp)
     }
 }
 
-/** A compact pill button: an icon and an optional label, gold-tinted when [active]. */
+/** A pill button: an icon and a label, gold-edged when [active] (Flip while the view is flipped). */
 @Composable
-private fun Pill(icon: ImageVector, label: String?, onClick: () -> Unit, active: Boolean = false, description: String? = label) {
+private fun Pill(icon: ImageVector, label: String, onClick: () -> Unit, active: Boolean = false) {
+    val shape = RoundedCornerShape(22.dp)
     Row(
         Modifier
-            .height(34.dp)
-            .background(if (active) EtcColors.Panel2 else EtcColors.Shell, RoundedCornerShape(17.dp))
-            .border(1.dp, if (active) EtcColors.Gold2 else EtcColors.Line, RoundedCornerShape(17.dp))
+            .height(44.dp)
+            .shadow(6.dp, shape, ambientColor = EtcColors.Bg, spotColor = EtcColors.Bg)
+            .background(EtcColors.Panel2, shape)
+            .border(1.dp, if (active) EtcColors.Gold else EtcColors.Line, shape)
             .clickable(onClick = onClick)
-            .semantics { contentDescription = description ?: "" }
-            .padding(horizontal = if (label == null) 10.dp else 12.dp),
+            .semantics { contentDescription = label }
+            .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(icon, null, tint = if (active) EtcColors.Gold else EtcColors.Text, modifier = Modifier.size(17.dp))
-        if (label != null) Text(label, color = EtcColors.Text, fontSize = 13.sp)
+        Icon(icon, null, tint = if (active) EtcColors.Gold else EtcColors.Text, modifier = Modifier.size(20.dp))
+        Text(label, color = if (active) EtcColors.Gold else EtcColors.Text, fontSize = 15.sp)
     }
 }
 
-/** The top bar's height (about 51 px in the mockup, §4). */
-val BAR_HEIGHT = 52.dp
+/** The top bar's height: room for its 48 dp controls (§4: starting proportions, subject to touch readability). */
+val BAR_HEIGHT = 68.dp
 
 // GLOSSARY
 // - MenuEntry: a main menu entry (label, action).
 // - TopBar(menu, onSave, onFlip, flipped, onUndo, onRedo, onExport, modifier): the top bar.
-// - Pill(icon, label, onClick, active, description): a compact pill button.
-// - BAR_HEIGHT: the top bar's height, 52 dp.
+// - Pill(icon, label, onClick, active): a pill button with an icon and a label.
+// - BAR_HEIGHT: the top bar's height, 68 dp.

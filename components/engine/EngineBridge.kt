@@ -94,6 +94,16 @@ class EngineBridge : AutoCloseable {
      */
     fun layers(): String = nativeLayers(live())
 
+    /**
+     * Layers panel row [id]'s thumbnail, [size] pixels square, into [out] (direct, at least
+     * [size] × [size] × 4 bytes, RGBA premultiplied) → whether it was filled; false for a row with
+     * nothing to show (an empty layer, a filter layer).
+     */
+    fun thumbnail(id: Long, size: Int, out: ByteBuffer): Boolean {
+        require(out.isDirect) { "the thumbnail buffer must be direct" }
+        return nativeThumbnail(live(), id, size, out)
+    }
+
     /** The paint defaults the tools paint with → `{"ok": {"stroke": "#rrggbb"|null, "fill": "#rrggbb"|null}}` (primary: stroke, alternate: fill). */
     fun paintDefaults(): String = nativePaintDefaults(live())
 
@@ -223,6 +233,7 @@ class EngineBridge : AutoCloseable {
         @JvmStatic private external fun nativeBoardLinks(board: String, boardDir: String): String
         @JvmStatic private external fun nativeBoardRelink(board: String, id: String, file: String, boardDir: String): String
         @JvmStatic private external fun nativeBoardFindMissing(board: String, boardDir: String, folders: String): String
+        @JvmStatic private external fun nativeThumbnail(handle: Long, id: Long, size: Int, out: ByteBuffer): Boolean
         @JvmStatic private external fun nativeRender(
             handle: Long,
             x: Double,
@@ -251,6 +262,7 @@ class EngineBridge : AutoCloseable {
 // - newDocument(settingsJson): a finite or infinite document → JSON answer.
 // - view(), setView(cameraJson): the artwork camera kept with the document.
 // - layers(): the Layers panel's rows → JSON answer.
+// - thumbnail(id, size, out): a Layers panel row's thumbnail into a direct buffer.
 // - paintDefaults(), setPaintDefaults(valuesJson): the primary (stroke) and alternate (fill) colours → JSON answer.
 // - paintBegin, paintAdd, paintPixels, paintEnd, paintCancel: the Brush tool's live raster stroke into a splotch.
 // - openCopied(tempPath, name, uri): open a file copied to a temporary file, with its URI as path.
@@ -262,4 +274,4 @@ class EngineBridge : AutoCloseable {
 // - setPresetsRoot(path): set the built-in presets folder.
 // - boardNew, boardRead, boardWrite, boardLinks, boardRelink, boardFindMissing: reference boards (.etcr) on file paths;
 //   read and write take the folder embedded images are kept in.
-// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeNewDocument, nativeView, nativeSetView, nativeLayers, nativePaintDefaults, nativeSetPaintDefaults, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender: the JNI functions in engine/crates/bridge/src/jni_exports.rs.
+// - nativeCreate, nativeDestroy, nativeSetPresetsRoot, nativeExecute, nativePointer, nativeSelectTool, nativeToolOptions, nativeSetToolOption, nativeState, nativeOverlays, nativeNewDocument, nativeView, nativeSetView, nativeLayers, nativePaintDefaults, nativeSetPaintDefaults, nativePaint*, nativeOpen, nativeSave, nativeSaveFinish, nativeValidate, nativeBoard*, nativeRender, nativeThumbnail: the JNI functions in engine/crates/bridge/src/jni_exports.rs.

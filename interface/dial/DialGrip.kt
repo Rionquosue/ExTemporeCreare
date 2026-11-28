@@ -91,9 +91,7 @@ fun DialGrip(layout: PanelLayout, origin: Offset, area: IntSize, modifier: Modif
             },
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(28.dp).background(EtcColors.Panel2, CircleShape).border(1.dp, EtcColors.Line, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.DragIndicator, null, tint = EtcColors.Muted, modifier = Modifier.size(16.dp))
-        }
+        Icon(Icons.Outlined.DragIndicator, null, tint = EtcColors.Muted, modifier = Modifier.size(24.dp))
     }
 }
 

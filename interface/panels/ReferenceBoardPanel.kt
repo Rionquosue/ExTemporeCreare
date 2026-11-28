@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -89,11 +90,13 @@ fun ReferenceBoardPanel(
         }
     }
     FloatingPanel(
-        "Reference board",
-        "%02d REFS".format(board.images().size),
+        "Reference",
+        Icons.Outlined.Image,
+        board.images().size,
         expanded,
         onToggle,
-        modifier.width(320.dp),
+        320.dp,
+        modifier,
         headerModifier = headerModifier,
         actions = { Icon(Icons.Outlined.Add, "Add reference", tint = EtcColors.Text, modifier = Modifier.size(20.dp).clickable(onClick = actions.add)) },
     ) {

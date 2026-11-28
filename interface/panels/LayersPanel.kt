@@ -1,11 +1,14 @@
 package com.extemporecreare.app.ui.panels
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -15,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Delete
@@ -33,6 +37,9 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,9 +67,9 @@ class LayersActions(
 )
 
 /**
- * The Layers panel (`uistandards.md` §7.1): the creation row (Vector, Raster, Filter, Texture),
+ * The Layers panel (`uistandards.md` §7.1): the creation row (Vector, Raster, Filter, Texture) as a strip of text buttons,
  * the compositing stack topmost first as cards ([LayerCard]), which a card's grip drags above,
- * below or into another (a folder's middle), and the footer with Delete, the hint and Add Folder.
+ * below or into another (a folder's middle), and the footer with Delete and Add Folder.
  * Texture opens the Texture library, where a texture is picked; Filter offers the filters a filter
  * layer can apply (it filters everything below it on the page, `uistandards.md` §7.3).
  */
@@ -77,25 +84,23 @@ fun LayersPanel(
     modifier: Modifier = Modifier,
     headerModifier: Modifier = Modifier,
 ) {
-    FloatingPanel("Layers", "%02d".format(count(rows)), expanded, onToggle, modifier, headerModifier) {
-        Row(Modifier.padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Create(Icons.Outlined.Category, "Vector", Modifier.weight(1f), actions.newVector)
-            Create(Icons.Outlined.Layers, "Raster", Modifier.weight(1f), actions.newRaster)
-            Box(Modifier.weight(1f)) {
+    FloatingPanel("Layers", Icons.Outlined.Layers, count(rows), expanded, onToggle, 368.dp, modifier, headerModifier) {
+        // The creation row as a strip of text buttons under the header.
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Create(Icons.Outlined.Category, "Vector", actions.newVector)
+            Create(Icons.Outlined.Brush, "Raster", actions.newRaster)
+            Box {
                 var menu by remember { mutableStateOf(false) }
-                Create(Icons.Outlined.AutoAwesome, "Filter", Modifier.fillMaxWidth()) { menu = true }
+                Create(Icons.Outlined.AutoAwesome, "Filter") { menu = true }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, modifier = Modifier.heightIn(max = 420.dp)) {
                     for ((effect, label) in actions.filters()) {
                         DropdownMenuItem(text = { Text(label) }, onClick = { menu = false; actions.newFilter(effect) })
                     }
                 }
             }
-            Create(Icons.Outlined.Texture, "Texture", Modifier.weight(1f), actions.newTexture)
+            Create(Icons.Outlined.Texture, "Texture", actions.newTexture)
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text("COMPOSITING STACK", color = EtcColors.Soft, fontSize = 10.sp, modifier = Modifier.weight(1f))
-            Text("TOP ↓ BOTTOM", color = EtcColors.Muted, fontSize = 10.sp)
-        }
+        Box(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 10.dp).height(1.dp).background(EtcColors.LineSoft))
         val bounds = remember { mutableMapOf<Long, Pair<Rect, Boolean>>() }
         var dragging by remember { mutableStateOf<Long?>(null) }
         var hint by remember { mutableStateOf<DropHint?>(null) }
@@ -118,10 +123,10 @@ fun LayersPanel(
         ) {
             for (i in 0 until rows.length()) rows.optJSONObject(i)?.let { LayerCard(it, 0, actions.card, drag, view.folders, masks) }
         }
-        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             FooterButton(Icons.Outlined.Delete, "Delete", actions.deleteCurrent)
-            Text("Drag rows to reorder · filters cascade downward", color = EtcColors.Soft, fontSize = 10.sp, modifier = Modifier.weight(1f).padding(horizontal = 8.dp))
-            FooterButton(Icons.Outlined.CreateNewFolder, "Add folder", actions.newFolder)
+            Spacer(Modifier.weight(1f))
+            FooterButton(Icons.Outlined.CreateNewFolder, "Add folder", actions.newFolder, accent = true)
         }
     }
 }
@@ -148,30 +153,34 @@ private fun count(rows: JSONArray): Int = (0 until rows.length()).sumOf { i ->
     1 + (r?.optJSONArray("children")?.let { count(it) } ?: 0)
 }
 
-/** A creation row button; disabled when [onClick] is null. */
+/** A creation row button: a small icon and the kind it makes, as a text button (`New <label>`). */
 @Composable
-private fun Create(icon: ImageVector, label: String, modifier: Modifier, onClick: (() -> Unit)?) {
-    val enabled = onClick != null
+private fun Create(icon: ImageVector, label: String, onClick: () -> Unit) {
     Row(
-        modifier
-            .border(1.dp, EtcColors.Line, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled) { onClick?.invoke() }
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.Center,
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "New $label" }
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = if (enabled) EtcColors.Text else EtcColors.Soft, modifier = Modifier.size(15.dp))
-        Text(" $label", color = if (enabled) EtcColors.Text else EtcColors.Soft, fontSize = 12.sp)
+        Icon(icon, null, tint = EtcColors.Muted, modifier = Modifier.size(15.dp))
+        Text(label, color = EtcColors.Muted, fontSize = 14.sp)
     }
 }
 
-/** A footer icon button. */
+/** A footer icon button, gold-edged when [accent]. */
 @Composable
-private fun FooterButton(icon: ImageVector, description: String, onClick: () -> Unit) {
-    androidx.compose.foundation.layout.Box(
-        Modifier.size(34.dp).border(1.dp, EtcColors.Line, RoundedCornerShape(9.dp)).clickable(onClick = onClick),
+private fun FooterButton(icon: ImageVector, description: String, onClick: () -> Unit, accent: Boolean = false) {
+    Box(
+        Modifier.size(44.dp)
+            .background(EtcColors.Panel2, RoundedCornerShape(12.dp))
+            .border(1.dp, if (accent) EtcColors.Gold2 else EtcColors.Line, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
-    ) { Icon(icon, description, tint = EtcColors.Text, modifier = Modifier.size(18.dp)) }
+    ) { Icon(icon, null, tint = if (accent) EtcColors.Gold else EtcColors.Text, modifier = Modifier.size(22.dp)) }
 }
 
 // GLOSSARY
@@ -180,5 +189,5 @@ private fun FooterButton(icon: ImageVector, description: String, onClick: () -> 
 // - LayersPanel(rows, expanded, onToggle, actions, view, modifier, headerModifier): the Layers panel.
 // - dropAt(bounds, dragged, y): where a dragged card would go.
 // - count(rows): the rows, folders' included.
-// - Create(icon, label, modifier, onClick): a creation row button.
-// - FooterButton(icon, description, onClick): a footer icon button.
+// - Create(icon, label, onClick): a creation row text button.
+// - FooterButton(icon, description, onClick, accent): a footer icon button.

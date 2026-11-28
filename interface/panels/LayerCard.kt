@@ -1,5 +1,7 @@
 package com.extemporecreare.app.ui.panels
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,7 +29,10 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.AutoFixHigh
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Texture
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -46,6 +51,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.SolidColor
@@ -89,6 +97,9 @@ val LAYER_STYLES: List<Pair<String, Pair<String, JSONObject>?>> = listOf(
 class LayerCardActions(
     val select: (Long) -> Unit,
     val setVisible: (Long, Boolean) -> Unit,
+    val setLocked: (Long, Boolean) -> Unit,
+    /** A row's thumbnail ([Thumbnail]), or null when it has nothing to show. */
+    val thumbnail: (Long) -> ImageBitmap?,
     val setOpacity: (Long, Int) -> Unit,
     val setFill: (Long, Int) -> Unit,
     /** A texture layer's scale, in percent (100: one image pixel a point). */
@@ -126,43 +137,26 @@ fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: Card
     val open = folders[id] ?: true
     val selected = row.optBoolean("current")
     val hint = drag.hint?.takeIf { it.id == id }
+    val shape = RoundedCornerShape(14.dp)
     Column(
         Modifier
             .fillMaxWidth()
             .padding(start = (depth * 14).dp)
             .onGloballyPositioned { drag.onBounds(id, it.boundsInRoot(), folder) }
-            .background(if (selected) EtcColors.Panel2 else EtcColors.Panel, RoundedCornerShape(12.dp))
-            .border(if (hint?.place == "inside") 2.dp else 1.dp, if (hint?.place == "inside" || selected) EtcColors.Gold else EtcColors.LineSoft, RoundedCornerShape(12.dp))
+            .background(if (selected) SELECTED_TINT else EtcColors.Panel2.copy(alpha = 0.55f), shape)
+            .border(if (hint?.place == "inside" || selected) 1.5.dp else 1.dp, if (hint?.place == "inside" || selected) EtcColors.Gold else EtcColors.LineSoft, shape)
             .clickable { actions.select(id) }
-            .padding(10.dp),
+            .padding(start = 4.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (hint?.place == "above") DropLine()
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StyleMenu { label, command, params -> actions.addStyle(id, command, params.put("_label", label)) }
-            if (folder) {
-                Icon(
-                    if (open) Icons.Outlined.ExpandMore else Icons.Outlined.ChevronRight,
-                    if (open) "Collapse" else "Expand",
-                    tint = EtcColors.Muted,
-                    modifier = Modifier.size(22.dp).clickable { folders[id] = !open },
-                )
-            }
-            Text(row.optString("name"), color = EtcColors.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Chip(chipLabel(kind, row))
-            val visible = row.optBoolean("visible", true)
-            Icon(
-                if (visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                if (visible) "Hide" else "Show",
-                tint = if (visible) EtcColors.Muted else EtcColors.Soft,
-                modifier = Modifier.size(22.dp).clickable { actions.setVisible(id, !visible) },
-            )
             var gripY by remember { mutableFloatStateOf(0f) }
             Icon(
                 Icons.Outlined.DragIndicator,
                 "Drag to reorder",
                 tint = EtcColors.Soft,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(width = 22.dp, height = 44.dp)
                     .onGloballyPositioned { gripY = it.boundsInRoot().center.y }
                     .pointerInput(id) {
                         var y = 0f
@@ -177,26 +171,41 @@ fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: Card
                         }
                     },
             )
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.size(30.dp).border(1.dp, EtcColors.Line, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                Icon(iconOf(kind), null, tint = EtcColors.Muted, modifier = Modifier.size(16.dp))
-            }
-            // A filter layer filters what is below it, mixed at its Opacity; it has no blend, Fill or mask of its own.
-            val filter = kind == "filter"
-            if (!filter) BlendPicker(row.optString("blend", "Normal")) { actions.setBlend(id, it) }
-            PercentControl("Opacity", row.optDouble("opacity", 100.0).toInt(), Modifier.weight(1f)) { actions.setOpacity(id, it) }
-            if (!filter) {
-                PercentControl("Fill", row.optDouble("fill", 100.0).toInt(), Modifier.weight(1f)) { actions.setFill(id, it) }
-                MaskButton(row, masks, actions.mask)
+            Thumbnail(actions.thumbnail(id), kind)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (folder) {
+                        Icon(
+                            if (open) Icons.Outlined.ExpandMore else Icons.Outlined.ChevronRight,
+                            if (open) "Collapse" else "Expand",
+                            tint = EtcColors.Muted,
+                            modifier = Modifier.size(22.dp).clickable { folders[id] = !open },
+                        )
+                    }
+                    Text(row.optString("name"), color = EtcColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    // A filter layer filters what is below it, mixed at its Opacity; it has no styles, blend, Fill or mask of its own.
+                    if (kind != "filter") {
+                        StyleMenu { label, command, params -> actions.addStyle(id, command, params.put("_label", label)) }
+                        MaskButton(row, masks, actions.mask)
+                    }
+                    val visible = row.optBoolean("visible", true)
+                    CardIcon(if (visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff, if (visible) "Hide" else "Show", if (visible) EtcColors.Text else EtcColors.Soft) { actions.setVisible(id, !visible) }
+                    val locked = row.optBoolean("locked")
+                    CardIcon(if (locked) Icons.Outlined.Lock else Icons.Outlined.LockOpen, if (locked) "Unlock" else "Lock", if (locked) EtcColors.Gold else EtcColors.Text) { actions.setLocked(id, !locked) }
+                }
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (kind != "filter") BlendPicker(row.optString("blend", "Normal"), Modifier.weight(1f)) { actions.setBlend(id, it) }
+                    PercentControl("Opacity", row.optDouble("opacity", 100.0).toInt(), Modifier) { actions.setOpacity(id, it) }
+                    if (kind != "filter") PercentControl("Fill", row.optDouble("fill", 100.0).toInt(), Modifier) { actions.setFill(id, it) }
+                }
             }
         }
         if (kind == "texture") {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PercentControl("Scale", (row.optDouble("scale", 1.0) * 100).toInt(), Modifier.weight(1f), max = 1000) { actions.setTextureScale(id, it.coerceAtLeast(1)) }
+            Row(Modifier.padding(start = 30.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PercentControl("Scale", (row.optDouble("scale", 1.0) * 100).toInt(), Modifier, max = 1000) { actions.setTextureScale(id, it.coerceAtLeast(1)) }
             }
         }
-        MaskRow(row, masks, actions.mask)
+        Box(Modifier.padding(start = 16.dp)) { MaskRow(row, masks, actions.mask) }
         if (hint?.place == "below") DropLine()
     }
     if (folder && open) {
@@ -205,20 +214,54 @@ fun LayerCard(row: JSONObject, depth: Int, actions: LayerCardActions, drag: Card
     }
 }
 
+/**
+ * A row's thumbnail: its art on a checkerboard (transparency), or the row type's icon when it has
+ * nothing to show (an empty layer, a folder, a filter layer).
+ */
+@Composable
+private fun Thumbnail(image: ImageBitmap?, kind: String) {
+    val shape = RoundedCornerShape(10.dp)
+    Box(Modifier.size(56.dp).clip(shape).border(1.dp, EtcColors.Line, shape), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.matchParentSize()) {
+            val cell = 7.dp.toPx()
+            drawRect(CHECK_LIGHT)
+            var y = 0f
+            var row = 0
+            while (y < size.height) {
+                var x = if (row % 2 == 0) 0f else cell
+                while (x < size.width) {
+                    drawRect(CHECK_DARK, androidx.compose.ui.geometry.Offset(x, y), androidx.compose.ui.geometry.Size(cell, cell))
+                    x += cell * 2
+                }
+                y += cell
+                row++
+            }
+        }
+        if (image != null) {
+            Image(image, null, Modifier.matchParentSize(), contentScale = ContentScale.Fit)
+        } else {
+            Icon(iconOf(kind), null, tint = EtcColors.Shell, modifier = Modifier.size(24.dp))
+        }
+    }
+}
+
+/** A small icon button on a card. */
+@Composable
+private fun CardIcon(icon: ImageVector, description: String, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+    Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).semantics { contentDescription = description }, contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** The current layer's card fill (`uistandards.md` §3.2: a warm tinted card) and the thumbnail checkerboard's two greys. */
+private val SELECTED_TINT = androidx.compose.ui.graphics.Color(0xFF3A3328)
+private val CHECK_LIGHT = androidx.compose.ui.graphics.Color(0xFFE9E9E9)
+private val CHECK_DARK = androidx.compose.ui.graphics.Color(0xFFCFCFCF)
+
 /** The drop indicator line. */
 @Composable
 private fun DropLine() {
     Box(Modifier.fillMaxWidth().height(3.dp).background(EtcColors.Gold, RoundedCornerShape(2.dp)))
-}
-
-/** A card's type chip: Folder · count, Raster or Vector. */
-private fun chipLabel(kind: String, row: JSONObject): String = when (kind) {
-    "folder" -> "Folder · ${row.optJSONArray("children")?.length() ?: 0}"
-    "raster" -> "Raster"
-    "guide" -> "Guide"
-    "texture" -> "Texture"
-    "filter" -> "Filter"
-    else -> "Vector"
 }
 
 /** A row type's icon. */
@@ -230,18 +273,12 @@ private fun iconOf(kind: String): ImageVector = when (kind) {
     else -> Icons.Outlined.Layers
 }
 
-/** A small outlined label. */
-@Composable
-private fun Chip(text: String) {
-    Text(text, color = EtcColors.Muted, fontSize = 10.sp, modifier = Modifier.border(1.dp, EtcColors.Line, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
-}
-
 /** The modifier menu: the layer styles, those without an engine operation shown unavailable. */
 @Composable
 private fun StyleMenu(onPick: (String, String, JSONObject) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        Icon(Icons.Outlined.Menu, "Layer styles", tint = EtcColors.Muted, modifier = Modifier.size(22.dp).clickable { open = true })
+        CardIcon(Icons.Outlined.AutoFixHigh, "Layer styles", EtcColors.Text) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             for ((label, op) in LAYER_STYLES) {
                 DropdownMenuItem(
@@ -256,17 +293,19 @@ private fun StyleMenu(onPick: (String, String, JSONObject) -> Unit) {
 
 /** The blend mode dropdown. */
 @Composable
-private fun BlendPicker(current: String, onPick: (String) -> Unit) {
+private fun BlendPicker(current: String, modifier: Modifier, onPick: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
-    Column {
+    Column(modifier) {
         Text("Blend mode", color = EtcColors.Soft, fontSize = 10.sp)
         Box {
-            Text(
-                BLEND_MODES.firstOrNull { it.first == current }?.second ?: current,
-                color = EtcColors.Text,
-                fontSize = 12.sp,
-                modifier = Modifier.width(96.dp).border(1.dp, EtcColors.Line, RoundedCornerShape(6.dp)).clickable { open = true }.padding(horizontal = 8.dp, vertical = 5.dp),
-            )
+            Row(
+                Modifier.fillMaxWidth().height(32.dp).background(EtcColors.Shell.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).border(1.dp, EtcColors.Line, RoundedCornerShape(8.dp))
+                    .clickable { open = true }.padding(start = 8.dp, end = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(BLEND_MODES.firstOrNull { it.first == current }?.second ?: current, color = EtcColors.Text, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Icon(Icons.Outlined.KeyboardArrowDown, null, tint = EtcColors.Muted, modifier = Modifier.size(18.dp))
+            }
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                 for ((name, label) in BLEND_MODES) DropdownMenuItem(text = { Text(label) }, onClick = { open = false; onPick(name) })
             }
@@ -288,7 +327,7 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
     Column(modifier) {
         Text(label, color = EtcColors.Soft, fontSize = 10.sp)
         Row(
-            Modifier.border(1.dp, EtcColors.Line, RoundedCornerShape(6.dp)).padding(start = 6.dp),
+            Modifier.height(32.dp).background(EtcColors.Shell.copy(alpha = 0.6f), RoundedCornerShape(8.dp)).border(1.dp, EtcColors.Line, RoundedCornerShape(8.dp)).padding(start = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BasicTextField(
@@ -300,11 +339,11 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
                 cursorBrush = SolidColor(EtcColors.Gold),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { commit() }),
-                modifier = Modifier.width(30.dp).onFocusChanged { if (!it.isFocused) commit() }.semantics { contentDescription = "$label percent" },
+                modifier = Modifier.width(26.dp).onFocusChanged { if (!it.isFocused) commit() }.semantics { contentDescription = "$label percent" },
             )
             Text("%", color = EtcColors.Muted, fontSize = 12.sp)
             Box {
-                Icon(Icons.Outlined.ArrowDropDown, "$label slider", tint = if (enabled) EtcColors.Text else EtcColors.Soft, modifier = Modifier.size(28.dp).clickable(enabled = enabled) { open = true })
+                Icon(Icons.Outlined.ArrowDropDown, "$label slider", tint = if (enabled) EtcColors.Muted else EtcColors.Soft, modifier = Modifier.size(width = 22.dp, height = 32.dp).clickable(enabled = enabled) { open = true })
                 DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                     Column(Modifier.width(240.dp).padding(horizontal = 14.dp, vertical = 6.dp)) {
                         Text("$label ${v.toInt()}%", color = EtcColors.Text, fontSize = 13.sp)
@@ -325,11 +364,13 @@ private fun PercentControl(label: String, value: Int, modifier: Modifier, enable
 // GLOSSARY
 // - BLEND_MODES: the cards' blend modes (engine name, label).
 // - LAYER_STYLES: the modifier menu's styles (label, engine command and params, or null when unavailable).
-// - LayerCardActions: what a card asks of the document (select, visibility, opacity, Fill, blend, add a style, mask).
+// - LayerCardActions: what a card asks of the document (select, visibility, lock, thumbnail, opacity, Fill, blend, add a style, mask).
 // - DropHint: where a dragged card would go. CardDrag: the grip drag shared by the cards.
 // - LayerCard(row, depth, actions, drag, folders): one row as a card, a folder's rows below it unless collapsed in folders.
 // - DropLine(): the drop indicator.
-// - chipLabel(kind, row), iconOf(kind): a row's chip and icon. Chip(text): a small outlined label.
+// - iconOf(kind): a row type's icon.
+// - Thumbnail(image, kind): a row's art on a checkerboard, else its icon. CardIcon(icon, description, tint, onClick): a card's icon button.
+// - SELECTED_TINT, CHECK_LIGHT, CHECK_DARK: the current card's fill and the checkerboard's greys.
 // - StyleMenu(onPick): the modifier menu.
-// - BlendPicker(current, onPick): the blend mode dropdown.
+// - BlendPicker(current, modifier, onPick): the blend mode dropdown.
 // - PercentControl(label, value, modifier, enabled, max, onSet): typed percentage with a slider popover.

@@ -1,12 +1,15 @@
 package com.extemporecreare.app.ui.editor
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import com.extemporecreare.app.components.color.ColorLibrary
 import com.extemporecreare.app.components.boards.ReferenceBoard
 import com.extemporecreare.app.components.textures.TextureLibrary
@@ -50,7 +53,13 @@ class EditorState(private val context: Context) {
         /** The recovery copies' folder in the app's files, and how often a copy is written (ms). */
         const val RECOVERY_FOLDER = "recovery"
         const val RECOVERY_EVERY_MS = 120_000L
+
+        /** A Layers panel thumbnail's size in pixels (the card shows it 56 dp square). */
+        const val THUMBNAIL_PX = 112
     }
+
+    /** Layers panel thumbnails by row id, with the revision each was made at. */
+    private val thumbnails = HashMap<Long, Pair<Int, ImageBitmap?>>()
 
     /** Which screen shows: the opening splash or the editor (`uistandards.md` §5.1). */
     enum class Screen { SPLASH, EDITOR }
@@ -377,6 +386,19 @@ class EditorState(private val context: Context) {
         if (editing != id) run("transparency.editOpacityMask", JSONObject().put("id", id))
     }
 
+    /** Layers panel row [id]'s thumbnail at the current revision (made once per revision), or null when it has nothing to show. */
+    fun thumbnail(id: Long): ImageBitmap? {
+        thumbnails[id]?.let { (made, image) -> if (made == revision) return image }
+        val buffer = EngineBridge.renderBuffer(THUMBNAIL_PX, THUMBNAIL_PX)
+        val image = if (engine.thumbnail(id, THUMBNAIL_PX, buffer)) {
+            Bitmap.createBitmap(THUMBNAIL_PX, THUMBNAIL_PX, Bitmap.Config.ARGB_8888).also { buffer.rewind(); it.copyPixelsFromBuffer(buffer) }.asImageBitmap()
+        } else {
+            null
+        }
+        thumbnails[id] = revision to image
+        return image
+    }
+
     /** Insert [texture] as a texture layer (`uistandards.md` §7.4): a live pattern, editable, not baked in. */
     fun insertTexture(texture: TextureLibrary.Texture) {
         val file = runCatching { textures.file(texture) }.getOrElse { error = "Couldn't read the texture ${texture.name}"; return }
@@ -502,3 +524,4 @@ class EditorState(private val context: Context) {
 // - afterDocumentChange(): colours, tool, camera and panels after a new or opened document.
 // - touched(): the document changed outside the tools.
 // - show(r), show(error): show an error.
+// - THUMBNAIL_PX, thumbnails, thumbnail(id): Layers panel thumbnails, 112 px, made once per revision.

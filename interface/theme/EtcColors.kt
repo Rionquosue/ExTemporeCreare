@@ -10,8 +10,12 @@ object EtcColors {
     /** Application shell (`--shell`). */
     val Shell = Color(0xFF141E29)
 
-    /** Floating panel (`--panel`, #17222EEB). */
-    val Panel = Color(0xEB17222E)
+    /**
+     * Floating panel (`--panel`, #17222E). The mockup's translucency (EB) needs a backdrop blur,
+     * which Compose doesn't offer, so the panels use the opaque fallback `uistandards.md` §3.2 asks
+     * for, keeping labels readable over artwork.
+     */
+    val Panel = Color(0xFF17222E)
 
     /** Secondary panel surface (`--panel2`). */
     val Panel2 = Color(0xFF1D2A37)

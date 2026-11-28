@@ -158,6 +158,7 @@ EXTEMPORECREARE
 |   |-- dial/
 |   |   |-- ColorControl.kt
 |   |   |-- DialGrip.kt
+|   |   |-- DialSizeSlider.kt
 |   |   |-- DialToolbar.kt
 |   |   |-- DialTools.kt
 |   |   |-- RotaryDial.kt

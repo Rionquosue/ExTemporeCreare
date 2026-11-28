@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import com.extemporecreare.app.ui.dial.TOOLBAR_REACH
 import com.extemporecreare.app.ui.dial.DialToolbar
 import androidx.compose.runtime.setValue
@@ -52,7 +54,9 @@ import com.extemporecreare.app.ui.common.ConfirmDialog
 import com.extemporecreare.app.ui.common.Confirmation
 import com.extemporecreare.app.ui.debug.DebugOverlay
 import com.extemporecreare.app.ui.dial.ColorControl
+import com.extemporecreare.app.ui.dial.DIAL_DIAMETER
 import com.extemporecreare.app.ui.dial.DialGrip
+import com.extemporecreare.app.ui.dial.DialSizeSlider
 import com.extemporecreare.app.ui.dial.DialStepper
 import com.extemporecreare.app.ui.dial.RotaryDial
 import com.extemporecreare.app.ui.dial.ToolReadout
@@ -155,9 +159,9 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
                     }
                     MovablePanel(PanelLayout.LAYERS, layout) { header ->
                         val export = state.activeTool as? ExportTool
-                        Box(Modifier.width(368.dp)) {
+                        Box {
                             if (export != null) {
-                                Column {
+                                Column(Modifier.width(368.dp)) {
                                     Box(
                                         header.fillMaxWidth().height(18.dp).background(EtcColors.Panel2, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                                         contentAlignment = Alignment.Center,
@@ -207,18 +211,29 @@ fun EditorScreen(state: EditorState, requests: EditorRequests, board: BoardActio
             if (dock == null) {
                 val dx = layout.dialX.dp
                 val dy = layout.dialY.dp
+                // The dial's centre sits on the workspace's bottom edge near its left, as in the mockup.
                 RotaryDial(
                     names = state.tools.map { it.name },
                     active = state.activeIndex,
                     onChoose = { state.chooseTool(it) },
                     onActiveTap = { state.settingsOpen = !state.settingsOpen },
-                    modifier = Modifier.align(Alignment.BottomStart).offset((-110).dp + dx, 110.dp + dy),
-                ) { colors(Modifier) }
-                DialGrip(layout, workspaceOrigin, workspaceSize, Modifier.align(Alignment.BottomStart).offset(18.dp + dx, (-250).dp + dy))
-                DialStepper({ state.stepTool(-1) }, { state.stepTool(1) }, Modifier.align(Alignment.BottomStart).offset(206.dp + dx, (-16).dp + dy))
-                readout(Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-64).dp + dy))
-                if (state.colorWorkspaceOpen) workspace(Modifier.align(Alignment.BottomStart).offset(16.dp + dx, (-190).dp + dy))
-                if (state.settingsOpen) settings(Modifier.align(Alignment.BottomStart).offset(210.dp + dx, (-130).dp + dy))
+                    modifier = Modifier.align(Alignment.BottomStart).offset(DIAL_CENTRE_X - DIAL_DIAMETER / 2 + dx, DIAL_DIAMETER / 2 + dy),
+                )
+                // The inner disc: the size slider, the readout and the colour control.
+                DialSizeSlider(
+                    remember(revision, state.activeIndex, state.settingsOpen) { sizeOf(state.activeTool)?.first },
+                    { state.show(setSize(state.engine, state.activeTool, it)); state.touched() },
+                    Modifier.align(Alignment.BottomStart).offset(52.dp + dx, (-18).dp + dy),
+                )
+                Box(Modifier.align(Alignment.BottomStart).offset(120.dp + dx, (-30).dp + dy).size(1.dp, 132.dp).background(EtcColors.Line))
+                readout(Modifier.align(Alignment.BottomStart).offset(134.dp + dx, (-96).dp + dy))
+                Box(Modifier.align(Alignment.BottomStart).offset(134.dp + dx, (-20).dp + dy).size(60.dp), contentAlignment = Alignment.Center) {
+                    colors(Modifier.requiredSize(76.dp).scale(60f / 76f))
+                }
+                DialGrip(layout, workspaceOrigin, workspaceSize, Modifier.align(Alignment.BottomStart).offset((PanelLayout.GRIP_X_DP - 22).dp + dx, (22 - PanelLayout.GRIP_FROM_BOTTOM_DP).dp + dy))
+                DialStepper({ state.stepTool(-1) }, { state.stepTool(1) }, Modifier.align(Alignment.BottomStart).offset(DIAL_CENTRE_X + DIAL_DIAMETER / 2 + 8.dp + dx, (-12).dp + dy))
+                if (state.colorWorkspaceOpen) workspace(Modifier.align(Alignment.BottomStart).offset(16.dp + dx, (-420).dp + dy))
+                if (state.settingsOpen) settings(Modifier.align(Alignment.BottomStart).offset(DIAL_CENTRE_X + DIAL_DIAMETER / 2 + 16.dp + dx, (-72).dp + dy))
             } else {
                 // The dial docked as a toolbar: its readout, colour workspace and settings beside it.
                 val (bar, beside, above) = when (dock) {
@@ -288,6 +303,8 @@ private fun layersActions(state: EditorState, layout: PanelLayout): LayersAction
         card = LayerCardActions(
             select = { id -> state.run("layer.setCurrent", JSONObject().put("id", id)) },
             setVisible = { id, on -> state.run("layer.setProps", JSONObject().put("id", id).put("visible", on)) },
+            setLocked = { id, on -> state.run("layer.setProps", JSONObject().put("id", id).put("locked", on)) },
+            thumbnail = { id -> state.thumbnail(id) },
             setOpacity = { id, v -> state.run("transparency.set", JSONObject().put("ids", ids(id)).put("opacity", v)) },
             setFill = { id, v -> state.run("layer.setFill", JSONObject().put("ids", ids(id)).put("fill", v)) },
             setTextureScale = { id, percent -> state.run("texture.set", JSONObject().put("id", id).put("scale", percent / 100.0)) },
@@ -331,6 +348,9 @@ private fun layersActions(state: EditorState, layout: PanelLayout): LayersAction
     )
 }
 
+/** The rotary dial's centre: this far from the workspace's left edge, on its bottom edge. */
+private val DIAL_CENTRE_X = 35.dp
+
 /** The current row in [rows] (depth first), or null. */
 private fun findCurrent(rows: JSONArray): JSONObject? {
     for (i in 0 until rows.length()) {
@@ -346,3 +366,4 @@ private fun findCurrent(rows: JSONArray): JSONObject? {
 // - EditorScreen(state, requests, board): the editor workspace; board: the Reference board panel's actions.
 // - layersActions(state, layout): the Layers panel's engine commands (Texture opens the Texture library).
 // - findCurrent(rows): the current row.
+// - DIAL_CENTRE_X: the rotary dial's centre from the left edge, 35 dp (on the bottom edge).
