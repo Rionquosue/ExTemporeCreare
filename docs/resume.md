@@ -11,6 +11,11 @@ Where the work stands and how to carry on. Read this first in a new session, the
 ## Standing rules
 
 - **Follow instructions literally.** Treat what the owner specifies as requirements. Don't reinterpret, narrow or extend them, and add nothing unrequested; propose it and wait. When something is ambiguous, ask one short question. When a constraint blocks a requirement, name the conflict in one sentence and ask.
+- **Current standards, never memory:** training data is out of date, so never pick a version or an API from memory.
+  - Before adding or changing any SDK level, plugin, library, toolchain, NDK, Gradle or Rust version, look up the latest stable release at its primary source that day (Maven metadata on `dl.google.com` or Maven Central, `services.gradle.org/versions/current`, the Android SDK repository XML, official release notes), and use it unless the owner says otherwise.
+  - Use the current, non-deprecated API for each tool and library at that version: read its release notes or migration guide for the version in use, not older examples.
+  - Build with deprecation warnings shown (`--warning-mode all`, and compiler warnings) and fix every deprecation before committing.
+  - When reporting, name each version chosen and where it was checked. When a source can't be reached, say so and ask; don't fall back to memory.
 - **Git:**
   - Commit and push only to `beta`.
   - Run `git remote -v` before every push. Never force-push.
