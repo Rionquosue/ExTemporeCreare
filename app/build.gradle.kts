@@ -42,11 +42,11 @@ android {
 
     sourceSets {
         getByName("main") {
-            kotlin.srcDirs("../interface", "../components", "../tools")
-            java.srcDirs("../interface", "../components", "../tools")
+            kotlin.directories += listOf("../interface", "../components", "../tools")
+            java.directories += listOf("../interface", "../components", "../tools")
             // tools/Libraries/presets → assets/presets
-            assets.srcDirs("../tools/Libraries")
-            jniLibs.srcDirs(layout.buildDirectory.dir("engine/jniLibs").get().asFile)
+            assets.directories += "../tools/Libraries"
+            jniLibs.directories += layout.buildDirectory.dir("engine/jniLibs").get().asFile.path
         }
     }
 }
@@ -68,7 +68,7 @@ dependencies {
  * NDK and the Rust targets aarch64-linux-android and x86_64-linux-android) into
  * build/engine/jniLibs, which the app packages.
  */
-val buildEngine by tasks.registering(Exec::class) {
+val buildEngine = tasks.register<Exec>("buildEngine") {
     description = "Builds the engine bridge (libetcbridge.so) for every ABI with cargo-ndk."
     workingDir = rootProject.file("engine")
     val out = layout.buildDirectory.dir("engine/jniLibs").get().asFile
