@@ -17,6 +17,8 @@ android {
         }
     }
     buildToolsVersion = "37.0.0"
+    // The NDK buildEngine builds the engine with (cargo-ndk, through ANDROID_NDK_HOME).
+    ndkVersion = "30.0.16248370"
 
     defaultConfig {
         applicationId = "com.extemporecreare.app"
@@ -71,7 +73,8 @@ dependencies {
 /**
  * Build libetcbridge.so for each ABI with cargo-ndk (`cargo install cargo-ndk`; needs the Android
  * NDK and the Rust targets aarch64-linux-android and x86_64-linux-android) into
- * build/engine/jniLibs, which the app packages.
+ * build/engine/jniLibs, which the app packages. It uses the NDK named by android.ndkVersion,
+ * passed to cargo-ndk as ANDROID_NDK_HOME, so no ANDROID_NDK_HOME needs setting by hand.
  */
 val buildEngine = tasks.register<Exec>("buildEngine") {
     description = "Builds the engine bridge (libetcbridge.so) for every ABI with cargo-ndk."
@@ -79,6 +82,10 @@ val buildEngine = tasks.register<Exec>("buildEngine") {
     val out = layout.buildDirectory.dir("engine/jniLibs").get().asFile
     // Cargo's build files stay under app/build, out of the repository's tracked folders.
     environment("CARGO_TARGET_DIR", layout.buildDirectory.dir("engine/target").get().asFile.absolutePath)
+    val ndk = androidComponents.sdkComponents.ndkDirectory
+    doFirst {
+        environment("ANDROID_NDK_HOME", ndk.get().asFile.absolutePath)
+    }
     commandLine(
         "cargo", "ndk",
         "-t", "arm64-v8a",
@@ -94,8 +101,8 @@ tasks.named("preBuild") {
 
 // GLOSSARY
 // - android.namespace / applicationId: com.extemporecreare.app.
-// - minSdk 26, targetSdk 37, compileSdk 37.2, buildToolsVersion 37.0.0.
+// - minSdk 26, targetSdk 37, compileSdk 37.2, buildToolsVersion 37.0.0, ndkVersion 30.0.16248370.
 // - abiFilters: arm64-v8a (tablets and phones) and x86_64 (emulators).
 // - sourceSets.main: Kotlin from interface/, components/, tools/; assets from tools/Libraries (presets/); jniLibs from build/engine/jniLibs.
 // - dependencies: Compose (BOM 2026.11.01), core-ktx 1.19.1, activity-compose 1.13.0, material3.
-// - buildEngine: builds libetcbridge.so with cargo-ndk before every build (preBuild).
+// - buildEngine: builds libetcbridge.so with cargo-ndk before every build (preBuild), with the NDK of ndkVersion as ANDROID_NDK_HOME.

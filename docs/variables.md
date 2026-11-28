@@ -45,7 +45,7 @@ Stored keys, paths, constants and identifiers.
 
 ## Android build
 
-- `applicationId` / `namespace`: `com.extemporecreare.app`; `minSdk` 26, `targetSdk` 37, `compileSdk` 37.2; ABIs `arm64-v8a`, `x86_64`.
+- `applicationId` / `namespace`: `com.extemporecreare.app`; `minSdk` 26, `targetSdk` 37, `compileSdk` 37.2; build-tools 37.0.0; NDK 30.0.16248370 (`ndkVersion`); ABIs `arm64-v8a`, `x86_64`.
 - Source sets of `app/`: Kotlin from `interface/`, `components/`, `tools/`; assets from `tools/Libraries` (so `presets/`); native libraries from `app/build/engine/jniLibs` (task `buildEngine`, cargo-ndk).
 - Presets on the device: `filesDir/presets/`, with `.version` (the app's last update time) marking the copy.
 
